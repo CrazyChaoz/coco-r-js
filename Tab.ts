@@ -351,4 +351,23 @@ class Tab {
         this.trace.WriteLine();
     }
 
+    public PrintSet(s: BitSet, indent: number) {
+        let col = indent;
+        //foreach (Symbol sym in Symbol.terminals) {
+        for (let i = 0; i < this.terminals.length; i++) {
+            let sym = this.terminals[i];
+            if (s[sym.n]) {
+                let len = sym.name.length();
+                if (col + len >= 80) {
+                    this.trace.WriteLine();
+                    for (col = 1; col < indent; col++) this.trace.Write(" ");
+                }
+                this.trace.Write(sym.name + " ");
+                col += len + 1;
+            }
+        }
+        if (col == indent) this.trace.Write("-- empty set --");
+        this.trace.WriteLine();
+    }
+
 }
