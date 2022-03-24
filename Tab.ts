@@ -41,10 +41,6 @@ class State {
 }
 
 
-//TODO:
-class Hashtable {
-}
-
 class Position {
     public readonly beg: number;
     public readonly end: number;
@@ -212,10 +208,18 @@ class Parser {
 }
 
 class Trace {
+    Write(s: string, number?: number) {
+
+    }
+
+    WriteLine(s?: string) {
+
+    }
 }
 
 class Errors {
 }
+
 
 class Tab {
     public semDeclPos: Position;        // position of global semantic declarations
@@ -225,7 +229,7 @@ class Tab {
     public eofSy: Symbol;               // end of file symbol
     public noSym: Symbol;               // used in case of an error
     public allSyncSets: BitSet;         // union of all synchronisation sets
-    public literals: Hashtable;         // symbols that are used as literals
+    public literals: { key: string, value: Symbol };         // symbols that are used as literals
 
     public srcName: string;             // name of the atg file (including path)
     public srcDir: string;              // directory path of the atg file
@@ -259,8 +263,8 @@ class Tab {
         this.trace = parser.trace;
         this.errors = parser.errors;
         this.eofSy = this.NewSym(Node.t, "EOF", 0);
-        this.dummyNode = NewNode(Node.eps, null, 0);
-        this.literals = new Hashtable();
+        this.dummyNode = this.NewNode(Node.eps, null, 0);
+        this.literals = {};
     }
 
     NewSym(typ: number, name: string, line: number): Symbol {
@@ -302,6 +306,49 @@ class Tab {
 
     Num(p: Node): number {
         if (p == null) return 0; else return p.n;
+    }
+
+    PrintSym(sym: Symbol) {
+        this.trace.Write(sym.n.toString(), -14);
+        this.trace.Write(" ", -14);
+        this.trace.Write(this.Name(sym.name), -14);
+        this.trace.Write(" ", -14);
+        this.trace.Write((this.nTyp)[sym.typ], -14);
+        if (sym.attrPos == null) this.trace.Write(" false "); else this.trace.Write(" true  ");
+        if (sym.typ == Node.nt) {
+            this.trace.Write(this.Num(sym.graph).toString(), 5);
+            if (sym.deletable) this.trace.Write(" true  "); else this.trace.Write(" false ");
+        } else
+            this.trace.Write("            ");
+        this.trace.Write(sym.line.toString(), 5);
+        this.trace.WriteLine(" " + (this.tKind)[sym.tokenKind]);
+    }
+
+    public PrintSymbolTable(s: string) {
+        this.trace.WriteLine("Symbol Table:");
+        this.trace.WriteLine("------------");
+        this.trace.WriteLine();
+        this.trace.WriteLine(" nr name           typ  hasAt graph  del   line tokenKind");
+        //foreach (Symbol sym in Symbol.terminals)
+        for (let i = 0; i < this.terminals.length; i++) {
+            this.PrintSym(this.terminals[i]);
+        }
+        //foreach (Symbol sym in Symbol.pragmas)
+        for (let i = 0; i < this.pragmas.length; i++) {
+            this.PrintSym(this.pragmas[i]);
+        }
+        //foreach (Symbol sym in Symbol.nonterminals)
+        for (let i = 0; i < this.nonterminals.length; i++) {
+            this.PrintSym(this.nonterminals[i]);
+        }
+        this.trace.WriteLine();
+        this.trace.WriteLine("Literal Tokens:");
+        this.trace.WriteLine("--------------");
+        //foreach (DictionaryEntry e in literals) {
+        for (let literalsData in this.literals) {
+            this.trace.WriteLine("_" + literalsData["value"].name + " = " + literalsData["key"] + ".");
+        }
+        this.trace.WriteLine();
     }
 
 }
