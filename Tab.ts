@@ -212,8 +212,12 @@ class Trace {
 
     }
 
-    WriteLine(s?: string) {
+    WriteLine(s?: string, n?: number) {
 
+    }
+
+    formatString(s: string, number: number) {
+        return "";
     }
 }
 
@@ -257,6 +261,8 @@ class Tab {
 
     tKind = ["fixedToken", "classToken", "litToken", "classLitToken"];
 
+    public classes = [];
+    public dummyName = 'A';
 
     constructor(parser: Parser) {
         this.parser = parser;
@@ -370,4 +376,223 @@ class Tab {
         this.trace.WriteLine();
     }
 
+    //---------------------------------------------------------------------
+    //  Syntax graph management
+    //---------------------------------------------------------------------
+
+    public NewNode(typ: number, sym: Symbol, line: number): Node {
+        let node = new Node(typ, sym, line);
+        node.n = this.nodes.length;
+        this.nodes.push(node);
+        return node;
+    }
+
+    public NewNode(typ: number, sub: Node): Node {
+        let node = this.NewNode(typ, null, 0);
+        node.sub = sub;
+        return node;
+    }
+
+    public NewNode(typ: number, val: number, line: number): Node {
+        let node = this.NewNode(typ, null, line);
+        node.val = val;
+        return node;
+    }
+
+    public MakeFirstAlt(g: Graph) {
+        g.l = this.NewNode(Node.alt, g.l);
+        g.l.line = g.l.sub.line;
+        g.r.up = true;
+        g.l.next = g.r;
+        g.r = g.l;
+    }
+
+// The result will be in g1
+    public MakeAlternative(g1: Graph, g2: Graph) {
+        g2.l = this.NewNode(Node.alt, g2.l);
+        g2.l.line = g2.l.sub.line;
+        g2.l.up = true;
+        g2.r.up = true;
+        let p = g1.l;
+        while (p.down != null) p = p.down;
+        p.down = g2.l;
+        p = g1.r;
+        while (p.next != null) p = p.next;
+        // append alternative to g1 end list
+        p.next = g2.l;
+        // append g2 end list to g1 end list
+        g2.l.next = g2.r;
+    }
+
+    // The result will be in g1
+    public MakeSequence(g1: Graph, g2: Graph) {
+        let p = g1.r.next;
+        g1.r.next = g2.l; // link head node
+        while (p != null) {  // link substructure
+            let q = p.next;
+            p.next = g2.l;
+            p = q;
+        }
+        g1.r = g2.r;
+    }
+
+    public MakeIteration(g: Graph) {
+        g.l = this.NewNode(Node.iter, g.l);
+        g.r.up = true;
+        let p = g.r;
+        g.r = g.l;
+        while (p != null) {
+            let q = p.next;
+            p.next = g.l;
+            p = q;
+        }
+    }
+
+    public MakeOption(g: Graph) {
+        g.l = this.NewNode(Node.opt, g.l);
+        g.r.up = true;
+        g.l.next = g.r;
+        g.r = g.l;
+    }
+
+    public Finish(g: Graph) {
+        let p = g.r;
+        while (p != null) {
+            let q = p.next;
+            p.next = null;
+            p = q;
+        }
+    }
+
+    public DeleteNodes() {
+        this.nodes = [];
+        this.dummyNode = this.NewNode(Node.eps, null, 0);
+    }
+
+    public StrToGraph(str: string): Graph {
+        let s = this.Unescape(str.substring(1, str.length - 1));
+        if (s.length() == 0) this.parser.SemErr("empty token not allowed");
+        let g = new Graph();
+        g.r = this.dummyNode;
+        for (let i = 0; i < s.length; i++) {
+            let p = this.NewNode(Node.chr, s.charAt(i), 0);
+            g.r.next = p;
+            g.r = p;
+        }
+        g.l = this.dummyNode.next;
+        this.dummyNode.next = null;
+        return g;
+    }
+
+    public SetContextTrans(p: Node) { // set transition code in the graph rooted at p
+        while (p != null) {
+            if (p.typ == Node.chr || p.typ == Node.clas) {
+                p.code = Node.contextTrans;
+            } else if (p.typ == Node.opt || p.typ == Node.iter) {
+                this.SetContextTrans(p.sub);
+            } else if (p.typ == Node.alt) {
+                this.SetContextTrans(p.sub);
+                this.SetContextTrans(p.down);
+            }
+            if (p.up) break;
+            p = p.next;
+        }
+    }
+
+    //---------------- graph deletability check ---------------------
+
+    public DelGraph(p: Node): boolean {
+        return p == null || this.DelNode(p) && this.DelGraph(p.next);
+    }
+
+    public DelSubGraph(p: Node): boolean {
+        return p == null || this.DelNode(p) && (p.up || this.DelSubGraph(p.next));
+    }
+
+    public DelNode(p: Node): boolean {
+        if (p.typ == Node.nt) return p.sym.deletable;
+        else if (p.typ == Node.alt) return this.DelSubGraph(p.sub) || p.down != null && this.DelSubGraph(p.down);
+        else return p.typ == Node.iter || p.typ == Node.opt || p.typ == Node.sem
+                || p.typ == Node.eps || p.typ == Node.sync || p.typ == Node.rslv;
+    }
+
+    //-------------------- graph printing ------------------------
+
+    Ptr(p: Node, up: boolean): string {
+        let ptr = (p == null) ? "0" : p.n.toString();
+        return (up) ? ("-" + ptr) : ptr;
+    }
+
+    Pos(pos: Position): string {
+        if (pos == null) return "     ";
+        else return this.trace.formatString(pos.beg.toString(), 5);
+    }
+
+    public Name(name: string): string {
+        return (name + "           ").substring(0, 12);
+        // found no simpler way to get the first 12 characters of the name
+        // padded with blanks on the right
+    }
+
+    public PrintNodes() {
+        this.trace.WriteLine("Graph nodes:");
+        this.trace.WriteLine("----------------------------------------------------");
+        this.trace.WriteLine("   n type name          next  down   sub   pos  line");
+        this.trace.WriteLine("                               val  code");
+        this.trace.WriteLine("----------------------------------------------------");
+        //foreach (Node p in nodes) {
+        for (let i = 0; i < this.nodes.length; i++) {
+            let p = this.nodes[i];
+            this.trace.Write(p.n.toString(), 4);
+            this.trace.Write(" " + (this.nTyp)[p.typ] + " ");
+            if (p.sym != null) {
+                this.trace.Write(this.Name(p.sym.name), 12);
+                this.trace.Write(" ");
+            } else if (p.typ == Node.clas) {
+                let c = this.classes[p.val];
+                this.trace.Write(this.Name(c.name), 12);
+                this.trace.Write(" ");
+            } else this.trace.Write("             ");
+            this.trace.Write(this.Ptr(p.next, p.up), 5);
+            this.trace.Write(" ");
+            switch (p.typ) {
+                case Node.t:
+                case Node.nt:
+                case Node.wt:
+                    this.trace.Write("             ");
+                    this.trace.Write(this.Pos(p.pos), 5);
+                    break;
+                case Node.chr:
+                    this.trace.Write(p.val.toString(), 5);
+                    this.trace.Write(" ");
+                    this.trace.Write(p.code.toString(), 5);
+                    this.trace.Write("       ");
+                    break;
+                case Node.clas:
+                    this.trace.Write("      ");
+                    this.trace.Write(p.code, 5);
+                    this.trace.Write("       ");
+                    break;
+                case Node.alt:
+                case Node.iter:
+                case Node.opt:
+                    this.trace.Write(this.Ptr(p.down, false), 5);
+                    this.trace.Write(" ");
+                    this.trace.Write(this.Ptr(p.sub, false), 5);
+                    this.trace.Write("       ");
+                    break;
+                case Node.sem:
+                    this.trace.Write("             ");
+                    this.trace.Write(this.Pos(p.pos), 5);
+                    break;
+                case Node.eps:
+                case Node.any:
+                case Node.sync:
+                    this.trace.Write("                  ");
+                    break;
+            }
+            this.trace.WriteLine(p.line.toString(), 5);
+        }
+        this.trace.WriteLine();
+    }
 }
