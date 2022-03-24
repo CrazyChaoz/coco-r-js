@@ -217,16 +217,6 @@ class Trace {
 class Errors {
 }
 
-class ArrayList {
-    add(sym: Symbol) {
-
-    }
-
-    size() {
-        return 0;
-    }
-}
-
 class Tab {
     public semDeclPos: Position;        // position of global semantic declarations
     public ignored: CharSet;            // characters ignored by the scanner
@@ -252,14 +242,14 @@ class Tab {
     trace: Trace;
     errors: Errors;
 
-    public nodes = new ArrayList();
+    public nodes = [];
     public nTyp = ["    ", "t   ", "pr  ", "nt  ", "clas", "chr ", "wt  ", "any ", "eps ",  /* AW 03-01-14 nTyp[0]: " " --> "    " */
         "sync", "sem ", "alt ", "iter", "opt ", "rslv"];
     dummyNode: Node;
 
-    public terminals = new ArrayList();
-    public pragmas = new ArrayList();
-    public nonterminals = new ArrayList();
+    public terminals = [];
+    public pragmas = [];
+    public nonterminals = [];
 
     tKind = ["fixedToken", "classToken", "litToken", "classLitToken"];
 
@@ -273,16 +263,45 @@ class Tab {
         this.literals = new Hashtable();
     }
 
-     NewSym( typ:number, name:string, line:number):Symbol {
+    NewSym(typ: number, name: string, line: number): Symbol {
         if (name.length == 2 && name.charAt(0) == '"') {
-            this.parser.SemErr("empty token not allowed"); name = "???";
+            this.parser.SemErr("empty token not allowed");
+            name = "???";
         }
-         let sym = new Symbol(typ, name, line);
+        let sym = new Symbol(typ, name, line);
         switch (typ) {
-            case Node.t:  sym.n = this.terminals.size(); this.terminals.add(sym); break;
-            case Node.pr: this.pragmas.add(sym); break;
-            case Node.nt: sym.n = this.nonterminals.size(); this.nonterminals.add(sym); break;
+            case Node.t:
+                sym.n = this.terminals.length;
+                this.terminals.push(sym);
+                break;
+            case Node.pr:
+                this.pragmas.push(sym);
+                break;
+            case Node.nt:
+                sym.n = this.nonterminals.length;
+                this.nonterminals.push(sym);
+                break;
         }
         return sym;
     }
+
+    public FindSym(name: string): Symbol {
+        let s: Symbol;
+        //foreach (Symbol s in terminals)
+        for (let i = 0; i < this.terminals.length; i++) {
+            s = this.terminals[i];
+            if (s.name === name) return s;
+        }
+        //foreach (Symbol s in nonterminals)
+        for (let i = 0; i < this.nonterminals.length; i++) {
+            s = this.nonterminals[i];
+            if (s.name === name) return s;
+        }
+        return null;
+    }
+
+    Num(p: Node): number {
+        if (p == null) return 0; else return p.n;
+    }
+
 }
