@@ -92,7 +92,17 @@ class Trace {
 
 //TODO:
 class Errors {
-    Warning(s: string) {
+
+
+    Warning(s: string)
+
+    Warning(line: number, col: number, s: string)
+
+    Warning(arg0,arg1?,arg2?) {
+
+    }
+
+    SemErr(s: string) {
 
     }
 }
@@ -254,6 +264,15 @@ class CharClass {
     }
 }
 
+class CNode {	// node of list for finding circular productions
+    public left: Symbol;
+    public right: Symbol;
+
+    constructor(l: Symbol, r: Symbol) {
+        this.left = l;
+        this.right = r;
+    }
+}
 
 class Tab {
     public semDeclPos: Position;        // position of global semantic declarations
@@ -960,7 +979,7 @@ class Tab {
         //foreach (Symbol sym in Symbol.nonterminals)
         for (let i = 0; i < this.nonterminals.length; i++) {
             sym = this.nonterminals[i];
-            if (sym.deletable) this.errors.Warning("  " + sym.name + " deletable");
+            if (sym.deletable) this.errors.Warning(p.line, p.pos.col, "  " + sym.name + " deletable");
         }
     }
 
@@ -1149,4 +1168,214 @@ class Tab {
         }
         return buf.toString();
     }
+
+    //---------------------------------------------------------------------
+    //  Grammar checks
+    //---------------------------------------------------------------------
+
+    public GrammarOk(): boolean {
+        let ok = this.NtsComplete()
+            && this.NoCircularProductions()
+            && this.AllNtToTerm();
+        if (ok) {
+            this.AllNtReached();
+            this.CheckResolvers();
+            this.CheckLL1();
+        }
+        return ok;
+    }
+
+    //--------------- check for circular productions ----------------------
+
+
+    GetSingles(p: Node_, singles: Symbol[]) {
+        if (p == null) return;  // end of graph
+        if (p.typ == Node_.nt) {
+            if (p.up || this.DelGraph(p.next)) singles.push(p.sym);
+        } else if (p.typ == Node_.alt || p.typ == Node_.iter || p.typ == Node_.opt) {
+            if (p.up || this.DelGraph(p.next)) {
+                this.GetSingles(p.sub, singles);
+                if (p.typ == Node_.alt) this.GetSingles(p.down, singles);
+            }
+        }
+        if (!p.up && this.DelNode(p)) this.GetSingles(p.next, singles);
+    }
+
+    public NoCircularProductions(): boolean {
+        let ok, changed, onLeftSide, onRightSide: boolean;
+
+        let list = [];
+        for (let i = 0; i < this.nonterminals.length; i++) {
+            let sym = this.nonterminals[i];
+            let singles = [];
+            this.GetSingles(sym.graph, singles); // get nonterminals s such that sym-->s
+            for (let j = 0; j < singles.length; j++) {
+                let s = singles[j];
+                list.push(new CNode(sym, s));
+            }
+        }
+        do {
+            changed = false;
+            for (let i = 0; i < list.length; i++) {
+                let n = list[i];
+                onLeftSide = false;
+                onRightSide = false;
+                for (let j = 0; j < list.length; j++) {
+                    let m = list[j];
+                    if (n.left == m.right) onRightSide = true;
+                    if (n.right == m.left) onLeftSide = true;
+                }
+                if (!onLeftSide || !onRightSide) {
+                    list.splice(list.indexOf(n), 1);
+                    i--;
+                    changed = true;
+                }
+            }
+        } while (changed);
+        ok = true;
+        for (let i = 0; i < list.length; i++) {
+            let n = list[i];
+            ok = false;
+            this.errors.SemErr("  " + n.left.name + " --> " + n.right.name);
+        }
+        return ok;
+    }
+
+    //--------------- check for LL(1) errors ----------------------
+
+    LL1Error(cond: number, sym: Symbol) {
+        let s = "  LL1 warning in " + this.curSy.name + ": ";
+        if (sym != null) s += sym.name + " is ";
+        switch (cond) {
+            case 1:
+                s += "start of several alternatives";
+                break;
+            case 2:
+                s += "start & successor of deletable structure";
+                break;
+            case 3:
+                s += "an ANY node that matches no symbol";
+                break;
+            case 4:
+                s += "contents of [...] or {...} must not be deletable";
+                break;
+        }
+        this.errors.Warning(s);
+    }
+
+    CheckOverlap(s1: BitSet, s2: BitSet, cond: number) {
+        for (let i = 0; i < this.terminals.length; i++) {
+            let sym = this.terminals[i];
+            if (s1.get(sym.n) && s2.get(sym.n)) this.LL1Error(cond, sym);
+        }
+    }
+
+    CheckAlts(p: Node_) {
+        let s1, s2: BitSet;
+        while (p != null) {
+            if (p.typ == Node_.alt) {
+                let q = p;
+                s1 = new BitSet(this.terminals.length);
+                while (q != null) { // for all alternatives
+                    s2 = this.Expected0(q.sub, this.curSy);
+                    this.CheckOverlap(s1, s2, 1);
+                    s1.or(s2);
+                    this.CheckAlts(q.sub);
+                    q = q.down;
+                }
+            } else if (p.typ == Node_.opt || p.typ == Node_.iter) {
+                if (this.DelSubGraph(p.sub)) this.LL1Error(4, null); // e.g. [[...]]
+                else {
+                    s1 = this.Expected0(p.sub, this.curSy);
+                    s2 = this.Expected(p.next, this.curSy);
+                    this.CheckOverlap(s1, s2, 2);
+                }
+                this.CheckAlts(p.sub);
+            } else if (p.typ == Node_.any) {
+                if (Sets.Elements(p.set) == 0) this.LL1Error(3, null);
+                // e.g. {ANY} ANY or [ANY] ANY or ( ANY | ANY )
+            }
+            if (p.up) break;
+            p = p.next;
+        }
+    }
+
+    public CheckLL1() {
+        for (let i = 0; i < this.nonterminals.length; i++) {
+            this.curSy = this.nonterminals[i];
+            this.CheckAlts(this.curSy.graph);
+        }
+    }
+
+    //------------- check if resolvers are legal  --------------------
+
+     ResErr( p:Node_,  msg:string) {
+    this.errors.Warning(p.line, p.pos.col, msg);
+}
+
+ CheckRes( p:Node_,  rslvAllowed:boolean) {
+    while (p != null) {
+        switch (p.typ) {
+            case Node_.alt:
+                let expected = new BitSet(this.terminals.length);
+                for (let q = p; q != null; q = q.down)
+                expected.or(this.Expected0(q.sub, this.curSy));
+                let soFar = new BitSet(this.terminals.length);
+                for (let q = p; q != null; q = q.down) {
+                if (q.sub.typ == Node_.rslv) {
+                    let fs = this.Expected(q.sub.next, this.curSy);
+                    if (Sets.Intersect(fs, soFar))
+                        this.ResErr(q.sub, "Warning: Resolver will never be evaluated. " +
+                            "Place it at previous conflicting alternative.");
+                    if (!Sets.Intersect(fs, expected))
+                        this.ResErr(q.sub, "Warning: Misplaced resolver: no LL(1) conflict.");
+                } else soFar.or(this.Expected(q.sub, this.curSy));
+                this.CheckRes(q.sub, true);
+            }
+                break;
+            case Node_.iter: case Node_.opt:
+                if (p.sub.typ == Node_.rslv) {
+                    let fs = this.First(p.sub.next);
+                    let fsNext = this.Expected(p.next, this.curSy);
+                    if (!Sets.Intersect(fs, fsNext))
+                        this.ResErr(p.sub, "Warning: Misplaced resolver: no LL(1) conflict.");
+                }
+                this.CheckRes(p.sub, true);
+                break;
+            case Node_.rslv:
+                if (!rslvAllowed)
+                    this.ResErr(p, "Warning: Misplaced resolver: no alternative.");
+                break;
+        }
+        if (p.up) break;
+        p = p.next;
+        rslvAllowed = false;
+    }
+}
+
+public  CheckResolvers() {
+    //foreach (Symbol sym in Symbol.nonterminals) {
+    for (let i = 0; i < this.nonterminals.length; i++) {
+        this.curSy = this.nonterminals[i];
+        this.CheckRes(this.curSy.graph, false);
+    }
+}
+
+//------------- check if every nts has a production --------------------
+
+    public  NtsComplete():boolean {
+        let complete = true;
+        for (let i = 0; i < this.nonterminals.length; i++) {
+            let sym = this.nonterminals[i];
+            if (sym.graph == null) {
+                complete = false;
+                this.errors.SemErr("  No production for " + sym.name);
+            }
+        }
+        return complete;
+    }
+
+    //-------------- check if every nts can be reached  -----------------
+
+
 }
