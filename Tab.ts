@@ -1445,5 +1445,105 @@ class Tab {
 //---------------------------------------------------------------------
 //  Cross reference list
 //---------------------------------------------------------------------
+    public XRef() {
+        let xref = new TreeMap(new SymbolComp());
+        // collect lines where symbols have been defined
+        //foreach (Symbol sym in Symbol.nonterminals) {
+        for (let i = 0; i < this.nonterminals.length; i++) {
+            let sym = this.nonterminals[i];
+            let list = xref.get(sym);
+            if (list == null) {
+                list = [];
+                xref.put(sym, list);
+            }
+            list.push(-sym.line);
+        }
+        // collect lines where symbols have been referenced
+        //foreach (Node n in Node.nodes) {
+        for (let i = 0; i < this.nodes.length; i++) {
+            let n = this.nodes[i];
+            if (n.typ == Node_.t || n.typ == Node_.wt || n.typ == Node_.nt) {
+                let list = xref.get(n.sym);
+                if (list == null) {
+                    list = [];
+                    xref.put(n.sym, list);
+                }
+                list.push(n.line);
+            }
+        }
+        // print cross reference list
+        this.trace.WriteLine();
+        this.trace.WriteLine("Cross reference list:");
+        this.trace.WriteLine("--------------------");
+        this.trace.WriteLine();
+        //foreach (Symbol sym in xref.Keys) {
+        java.util.Iterator
+        iter = xref.keySet().iterator();
+        while (iter.hasNext()) {
+            let sym = iter.next();
+            this.trace.Write("  ");
+            this.trace.Write(this.Name(sym.name), -12);
+            let list = xref.get(sym);
+            let col = 14;
+            //foreach (int line in list) {
+            for (let j = 0; j < list.length; j++) {
+                let line = list.get(j);
+                if (col + 5 > 80) {
+                    this.trace.WriteLine();
+                    for (col = 1; col <= 14; col++) this.trace.Write(" ");
+                }
+                this.trace.Write(line.toString(), 5);
+                col += 5;
+            }
+            this.trace.WriteLine();
+        }
+        this.trace.WriteLine();
+        this.trace.WriteLine();
+    }
 
+    public SetDDT(s: string) {
+        s = s.toUpperCase();
+        for (let i = 0; i < s.length; i++) {
+            let ch = s.charAt(i);
+            if ('0' <= ch && ch <= '9') this.ddt[ch.charCodeAt(0) - '0'.charCodeAt(0)] = true;
+            else switch (ch) {
+                case 'A' :
+                    (this.ddt)[0] = true;
+                    break; // trace automaton
+                case 'F' :
+                    (this.ddt)[1] = true;
+                    break; // list first/follow sets
+                case 'G' :
+                    this.ddt[2] = true;
+                    break; // print syntax graph
+                case 'I' :
+                    (this.ddt)[3] = true;
+                    break; // trace computation of first sets
+                case 'J' :
+                    (this.ddt)[4] = true;
+                    break; // print ANY and SYNC sets
+                case 'P' :
+                    (this.ddt)[8] = true;
+                    break; // print statistics
+                case 'S' :
+                    this.ddt[6] = true;
+                    break; // list symbol table
+                case 'X' :
+                    (this.ddt)[7] = true;
+                    break; // list cross reference table
+                default :
+                    break;
+            }
+        }
+    }
+
+    public SetOption(s: string) {
+        let option = s.split("=", 2);
+        let name = option[0], value = option[1];
+        if ("$package" === name) {
+            if (this.nsName == null) this.nsName = value;
+        } else if ("$checkEOF" === name) {
+            this.checkEOF = "true" === value;
+        }
+    }
 }
