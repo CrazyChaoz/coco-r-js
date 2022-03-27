@@ -164,7 +164,6 @@ export class Range {
 }
 
 export class CharSet {
-
     public head: Range;
 
     public Get(i: number): boolean {
@@ -270,3 +269,107 @@ export class CharSet {
         //this.head = new Range(Character.MIN_VALUE, Character.MAX_VALUE);
     }
 }
+
+
+//-----------------------------------------------------------------------------
+//  Generator
+//-----------------------------------------------------------------------------
+class Generator {
+    private static EOF = -1;
+
+    private fram: Reader;
+    private gen: PrintWriter;
+    private tab: Tab;
+    private frameFile: File;
+
+    constructor(tab: Tab) {
+        this.tab = tab;
+    }
+
+    public OpenFrame(frame: string): Reader {
+        if (this.tab.frameDir != null) this.frameFile = new File(this.tab.frameDir, frame);
+        if (this.frameFile == null || !this.frameFile.exists()) this.frameFile = new File(this.tab.srcDir, frame);
+        if (this.frameFile == null || !this.frameFile.exists()) throw new Error("Cannot find : " + frame);
+
+        try {
+            this.fram = new BufferedReader(new FileReader(this.frameFile)); /* pdt */
+        } catch (FileNotFoundException) {
+            throw new Error("Cannot open frame file: " + this.frameFile.getPath());
+        }
+        return this.fram;
+    }
+
+    public OpenGen(target: string): PrintWriter {
+        let f = new File(this.tab.outDir, target);
+        try {
+            if (f.exists()) {
+                let old = new File(f.getPath() + ".old");
+                old.delete();
+                f.renameTo(old);
+            }
+            this.gen = new PrintWriter(new BufferedWriter(new FileWriter(f, false))); /* pdt */
+        } catch (Exception) {
+            throw new Error("Cannot generate file: " + f.getPath());
+        }
+        return this.gen;
+    }
+
+    public GenCopyright() {
+        let copyFr = null;
+        if (this.tab.frameDir != null) copyFr = new File(this.tab.frameDir, "Copyright.frame");
+        if (copyFr == null || !copyFr.exists()) copyFr = new File(this.tab.srcDir, "Copyright.frame");
+        if (copyFr == null || !copyFr.exists()) return;
+
+        try {
+            let scannerFram = this.fram;
+            this.fram = new BufferedReader(new FileReader(copyFr));
+            this.CopyFramePart(null);
+            this.fram = scannerFram;
+        } catch (FileNotFoundException) {
+            throw new Error("Cannot open Copyright.frame");
+        }
+    }
+
+    public SkipFramePart(stop: string) {
+        this.CopyFramePart(stop, false);
+    }
+
+// if stop == null, copies until end of file
+    private CopyFramePart(stop: string, generateOutput: boolean = true) {
+        let startCh = 0;
+        let endOfStopString = 0;
+
+        if (stop != null) {
+            startCh = stop.charCodeAt(0);
+            endOfStopString = stop.length - 1;
+        }
+
+        let ch = this.framRead();
+        while (ch != Generator.EOF) {
+            if (stop != null && ch == startCh) {
+                let i = 0;
+                do {
+                    if (i == endOfStopString) return; // stop[0..i] found
+                    ch = this.framRead();
+                    i++;
+                } while (ch == stop.charCodeAt(i));
+                // stop[0..i-1] found; continue with last read character
+                if (generateOutput) this.gen.print(stop.substring(0, i));
+            } else {
+                if (generateOutput) this.gen.print(ch);
+                ch = this.framRead();
+            }
+        }
+
+        if (stop != null) throw new Error("Incomplete or corrupt frame file: " + this.frameFile.getPath());
+    }
+
+    private framRead(): number {
+        try {
+            return this.fram.read();
+        } catch (IOException) {
+            throw new Error("Error reading frame file: " + this.frameFile.getPath());
+        }
+    }
+}
+
