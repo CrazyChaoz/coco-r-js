@@ -1,5 +1,8 @@
+import {CharSet, State} from "./DFA";
+
+
 //TODO:
-class BitSet {
+export class BitSet {
     constructor(length: number) {
 
     }
@@ -50,20 +53,6 @@ class BitSet {
     }
 }
 
-//TODO:
-class CharSet {
-    static Range: any;
-    head: any;
-
-    Equals(set) {
-        return false;
-    }
-}
-
-//TODO:
-class State {
-
-}
 
 //TODO:
 class Parser {
@@ -108,7 +97,7 @@ class Errors {
 }
 
 
-class Position {
+export class Position {
     public readonly beg: number;
     public readonly end: number;
     public readonly col: number;
@@ -120,12 +109,12 @@ class Position {
     }
 }
 
-class SymInfo {
+export class SymInfo {
     name: string;
     kind: number;
 }
 
-class Symbol {
+export class Symbol {
     public static readonly fixedToken = 0; // e.g. 'a' ('b' | 'c') (structure of literals)
     public static readonly classToken = 1; // e.g. digit {digit}   (at least one char class)
     public static readonly litToken = 2; // e.g. "while"
@@ -156,7 +145,7 @@ class Symbol {
 }
 
 
-class Node_ {
+export class Node_ {
     // constants for node_ kinds
     public static readonly t = 1;  // terminal symbol
     public static readonly pr = 2;  // pragma
@@ -201,7 +190,7 @@ class Node_ {
     }
 }
 
-class Graph {
+export class Graph {
     public l: Node_;	// left end of graph = head
     public r: Node_;// right end of graph = list of node_s to be linked to successor graph
 
@@ -227,7 +216,7 @@ class Graph {
 //=====================================================================
 // Sets
 //=====================================================================
-class Sets {
+export class Sets {
     public static Elements(s: BitSet): number {
         return s.cardinality();
     }
@@ -253,7 +242,7 @@ class Sets {
 // CharClass
 //=====================================================================
 
-class CharClass {
+export class CharClass {
     public n: number;       // class number
     public name: string;	// class name
     public set: CharSet;	// set representing the class
@@ -264,7 +253,7 @@ class CharClass {
     }
 }
 
-class CNode {	// node of list for finding circular productions
+export class CNode {	// node of list for finding circular productions
     public left: Symbol;
     public right: Symbol;
 
@@ -274,7 +263,7 @@ class CNode {	// node of list for finding circular productions
     }
 }
 
-class Tab {
+export class Tab {
     public semDeclPos: Position;        // position of global semantic declarations
     public ignored: CharSet;            // characters ignored by the scanner
     public ddt: boolean[];              // debug and test switches
@@ -1446,6 +1435,8 @@ class Tab {
 //  Cross reference list
 //---------------------------------------------------------------------
     public XRef() {
+
+        //Comperator: ((Symbol) x).name.compareTo(((Symbol) y).name)
         let xref = new TreeMap(new SymbolComp());
         // collect lines where symbols have been defined
         //foreach (Symbol sym in Symbol.nonterminals) {
