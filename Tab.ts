@@ -98,7 +98,7 @@ class Errors {
 
     Warning(line: number, col: number, s: string)
 
-    Warning(arg0,arg1?,arg2?) {
+    Warning(arg0, arg1?, arg2?) {
 
     }
 
@@ -979,7 +979,7 @@ class Tab {
         //foreach (Symbol sym in Symbol.nonterminals)
         for (let i = 0; i < this.nonterminals.length; i++) {
             sym = this.nonterminals[i];
-            if (sym.deletable) this.errors.Warning(p.line, p.pos.col, "  " + sym.name + " deletable");
+            if (sym.deletable) this.errors.Warning("  " + sym.name + " deletable");
         }
     }
 
@@ -1309,61 +1309,62 @@ class Tab {
 
     //------------- check if resolvers are legal  --------------------
 
-     ResErr( p:Node_,  msg:string) {
-    this.errors.Warning(p.line, p.pos.col, msg);
-}
+    ResErr(p: Node_, msg: string) {
+        this.errors.Warning(p.line, p.pos.col, msg);
+    }
 
- CheckRes( p:Node_,  rslvAllowed:boolean) {
-    while (p != null) {
-        switch (p.typ) {
-            case Node_.alt:
-                let expected = new BitSet(this.terminals.length);
-                for (let q = p; q != null; q = q.down)
-                expected.or(this.Expected0(q.sub, this.curSy));
-                let soFar = new BitSet(this.terminals.length);
-                for (let q = p; q != null; q = q.down) {
-                if (q.sub.typ == Node_.rslv) {
-                    let fs = this.Expected(q.sub.next, this.curSy);
-                    if (Sets.Intersect(fs, soFar))
-                        this.ResErr(q.sub, "Warning: Resolver will never be evaluated. " +
-                            "Place it at previous conflicting alternative.");
-                    if (!Sets.Intersect(fs, expected))
-                        this.ResErr(q.sub, "Warning: Misplaced resolver: no LL(1) conflict.");
-                } else soFar.or(this.Expected(q.sub, this.curSy));
-                this.CheckRes(q.sub, true);
+    CheckRes(p: Node_, rslvAllowed: boolean) {
+        while (p != null) {
+            switch (p.typ) {
+                case Node_.alt:
+                    let expected = new BitSet(this.terminals.length);
+                    for (let q = p; q != null; q = q.down)
+                        expected.or(this.Expected0(q.sub, this.curSy));
+                    let soFar = new BitSet(this.terminals.length);
+                    for (let q = p; q != null; q = q.down) {
+                        if (q.sub.typ == Node_.rslv) {
+                            let fs = this.Expected(q.sub.next, this.curSy);
+                            if (Sets.Intersect(fs, soFar))
+                                this.ResErr(q.sub, "Warning: Resolver will never be evaluated. " +
+                                    "Place it at previous conflicting alternative.");
+                            if (!Sets.Intersect(fs, expected))
+                                this.ResErr(q.sub, "Warning: Misplaced resolver: no LL(1) conflict.");
+                        } else soFar.or(this.Expected(q.sub, this.curSy));
+                        this.CheckRes(q.sub, true);
+                    }
+                    break;
+                case Node_.iter:
+                case Node_.opt:
+                    if (p.sub.typ == Node_.rslv) {
+                        let fs = this.First(p.sub.next);
+                        let fsNext = this.Expected(p.next, this.curSy);
+                        if (!Sets.Intersect(fs, fsNext))
+                            this.ResErr(p.sub, "Warning: Misplaced resolver: no LL(1) conflict.");
+                    }
+                    this.CheckRes(p.sub, true);
+                    break;
+                case Node_.rslv:
+                    if (!rslvAllowed)
+                        this.ResErr(p, "Warning: Misplaced resolver: no alternative.");
+                    break;
             }
-                break;
-            case Node_.iter: case Node_.opt:
-                if (p.sub.typ == Node_.rslv) {
-                    let fs = this.First(p.sub.next);
-                    let fsNext = this.Expected(p.next, this.curSy);
-                    if (!Sets.Intersect(fs, fsNext))
-                        this.ResErr(p.sub, "Warning: Misplaced resolver: no LL(1) conflict.");
-                }
-                this.CheckRes(p.sub, true);
-                break;
-            case Node_.rslv:
-                if (!rslvAllowed)
-                    this.ResErr(p, "Warning: Misplaced resolver: no alternative.");
-                break;
+            if (p.up) break;
+            p = p.next;
+            rslvAllowed = false;
         }
-        if (p.up) break;
-        p = p.next;
-        rslvAllowed = false;
     }
-}
 
-public  CheckResolvers() {
-    //foreach (Symbol sym in Symbol.nonterminals) {
-    for (let i = 0; i < this.nonterminals.length; i++) {
-        this.curSy = this.nonterminals[i];
-        this.CheckRes(this.curSy.graph, false);
+    public CheckResolvers() {
+        //foreach (Symbol sym in Symbol.nonterminals) {
+        for (let i = 0; i < this.nonterminals.length; i++) {
+            this.curSy = this.nonterminals[i];
+            this.CheckRes(this.curSy.graph, false);
+        }
     }
-}
 
 //------------- check if every nts has a production --------------------
 
-    public  NtsComplete():boolean {
+    public NtsComplete(): boolean {
         let complete = true;
         for (let i = 0; i < this.nonterminals.length; i++) {
             let sym = this.nonterminals[i];
@@ -1376,6 +1377,73 @@ public  CheckResolvers() {
     }
 
     //-------------- check if every nts can be reached  -----------------
+    MarkReachedNts(p: Node_) {
+        while (p != null) {
+            if (p.typ == Node_.nt && !this.visited.get(p.sym.n)) { // new nt reached
+                this.visited.set(p.sym.n);
+                this.MarkReachedNts(p.sym.graph);
+            } else if (p.typ == Node_.alt || p.typ == Node_.iter || p.typ == Node_.opt) {
+                this.MarkReachedNts(p.sub);
+                if (p.typ == Node_.alt) this.MarkReachedNts(p.down);
+            }
+            if (p.up) break;
+            p = p.next;
+        }
+    }
 
+    public AllNtReached(): boolean {
+        let ok = true;
+        this.visited = new BitSet(this.nonterminals.length);
+        this.visited.set(this.gramSy.n);
+        this.MarkReachedNts(this.gramSy.graph);
+        for (let i = 0; i < this.nonterminals.length; i++) {
+            let sym = this.nonterminals[i];
+            if (!this.visited.get(sym.n)) {
+                ok = false;
+                this.errors.Warning("  " + sym.name + " cannot be reached");
+            }
+        }
+        return ok;
+    }
+
+//--------- check if every nts can be derived to terminals  ------------
+    IsTerm(p: Node_, mark: BitSet): boolean { // true if graph can be derived to terminals
+        while (p != null) {
+            if (p.typ == Node_.nt && !mark.get(p.sym.n)) return false;
+            if (p.typ == Node_.alt && !this.IsTerm(p.sub, mark)
+                && (p.down == null || !this.IsTerm(p.down, mark))) return false;
+            if (p.up) break;
+            p = p.next;
+        }
+        return true;
+    }
+
+    public AllNtToTerm(): boolean {
+        let changed, ok = true;
+        let mark = new BitSet(this.nonterminals.length);
+        // a nonterminal is marked if it can be derived to terminal symbols
+        do {
+            changed = false;
+            for (let i = 0; i < this.nonterminals.length; i++) {
+                let sym = this.nonterminals[i];
+                if (!mark.get(sym.n) && this.IsTerm(sym.graph, mark)) {
+                    mark.set(sym.n);
+                    changed = true;
+                }
+            }
+        } while (changed);
+        for (let i = 0; i < this.nonterminals.length; i++) {
+            let sym = this.nonterminals[i];
+            if (!mark.get(sym.n)) {
+                ok = false;
+                this.errors.SemErr("  " + sym.name + " cannot be derived to terminals");
+            }
+        }
+        return ok;
+    }
+
+//---------------------------------------------------------------------
+//  Cross reference list
+//---------------------------------------------------------------------
 
 }
