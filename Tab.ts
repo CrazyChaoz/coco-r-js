@@ -44,6 +44,10 @@ class BitSet {
     or(first0: any) {
 
     }
+
+    clear(n) {
+
+    }
 }
 
 //TODO:
@@ -88,6 +92,9 @@ class Trace {
 
 //TODO:
 class Errors {
+    Warning(s: string) {
+
+    }
 }
 
 
@@ -280,7 +287,7 @@ class Tab {
 
     public terminals = [];
     public pragmas = [];
-    public nonterminals = [];
+    public nonterminals: Symbol[] = [];
 
     tKind = ["fixedToken", "classToken", "litToken", "classLitToken"];
 
@@ -500,11 +507,11 @@ class Tab {
 
     public StrToGraph(str: string): Graph {
         let s = this.Unescape(str.substring(1, str.length - 1));
-        if (s.length() == 0) this.parser.SemErr("empty token not allowed");
+        if (s.length == 0) this.parser.SemErr("empty token not allowed");
         let g = new Graph();
         g.r = this.dummyNode;
         for (let i = 0; i < s.length; i++) {
-            let p = this.NewNode(Node_.chr, s.charAt(i), 0);
+            let p = this.NewNode(Node_.chr, s.charCodeAt(i), 0);
             g.r.next = p;
             g.r = p;
         }
@@ -761,5 +768,385 @@ class Tab {
             sym.first = this.First(sym.graph);
             sym.firstReady = true;
         }
+    }
+
+    CompFollow(p: Node_) {
+        while (p != null && !this.visited.get(p.n)) {
+            this.visited.set(p.n);
+            if (p.typ == Node_.nt) {
+                let s = this.First(p.next);
+                p.sym.follow.or(s);
+                if (this.DelGraph(p.next))
+                    p.sym.nts.set(this.curSy.n);
+            } else if (p.typ == Node_.opt || p.typ == Node_.iter) {
+                this.CompFollow(p.sub);
+            } else if (p.typ == Node_.alt) {
+                this.CompFollow(p.sub);
+                this.CompFollow(p.down);
+            }
+            p = p.next;
+        }
+    }
+
+    Complete(sym: Symbol) {
+        if (!this.visited.get(sym.n)) {
+            this.visited.set(sym.n);
+            //foreach (Symbol s in Symbol.nonterminals) {
+            for (let i = 0; i < this.nonterminals.length; i++) {
+                let s = this.nonterminals[i];
+                if (sym.nts.get(s.n)) {
+                    this.Complete(s);
+                    sym.follow.or(s.follow);
+                    if (sym == this.curSy) sym.nts.clear(s.n);
+                }
+            }
+        }
+    }
+
+    CompFollowSets() {
+        let nNonterminals = this.nonterminals.length;
+        let nTerminals = this.terminals.length;
+
+        // foreach (Symbol sym in Symbol.nonterminals) {
+        for (const sym of this.nonterminals) {
+            sym.follow = new BitSet(nTerminals);
+            sym.nts = new BitSet(nNonterminals);
+        }
+
+        this.gramSy.follow.set(this.eofSy.n);
+        let visited = new BitSet(this.nodes.length);
+
+        // foreach (Symbol sym in Symbol.nonterminals) {
+        for (const curSy of this.nonterminals) {
+            // get direct successors of nonterminals
+            this.CompFollow(curSy.graph);
+        }
+
+        // foreach (Symbol sym in Symbol.nonterminals) {
+        for (let curSy of this.nonterminals) {
+            // add indirect successors to followers
+            visited = new BitSet(nNonterminals);
+            this.Complete(curSy);
+        }
+    }
+
+    LeadingAny(p: Node_): Node_ {
+        if (p == null) return null;
+        let a: Node_ = null;
+        if (p.typ == Node_.any) a = p;
+        else if (p.typ == Node_.alt) {
+            a = this.LeadingAny(p.sub);
+            if (a == null) a = this.LeadingAny(p.down);
+        } else if (p.typ == Node_.opt || p.typ == Node_.iter) a = this.LeadingAny(p.sub);
+        if (a == null && this.DelNode(p) && !p.up) a = this.LeadingAny(p.next);
+        return a;
+    }
+
+    FindAS(p: Node_) { // find ANY sets
+        let a: Node_;
+        while (p != null) {
+            if (p.typ == Node_.opt || p.typ == Node_.iter) {
+                this.FindAS(p.sub);
+                a = this.LeadingAny(p.sub);
+                if (a != null) Sets.Subtract(a.set, this.First(p.next));
+            } else if (p.typ == Node_.alt) {
+                let s1 = new BitSet(this.terminals.length);
+                let q = p;
+                while (q != null) {
+                    this.FindAS(q.sub);
+                    a = this.LeadingAny(q.sub);
+                    if (a != null) {
+                        let h = this.First(q.down);
+                        h.or(s1);
+                        Sets.Subtract(a.set, h);
+                    } else
+                        s1.or(this.First(q.sub));
+                    q = q.down;
+                }
+            }
+
+            // Remove alternative terminals before ANY, in the following
+            // examples a and b must be removed from the ANY set:
+            // [a] ANY, or {a|b} ANY, or [a][b] ANY, or (a|) ANY, or
+            // A = [a]. A ANY
+            if (this.DelNode(p)) {
+                a = this.LeadingAny(p.next);
+                if (a != null) {
+                    let q = (p.typ == Node_.nt) ? p.sym.graph : p.sub;
+                    Sets.Subtract(a.set, this.First(q));
+                }
+            }
+
+            if (p.up) break;
+            p = p.next;
+        }
+    }
+
+    CompAnySets() {
+        let sym: Symbol;
+        //foreach (Symbol sym in Symbol.nonterminals)
+        for (let i = 0; i < this.nonterminals.length; i++) {
+            sym = this.nonterminals[i];
+            this.FindAS(sym.graph);
+        }
+    }
+
+    public Expected(p: Node_, curSy: Symbol): BitSet {
+        let s = this.First(p);
+        if (this.DelGraph(p)) s.or(curSy.follow);
+        return s;
+    }
+
+    // does not look behind resolvers; only called during LL(1) test and in CheckRes
+    public Expected0(p: Node_, curSy: Symbol): BitSet {
+        if (p.typ == Node_.rslv) return new BitSet(this.terminals.length);
+        else return this.Expected(p, curSy);
+    }
+
+    CompSync(p: Node_) {
+        while (p != null && !this.visited.get(p.n)) {
+            this.visited.set(p.n);
+            if (p.typ == Node_.sync) {
+                let s = this.Expected(p.next, this.curSy);
+                s.set(this.eofSy.n);
+                this.allSyncSets.or(s);
+                p.set = s;
+            } else if (p.typ == Node_.alt) {
+                this.CompSync(p.sub);
+                this.CompSync(p.down);
+            } else if (p.typ == Node_.opt || p.typ == Node_.iter)
+                this.CompSync(p.sub);
+            p = p.next;
+        }
+    }
+
+    CompSyncSets() {
+        this.allSyncSets = new BitSet(this.terminals.length);
+        this.allSyncSets.set(this.eofSy.n);
+        this.visited = new BitSet(this.nodes.length);
+        //foreach (Symbol sym in Symbol.nonterminals) {
+        for (let i = 0; i < this.nonterminals.length; i++) {
+            this.curSy = this.nonterminals[i];
+            this.CompSync(this.curSy.graph);
+        }
+    }
+
+    public SetupAnys() {
+        //foreach (Node p in Node.nodes)
+        for (let i = 0; i < this.nodes.length; i++) {
+            let p = this.nodes[i];
+            if (p.typ == Node_.any) {
+                p.set = new BitSet(this.terminals.length);
+                p.set.set(0, this.terminals.length);
+                p.set.clear(this.eofSy.n);
+            }
+        }
+    }
+
+    public CompDeletableSymbols() {
+        let changed: boolean;
+        let sym: Symbol;
+        do {
+            changed = false;
+            //foreach (Symbol sym in Symbol.nonterminals)
+            for (let i = 0; i < this.nonterminals.length; i++) {
+                sym = this.nonterminals[i];
+                if (!sym.deletable && sym.graph != null && this.DelGraph(sym.graph)) {
+                    sym.deletable = true;
+                    changed = true;
+                }
+            }
+        } while (changed);
+        //foreach (Symbol sym in Symbol.nonterminals)
+        for (let i = 0; i < this.nonterminals.length; i++) {
+            sym = this.nonterminals[i];
+            if (sym.deletable) this.errors.Warning("  " + sym.name + " deletable");
+        }
+    }
+
+    public RenumberPragmas() {
+        let n = this.terminals.length;
+        //foreach (Symbol sym in Symbol.pragmas)
+        for (let i = 0; i < this.pragmas.length; i++) {
+            let sym = this.pragmas[i];
+            sym.n = n++;
+        }
+    }
+
+    public CompSymbolSets() {
+        this.CompDeletableSymbols();
+        this.CompFirstSets();
+        this.CompAnySets();
+        this.CompFollowSets();
+        this.CompSyncSets();
+        if ((this.ddt)[1]) {
+            this.trace.WriteLine();
+            this.trace.WriteLine("First & follow symbols:");
+            this.trace.WriteLine("----------------------");
+            this.trace.WriteLine();
+            let sym: Symbol;
+            //foreach (Symbol sym in Symbol.nonterminals) {
+            for (let i = 0; i < this.nonterminals.length; i++) {
+                sym = this.nonterminals[i];
+                this.trace.WriteLine(sym.name);
+                this.trace.Write("first:   ");
+                this.PrintSet(sym.first, 10);
+                this.trace.Write("follow:  ");
+                this.PrintSet(sym.follow, 10);
+                this.trace.WriteLine();
+            }
+        }
+        if ((this.ddt)[4]) {
+            this.trace.WriteLine();
+            this.trace.WriteLine("ANY and SYNC sets:");
+            this.trace.WriteLine("-----------------");
+            //foreach (Node p in Node.nodes)
+            for (let i = 0; i < this.nodes.length; i++) {
+                let p = this.nodes[i];
+                if (p.typ == Node_.any || p.typ == Node_.sync) {
+                    this.trace.Write("Line: ");
+                    this.trace.WriteLine(p.line.toString(), 4);
+                    this.trace.Write("Node: ");
+                    this.trace.Write(p.n.toString(), 4);
+                    this.trace.Write(" ");
+                    this.trace.Write((this.nTyp)[p.typ], 4);
+                    this.trace.Write(": ");
+                    this.PrintSet(p.set, 11);
+                }
+            }
+        }
+    }
+
+    //---------------------------------------------------------------------
+    //  String handling
+    //---------------------------------------------------------------------
+
+    Hex2Char(s: string): string {
+        let val = 0;
+        for (let i = 0; i < s.length; i++) {
+            let ch = s.charAt(i);
+            if ('0' <= ch && ch <= '9') val = 16 * val + (ch.charCodeAt(0) - '0'.charCodeAt(0));
+            else if ('a' <= ch && ch <= 'f') val = 16 * val + (10 + ch.charCodeAt(0) - 'a'.charCodeAt(0));
+            else if ('A' <= ch && ch <= 'F') val = 16 * val + (10 + ch.charCodeAt(0) - 'A'.charCodeAt(0));
+            else this.parser.SemErr("bad escape sequence in string or character");
+        }
+        //TODO: reimplement this
+// if (val > Character.MAX_VALUE) /* pdt */
+//     this.parser.SemErr("bad escape sequence in string or character");
+        return String.fromCharCode(val);
+    }
+
+    Char2Hex(ch: string): string {
+        let hex = ch.charCodeAt(0).toString(16);
+        for (let i = hex.length; i < 4; i++) hex = "0" + hex;
+        return "\\u" + hex;
+    }
+
+    public Unescape(s: string): string {
+        /* replaces escape sequences in s by their Unicode values. */
+        //TODO: StringBuffer -> string ?
+        let buf = "";
+        let i = 0;
+        while (i < s.length) {
+            if (s.charAt(i) == '\\') {
+                switch (s.charAt(i + 1)) {
+                    case '\\':
+                        buf += '\\';
+                        i += 2;
+                        break;
+                    case '\'':
+                        buf += '\'';
+                        i += 2;
+                        break;
+                    case '\"':
+                        buf += '\"';
+                        i += 2;
+                        break;
+                    case 'r':
+                        buf += '\r';
+                        i += 2;
+                        break;
+                    case 'n':
+                        buf += '\n';
+                        i += 2;
+                        break;
+                    case 't':
+                        buf += '\t';
+                        i += 2;
+                        break;
+                    case 'v':
+                        buf += '\u000b';
+                        i += 2;
+                        break;
+                    case '0':
+                        buf += '\0';
+                        i += 2;
+                        break;
+                    case 'b':
+                        buf += '\b';
+                        i += 2;
+                        break;
+                    case 'f':
+                        buf += '\f';
+                        i += 2;
+                        break;
+                    case 'a':
+                        buf += '\u0007';
+                        i += 2;
+                        break;
+                    case 'u':
+                    case 'x':
+                        if (i + 6 <= s.length) {
+                            buf += this.Hex2Char(s.substring(i + 2, i + 6));
+                            i += 6;
+                            break;
+                        } else {
+                            this.parser.SemErr("bad escape sequence in string or character");
+                            i = s.length;
+                            break;
+                        }
+                    default:
+                        this.parser.SemErr("bad escape sequence in string or character");
+                        i += 2;
+                        break;
+                }
+            } else {
+                buf += s.charAt(i);
+                i++;
+            }
+        }
+        return buf.toString();
+    }
+
+    public Escape(s: string): string {
+        let buf = "";
+        for (let i = 0; i < s.length; i++) {
+            let ch = s.charAt(i);
+            switch (ch) {
+                case '\\':
+                    buf += "\\\\";
+                    break;
+                case '\'':
+                    buf += "\\'";
+                    break;
+                case '\"':
+                    buf += "\\\"";
+                    break;
+                case '\t':
+                    buf += "\\t";
+                    break;
+                case '\r':
+                    buf += "\\r";
+                    break;
+                case '\n':
+                    buf += "\\n";
+                    break;
+                default:
+                    if (ch < ' ' || ch > '\u007f') buf += this.Char2Hex(ch);
+                    else buf += ch;
+                    break;
+            }
+        }
+        return buf.toString();
     }
 }
