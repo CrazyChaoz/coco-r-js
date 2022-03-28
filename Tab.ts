@@ -40,7 +40,7 @@ export class BitSet {
         return false;
     }
 
-    set(n: number) {
+    set(n: number, b?: boolean) {
         return false;
     }
 

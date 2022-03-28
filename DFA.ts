@@ -1,4 +1,4 @@
-import {BitSet, Node_, Tab} from "./Tab";
+import {BitSet, Node_, Symbol, Tab} from "./Tab";
 
 
 //-----------------------------------------------------------------------------
@@ -371,5 +371,129 @@ class Generator {
             throw new Error("Error reading frame file: " + this.frameFile.getPath());
         }
     }
+}
+
+//-----------------------------------------------------------------------------
+//  DFA
+//-----------------------------------------------------------------------------
+
+public class DFA {
+    public ignoreCase: boolean;    // true if input should be treated case-insensitively
+    public hasCtxMoves: boolean;   // DFA has context transitions
+
+    private maxStates: number;
+    private lastStateNr: number;      // highest state number
+    private firstState: State;
+    private lastState: State;      // last allocated state
+    private lastSimState: number;     // last non melted state
+    private fram: Reader;          // scanner frame input     /* pdt */
+    private gen: PrintWriter;      // generated scanner file  /* pdt */
+    private curSy: Symbol;         // current token to be recognized (in FindTrans)
+    private dirtyDFA: boolean;     // DFA may become nondeterministic in MatchLiteral
+
+    private tab: Tab;             // other Coco objects
+    private parser: Parser;
+    private errors: Errors;
+    private trace: Trace;
+
+    //---------- Output primitives
+    private Ch(ch: string): string {
+        if (ch.charCodeAt(0) < ' '.charCodeAt(0) || ch.charCodeAt(0) >= 127 || ch == '\'' || ch == '\\') {
+            return ch;
+        } else return "'" + ch + "'";
+    }
+
+    private ChCond(ch: string): string {
+        return ("ch == " + this.Ch(ch));
+    }
+
+    private PutRange(s: CharSet) {
+        for (let r = s.head; r != null; r = r.next) {
+            if (r.from == r.to) {
+                this.gen.print("ch == " + this.Ch(String.fromCharCode(r.from)));
+            } else if (r.from == 0) {
+                this.gen.print("ch <= " + this.Ch(String.fromCharCode(r.to)));
+            } else {
+                this.gen.print("ch >= " + this.Ch(String.fromCharCode(r.from)) + " && ch <= " + this.Ch(String.fromCharCode(r.to)));
+            }
+            if (r.next != null) this.gen.print(" || ");
+        }
+    }
+
+//---------- State handling
+
+    NewState(): State {
+        let s = new State();
+        s.nr = ++this.lastStateNr;
+        if (this.firstState == null) this.firstState = s; else this.lastState.next = s;
+        this.lastState = s;
+        return s;
+    }
+
+    NewTransition(from: State, to: State, typ: number, sym: number, tc: number) {
+        let t = new Target(to);
+        let a = new Action(typ, sym, tc);
+        a.target = t;
+        from.AddAction(a);
+        if (typ == Node_.clas) this.curSy.tokenKind = Symbol.classToken;
+    }
+
+    CombineShifts() {
+        let state: State;
+        let a, b, c: Action;
+        let seta, setb: CharSet;
+        for (state = this.firstState; state != null; state = state.next) {
+            for (a = state.firstAction; a != null; a = a.next) {
+                b = a.next;
+                while (b != null)
+                    if (a.target.state == b.target.state && a.tc == b.tc) {
+                        seta = a.Symbols(this.tab);
+                        setb = b.Symbols(this.tab);
+                        seta.Or(setb);
+                        a.ShiftWith(seta, this.tab);
+                        c = b;
+                        b = b.next;
+                        state.DetachAction(c);
+                    } else b = b.next;
+            }
+        }
+    }
+
+    FindUsedStates(state: State, used: BitSet) {
+        if (used.get(state.nr)) return;
+        used.set(state.nr);
+        for (let a = state.firstAction; a != null; a = a.next)
+            this.FindUsedStates(a.target.state, used);
+    }
+
+    DeleteRedundantStates() {
+        let newState = new State[this.lastStateNr + 1];
+        let used = new BitSet(this.lastStateNr + 1);
+        this.FindUsedStates(this.firstState, used);
+        // combine equal final states
+        for (let s1 = this.firstState.next; s1 != null; s1 = s1.next) // firstState cannot be final
+            if (used.get(s1.nr) && s1.endOf != null && s1.firstAction == null && !s1.ctx)
+                for (let s2 = s1.next; s2 != null; s2 = s2.next)
+                    //TODO: look at this
+                    // if (used.get(s2.nr) && s1.endOf == s2.endOf && s2.firstAction == null & !s2.ctx) { // ??????????
+                    if (used.get(s2.nr) && s1.endOf == s2.endOf && s2.firstAction == null && !s2.ctx) {
+                        used.set(s2.nr, false);
+                        newState[s2.nr] = s1;
+                    }
+        for (let state = this.firstState; state != null; state = state.next)
+            if (used.get(state.nr))
+                for (let a = state.firstAction; a != null; a = a.next)
+                    if (!used.get(a.target.state.nr))
+                        a.target.state = newState[a.target.state.nr];
+        // delete unused states
+        this.lastState = this.firstState;
+        this.lastStateNr = 0; // firstState has number 0
+        for (let state = this.firstState.next; state != null; state = state.next)
+            if (used.get(state.nr)) {
+                state.nr = ++this.lastStateNr;
+                this.lastState = state;
+            } else this.lastState.next = state.next;
+    }
+
 }
 
