@@ -1,4 +1,4 @@
-import {BitSet, Node_, Symbol, Tab} from "./Tab";
+import {BitSet, Node_, Sets, Symbol, Tab} from "./Tab";
 
 
 //-----------------------------------------------------------------------------
@@ -396,6 +396,8 @@ public class DFA {
     private errors: Errors;
     private trace: Trace;
 
+    private firstMelted: Melted;
+
     //---------- Output primitives
     private Ch(ch: string): string {
         if (ch.charCodeAt(0) < ' '.charCodeAt(0) || ch.charCodeAt(0) >= 127 || ch == '\'' || ch == '\\') {
@@ -495,5 +497,372 @@ public class DFA {
             } else this.lastState.next = state.next;
     }
 
+    TheState(p: Node_): State {
+        let state: State;
+        if (p == null) {
+            state = this.NewState();
+            state.endOf = this.curSy;
+            return state;
+        } else return p.state;
+    }
+
+    Step(from: State, p: Node_, stepped: BitSet) {
+        if (p == null) return;
+        stepped.set(p.n);
+        switch (p.typ) {
+            case Node_.clas:
+            case Node_.chr: {
+                this.NewTransition(from, this.TheState(p.next), p.typ, p.val, p.code);
+                break;
+            }
+            case Node_.alt: {
+                this.Step(from, p.sub, stepped);
+                this.Step(from, p.down, stepped);
+                break;
+            }
+            case Node_.iter: {
+                if (this.tab.DelSubGraph(p.sub)) {
+                    this.parser.SemErr("contents of {...} must not be deletable");
+                    return;
+                }
+                if (p.next != null && !stepped.get(p.next.n)) this.Step(from, p.next, stepped);
+                this.Step(from, p.sub, stepped);
+                if (p.state != from) {
+                    this.Step(p.state, p, new BitSet(this.tab.nodes.length));
+                }
+                break;
+            }
+            case Node_.opt: {
+                if (p.next != null && !stepped.get(p.next.n)) this.Step(from, p.next, stepped);
+                this.Step(from, p.sub, stepped);
+                break;
+            }
+        }
+    }
+
+
+// Assigns a state n.state to every node n. There will be a transition from
+// n.state to n.next.state triggered by n.val. All nodes in an alternative
+// chain are represented by the same state.
+// Numbering scheme:
+//  - any node after a chr, clas, opt, or alt, must get a new number
+//  - if a nested structure starts with an iteration the iter node must get a new number
+//  - if an iteration follows an iteration, it must get a new number
+    NumberNodes(p: Node_, state: State, renumIter: boolean) {
+        if (p == null) return;
+        if (p.state != null) return; // already visited;
+        if (state == null || (p.typ == Node_.iter && renumIter)) state = this.NewState();
+        p.state = state;
+        if (this.tab.DelGraph(p)) state.endOf = this.curSy;
+        switch (p.typ) {
+            case Node_.clas:
+            case Node_.chr: {
+                this.NumberNodes(p.next, null, false);
+                break;
+            }
+            case Node_.opt: {
+                this.NumberNodes(p.next, null, false);
+                this.NumberNodes(p.sub, state, true);
+                break;
+            }
+            case Node_.iter: {
+                this.NumberNodes(p.next, state, true);
+                this.NumberNodes(p.sub, state, true);
+                break;
+            }
+            case Node_.alt: {
+                this.NumberNodes(p.next, null, false);
+                this.NumberNodes(p.sub, state, true);
+                this.NumberNodes(p.down, state, renumIter);
+                break;
+            }
+        }
+    }
+
+    FindTrans(p: Node_, start: boolean, marked: BitSet) {
+        if (p == null || marked.get(p.n)) return;
+        marked.set(p.n);
+        if (start) this.Step(p.state, p, new BitSet(this.tab.nodes.size())); // start of group of equally numbered nodes
+        switch (p.typ) {
+            case Node_.clas:
+            case Node_.chr: {
+                this.FindTrans(p.next, true, marked);
+                break;
+            }
+            case Node_.opt: {
+                this.FindTrans(p.next, true, marked);
+                this.FindTrans(p.sub, false, marked);
+                break;
+            }
+            case Node_.iter: {
+                this.FindTrans(p.next, false, marked);
+                this.FindTrans(p.sub, false, marked);
+                break;
+            }
+            case Node_.alt: {
+                this.FindTrans(p.sub, false, marked);
+                this.FindTrans(p.down, false, marked);
+                break;
+            }
+        }
+    }
+
+    public ConvertToStates(p: Node_, sym: Symbol) {
+        this.curSy = sym;
+        if (this.tab.DelGraph(p)) {
+            this.parser.SemErr("token might be empty");
+            return;
+        }
+        this.NumberNodes(p, this.firstState, true);
+        this.FindTrans(p, true, new BitSet(this.tab.nodes.length));
+        if (p.typ == Node_.iter) {
+            this.Step(this.firstState, p, new BitSet(this.tab.nodes.length));
+        }
+    }
+
+// match string against current automaton; store it either as a fixedToken or as a litToken
+    public MatchLiteral(s: string, sym: Symbol) {
+        s = this.tab.Unescape(s.substring(1, s.length - 1));
+        let i, len = s.length;
+        let state = this.firstState;
+        let a = null;
+        for (i = 0; i < len; i++) { // try to match s against existing DFA
+            a = FindAction(state, s.charAt(i));
+            if (a == null) break;
+            state = a.target.state;
+        }
+        // if s was not totally consumed or leads to a non-final state => make new DFA from it
+        if (i != len || state.endOf == null) {
+            state = this.firstState;
+            i = 0;
+            a = null;
+            this.dirtyDFA = true;
+        }
+        for (; i < len; i++) { // make new DFA for s[i..len-1]
+            let to = this.NewState();
+            this.NewTransition(state, to, Node_.chr, s.charCodeAt(i), Node_.normalTrans);
+            state = to;
+        }
+        let matchedSym = state.endOf;
+        if (state.endOf == null) {
+            state.endOf = sym;
+        } else if (matchedSym.tokenKind == Symbol.fixedToken || (a != null && a.tc == Node_.contextTrans)) {
+            // s matched a token with a fixed definition or a token with an appendix that will be cut off
+            this.parser.SemErr("tokens " + sym.name + " and " + matchedSym.name + " cannot be distinguished");
+        } else { // matchedSym == classToken || classLitToken
+            matchedSym.tokenKind = Symbol.classLitToken;
+            sym.tokenKind = Symbol.litToken;
+        }
+    }
+
+    SplitActions(state: State, a: Action, b: Action) {
+        let c: Action;
+        let seta, setb, setc: CharSet;
+        seta = a.Symbols(this.tab);
+        setb = b.Symbols(this.tab);
+        if (seta.Equals(setb)) {
+            a.AddTargets(b);
+            state.DetachAction(b);
+        } else if (seta.Includes(setb)) {
+            setc = seta.Clone();
+            setc.Subtract(setb);
+            b.AddTargets(a);
+            a.ShiftWith(setc, this.tab);
+        } else if (setb.Includes(seta)) {
+            setc = setb.Clone();
+            setc.Subtract(seta);
+            a.AddTargets(b);
+            b.ShiftWith(setc, this.tab);
+        } else {
+            setc = seta.Clone();
+            setc.And(setb);
+            seta.Subtract(setc);
+            setb.Subtract(setc);
+            a.ShiftWith(seta, this.tab);
+            b.ShiftWith(setb, this.tab);
+            c = new Action(0, 0, Node_.normalTrans);  // typ and sym are set in ShiftWith
+            c.AddTargets(a);
+            c.AddTargets(b);
+            c.ShiftWith(setc, this.tab);
+            state.AddAction(c);
+        }
+    }
+
+    private Overlap(a: Action, b: Action): boolean {
+        let seta, setb: CharSet;
+        if (a.typ == Node_.chr)
+            if (b.typ == Node_.chr) return a.sym == b.sym;
+            else {
+                setb = this.tab.CharClassSet(b.sym);
+                return setb.Get(a.sym);
+            }
+        else {
+            seta = this.tab.CharClassSet(a.sym);
+            if (b.typ == Node_.chr) return seta.Get(b.sym);
+            else {
+                setb = this.tab.CharClassSet(b.sym);
+                return seta.Intersects(setb);
+            }
+        }
+    }
+
+    MakeUnique(state: State) {
+        let changed: boolean;
+        do {
+            changed = false;
+            for (let a = state.firstAction; a != null; a = a.next)
+                for (let b = a.next; b != null; b = b.next)
+                    if (this.Overlap(a, b)) {
+                        this.SplitActions(state, a, b);
+                        changed = true;
+                    }
+        } while (changed);
+    }
+
+    MeltStates(state: State) {
+        let ctx: boolean;
+        let targets: BitSet;
+        let endOf: Symbol;
+        for (let action = state.firstAction; action != null; action = action.next) {
+            if (action.target.next != null) {
+                //action.GetTargetStates(out targets, out endOf, out ctx);
+                let param = new Object[2];
+                ctx = this.GetTargetStates(action, param);
+                targets = param[0];
+                endOf = param[1];
+                //
+                let melt = this.StateWithSet(targets);
+                if (melt == null) {
+                    let s = this.NewState();
+                    s.endOf = endOf;
+                    s.ctx = ctx;
+                    for (let targ = action.target; targ != null; targ = targ.next)
+                        s.MeltWith(targ.state);
+                    this.MakeUnique(s);
+                    melt = NewMelted(targets, s);
+                }
+                action.target.next = null;
+                action.target.state = melt.state;
+            }
+        }
+    }
+
+    FindCtxStates() {
+        for (let state = this.firstState; state != null; state = state.next)
+            for (let a = state.firstAction; a != null; a = a.next)
+                if (a.tc == Node_.contextTrans) a.target.state.ctx = true;
+    }
+
+    public MakeDeterministic() {
+        let state: State;
+        this.lastSimState = this.lastState.nr;
+        this.maxStates = 2 * this.lastSimState; // heuristic for set size in Melted.set
+        this.FindCtxStates();
+        for (state = this.firstState; state != null; state = state.next)
+            this.MakeUnique(state);
+        for (state = this.firstState; state != null; state = state.next)
+            this.MeltStates(state);
+        this.DeleteRedundantStates();
+        this.CombineShifts();
+    }
+
+    public PrintStates() {
+        this.trace.WriteLine();
+        this.trace.WriteLine("---------- states ----------");
+        for (let state = this.firstState; state != null; state = state.next) {
+            let first = true;
+            if (state.endOf == null) this.trace.Write("               ");
+            else this.trace.Write("E(" + this.tab.Name(state.endOf.name) + ")", 12);
+            this.trace.Write(state.nr + ":", 3);
+            if (state.firstAction == null) this.trace.WriteLine();
+            for (let action = state.firstAction; action != null; action = action.next) {
+                if (first) {
+                    this.trace.Write(" ");
+                    first = false;
+                } else this.trace.Write("                   ");
+                if (action.typ == Node_.clas)
+                    this.trace.Write((this.tab.classes[action.sym]).name);
+                else this.trace.Write(this.Ch(action.sym.toString()), 3);
+                for (let targ = action.target; targ != null; targ = targ.next)
+                    this.trace.Write(targ.state.nr, 3);
+                if (action.tc == Node_.contextTrans) this.trace.WriteLine(" context"); else this.trace.WriteLine();
+            }
+        }
+        this.trace.WriteLine();
+        this.trace.WriteLine("---------- character classes ----------");
+        this.tab.WriteCharClasses();
+    }
+
+    //------------------------ actions ------------------------------
+
+    public FindAction(state: State, ch: string): Action {
+        for (let a = state.firstAction; a != null; a = a.next)
+            if (a.typ == Node_.chr && ch.charCodeAt(0) == a.sym) return a;
+            else if (a.typ == Node_.clas) {
+                let s = this.tab.CharClassSet(a.sym);
+                if (s.Get(ch.charCodeAt(0))) return a;
+            }
+        return null;
+    }
+
+//public void GetTargetStates(out BitArray targets, out Symbol endOf, out bool ctx) {
+    public GetTargetStates(a: Action, param: Object[]): boolean {
+        // compute the set of target states
+        let targets = new BitSet(this.maxStates);
+        let endOf = null;
+        let ctx = false;
+        for (let t = a.target; t != null; t = t.next) {
+            let stateNr = t.state.nr;
+            if (stateNr <= this.lastSimState) targets.set(stateNr);
+            else targets.or(this.MeltedSet(stateNr));
+            if (t.state.endOf != null)
+                if (endOf == null || endOf == t.state.endOf)
+                    endOf = t.state.endOf;
+                else {
+                    this.errors.SemErr("Tokens " + endOf.name + " and " + t.state.endOf.name +
+                        " cannot be distinguished");
+                }
+            if (t.state.ctx) {
+                ctx = true;
+                // The following check seems to be unnecessary. It reported an error
+                // if a symbol + context was the prefix of another symbol, e.g.
+                //   s1 = "a" "b" "c".
+                //   s2 = "a" CONTEXT("b").
+                // But this is ok.
+                // if (t.state.endOf != null) {
+                //   Console.WriteLine("Ambiguous context clause");
+                //   Errors.count++;
+                // }
+            }
+        }
+        param[0] = targets;
+        param[1] = endOf;
+        return ctx;
+    }
+
+    //---------------------- melted states --------------------------
+
+    // head of melted state list
+
+    NewMelted(set: BitSet, state: State): Melted {
+        let m = new Melted(set, state);
+        m.next = this.firstMelted;
+        this.firstMelted = m;
+        return m;
+    }
+
+    MeltedSet(nr: number): BitSet {
+        let m = this.firstMelted;
+        while (m != null) {
+            if (m.state.nr == nr) return m.set; else m = m.next;
+        }
+        throw new Error("Compiler error in Melted.Set");
+    }
+
+    StateWithSet(s: BitSet): Melted {
+        for (let m = this.firstMelted; m != null; m = m.next)
+            if (Sets.Equals(s, m.set)) return m;
+        return null;
+    }
 }
 
