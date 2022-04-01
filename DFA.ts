@@ -1,4 +1,4 @@
-import {BitSet, Node_, Sets, Symbol, Tab} from "./Tab";
+import {BitSet, Node_, Parser, Sets, Symbol, Tab} from "./Tab";
 
 
 //-----------------------------------------------------------------------------
@@ -335,7 +335,7 @@ class Generator {
     }
 
 // if stop == null, copies until end of file
-    private CopyFramePart(stop: string, generateOutput: boolean = true) {
+    CopyFramePart(stop: string, generateOutput: boolean = true) {
         let startCh = 0;
         let endOfStopString = 0;
 
@@ -397,6 +397,9 @@ public class DFA {
     private trace: Trace;
 
     private firstMelted: Melted;
+
+
+    public firstComment: Comment;  // list of comments
 
     //---------- Output primitives
     private Ch(ch: string): string {
@@ -582,7 +585,7 @@ public class DFA {
     FindTrans(p: Node_, start: boolean, marked: BitSet) {
         if (p == null || marked.get(p.n)) return;
         marked.set(p.n);
-        if (start) this.Step(p.state, p, new BitSet(this.tab.nodes.size())); // start of group of equally numbered nodes
+        if (start) this.Step(p.state, p, new BitSet(this.tab.nodes.length)); // start of group of equally numbered nodes
         switch (p.typ) {
             case Node_.clas:
             case Node_.chr: {
@@ -627,7 +630,7 @@ public class DFA {
         let state = this.firstState;
         let a = null;
         for (i = 0; i < len; i++) { // try to match s against existing DFA
-            a = FindAction(state, s.charAt(i));
+            a = this.FindAction(state, s.charAt(i));
             if (a == null) break;
             state = a.target.state;
         }
@@ -739,7 +742,7 @@ public class DFA {
                     for (let targ = action.target; targ != null; targ = targ.next)
                         s.MeltWith(targ.state);
                     this.MakeUnique(s);
-                    melt = NewMelted(targets, s);
+                    melt = this.NewMelted(targets, s);
                 }
                 action.target.next = null;
                 action.target.state = melt.state;
@@ -864,5 +867,257 @@ public class DFA {
             if (Sets.Equals(s, m.set)) return m;
         return null;
     }
+
+    //------------------------- comments ----------------------------
+
+
+    CommentStr(p: Node_): string {
+        let s = "";
+        while (p != null) {
+            if (p.typ == Node_.chr) {
+                s += p.val;
+            } else if (p.typ == Node_.clas) {
+                let set = this.tab.CharClassSet(p.val);
+                if (set.Elements() != 1) this.parser.SemErr("character set contains more than 1 character");
+                s += set.First();
+            } else this.parser.SemErr("comment delimiters must not be structured");
+            p = p.next;
+        }
+        if (s.length == 0 || s.length > 2) {
+            this.parser.SemErr("comment delimiters must be 1 or 2 characters long");
+            s = "?";
+        }
+        return s.toString();
+    }
+
+    public NewComment(from: Node_, to: Node_, nested: boolean) {
+        let c = new Comment(this.CommentStr(from), this.CommentStr(to), nested);
+        c.next = this.firstComment;
+        this.firstComment = c;
+    }
+
+    //--------------------- scanner generation ------------------------
+
+    GenComBody(com: Comment) {
+        this.gen.println("\t\t\tfor(;;) {");
+        this.gen.print("\t\t\t\tif (" + this.ChCond(com.stop.charAt(0)) + ") ");
+        this.gen.println("{");
+        if (com.stop.length == 1) {
+            this.gen.println("\t\t\t\t\tlevel--;");
+            this.gen.println("\t\t\t\t\tif (level == 0) { oldEols = line - line0; NextCh(); return true; }");
+            this.gen.println("\t\t\t\t\tNextCh();");
+        } else {
+            this.gen.println("\t\t\t\t\tNextCh();");
+            this.gen.println("\t\t\t\t\tif (" + this.ChCond(com.stop.charAt(1)) + ") {");
+            this.gen.println("\t\t\t\t\t\tlevel--;");
+            this.gen.println("\t\t\t\t\t\tif (level == 0) { oldEols = line - line0; NextCh(); return true; }");
+            this.gen.println("\t\t\t\t\t\tNextCh();");
+            this.gen.println("\t\t\t\t\t}");
+        }
+        if (com.nested) {
+            this.gen.print("\t\t\t\t}");
+            this.gen.println(" else if (" + this.ChCond(com.start.charAt(0)) + ") {");
+            if (com.start.length == 1)
+                this.gen.println("\t\t\t\t\tlevel++; NextCh();");
+            else {
+                this.gen.println("\t\t\t\t\tNextCh();");
+                this.gen.print("\t\t\t\t\tif (" + this.ChCond(com.start.charAt(1)) + ") ");
+                this.gen.println("{");
+                this.gen.println("\t\t\t\t\t\tlevel++; NextCh();");
+                this.gen.println("\t\t\t\t\t}");
+            }
+        }
+        this.gen.println("\t\t\t\t} else if (ch == Buffer.EOF) return false;");
+        this.gen.println("\t\t\t\telse NextCh();");
+        this.gen.println("\t\t\t}");
+    }
+
+    GenComment(com: Comment, i: number) {
+        this.gen.println();
+        this.gen.print("\tboolean Comment" + i + "() ");
+        this.gen.println("{");
+        this.gen.println("\t\tint level = 1, pos0 = pos, line0 = line, col0 = col, charPos0 = charPos;");
+        if (com.start.length == 1) {
+            this.gen.println("\t\tNextCh();");
+            this.GenComBody(com);
+        } else {
+            this.gen.println("\t\tNextCh();");
+            this.gen.print("\t\tif (" + this.ChCond(com.start.charAt(1)) + ") ");
+            this.gen.println("{");
+            this.gen.println("\t\t\tNextCh();");
+            this.GenComBody(com);
+            this.gen.println("\t\t} else {");
+            this.gen.println("\t\t\tbuffer.setPos(pos0); NextCh(); line = line0; col = col0; charPos = charPos0;");
+            this.gen.println("\t\t}");
+            this.gen.println("\t\treturn false;");
+        }
+        this.gen.println("\t}");
+    }
+
+    SymName(sym: Symbol): string {
+        //there is no Character.isLetter in .js, but there are regex
+        if ((/[a-zA-Z]/).test(sym.name.charAt(0))) { // real name value is stored in Tab.literals
+            //foreach (DictionaryEntry e in Tab.literals)
+            for (let literalKey of this.tab.literals) {
+                if (this.tab.literals[literalKey] == sym) return literalKey;
+            }
+        }
+        return sym.name;
+    }
+
+    GenLiterals() {
+        let ts = [this.tab.terminals, this.tab.pragmas];
+        for (let i = 0; i < ts.length; ++i) {
+            ts[i].forEach((sym, index, _) => {
+
+                if (sym.tokenKind == Symbol.litToken) {
+                    let name = this.SymName(sym);
+                    if (this.ignoreCase) name = name.toLowerCase();
+                    // sym.name stores literals with quotes, e.g. "\"Literal\"",
+                    this.gen.println("\t\tliterals.put(" + name + ", new Integer(" + sym.n + "));");
+                }
+            })
+
+        }
+
+    }
+
+    WriteState(state: State) {
+        let endOf = state.endOf;
+        this.gen.println("\t\t\t\tcase " + state.nr + ":");
+        if (endOf != null && state.firstAction != null) {
+            this.gen.println("\t\t\t\t\trecEnd = pos; recKind = " + endOf.n + ";");
+        }
+        let ctxEnd = state.ctx;
+        for (let action = state.firstAction; action != null; action = action.next) {
+            if (action == state.firstAction) this.gen.print("\t\t\t\t\tif (");
+            else this.gen.print("\t\t\t\t\telse if (");
+            if (action.typ == Node_.chr) this.gen.print(this.ChCond(action.sym.toString()));
+            else this.PutRange(this.tab.CharClassSet(action.sym));
+            this.gen.print(") {");
+            if (action.tc == Node_.contextTrans) {
+                this.gen.print("apx++; ");
+                ctxEnd = false;
+            } else if (state.ctx) {
+                this.gen.print("apx = 0; ");
+            }
+            this.gen.println("AddCh(); state = " + action.target.state.nr + "; break;}");
+        }
+        if (state.firstAction == null)
+            this.gen.print("\t\t\t\t\t{");
+        else
+            this.gen.print("\t\t\t\t\telse {");
+        if (ctxEnd) { // final context state: cut appendix
+            this.gen.println();
+            this.gen.println("\t\t\t\t\ttlen -= apx;");
+            this.gen.println("\t\t\t\t\tSetScannerBehindT();");
+            this.gen.print("\t\t\t\t\t");
+        }
+        if (endOf == null) {
+            this.gen.println("state = 0; break;}");
+        } else {
+            this.gen.print("t.kind = " + endOf.n + "; ");
+            if (endOf.tokenKind == Symbol.classLitToken) {
+                this.gen.println("t.val = new String(tval, 0, tlen); CheckLiteral(); return t;}");
+            } else {
+                this.gen.println("break loop;}");
+            }
+        }
+    }
+
+     WriteStartTab() {
+        for (let action = this.firstState.firstAction; action != null; action = action.next) {
+            let targetState = action.target.state.nr;
+            if (action.typ == Node_.chr) {
+                this.gen.println("\t\tstart.set(" + action.sym + ", " + targetState + "); ");
+            } else {
+                let s = this.tab.CharClassSet(action.sym);
+                for (let r = s.head; r != null; r = r.next) {
+                    this.gen.println("\t\tfor (int i = " + r.from + "; i <= " + r.to + "; ++i) start.set(i, " + targetState + ");");
+                }
+            }
+        }
+        this.gen.println("\t\tstart.set(Buffer.EOF, -1);");
+    }
+
+    public WriteScanner() {
+        let g = new Generator(this.tab);
+        this.fram = g.OpenFrame("Scanner.frame");
+        this.gen = g.OpenGen("Scanner.java");
+        if (this.dirtyDFA) this.MakeDeterministic();
+
+        g.GenCopyright();
+        g.SkipFramePart("-->begin");
+
+        /* add package name, if it exists */
+        if (this.tab.nsName != null && this.tab.nsName.length > 0) {
+            this.gen.print("package ");
+            this.gen.print(this.tab.nsName);
+            this.gen.println(";");
+        }
+        g.CopyFramePart("-->declarations");
+        this.gen.println("\tstatic final int maxT = " + (this.tab.terminals.length - 1) + ";");
+        this.gen.println("\tstatic final int noSym = " + this.tab.noSym.n + ";");
+        if (this.ignoreCase)
+            this.gen.print("\tchar valCh;       // current input character (for token.val)");
+        g.CopyFramePart("-->initialization");
+        this.WriteStartTab();
+        this.GenLiterals();
+        g.CopyFramePart("-->casing");
+        if (this.ignoreCase) {
+            this.gen.println("\t\tif (ch != Buffer.EOF) {");
+            this.gen.println("\t\t\tvalCh = (char) ch;");
+            this.gen.println("\t\t\tch = Character.toLowerCase(ch);");
+            this.gen.println("\t\t}");
+        }
+        g.CopyFramePart("-->casing2");
+        if (this.ignoreCase) this.gen.println("\t\t\ttval[tlen++] = valCh; ");
+        else this.gen.println("\t\t\ttval[tlen++] = (char)ch; ");
+        g.CopyFramePart("-->comments");
+        let com = this.firstComment;
+        let comIdx = 0;
+        while (com != null) {
+            this.GenComment(com, comIdx);
+            com = com.next; comIdx++;
+        }
+        g.CopyFramePart("-->casing3");
+        if (this.ignoreCase) {
+            this.gen.println("\t\tval = val.toLowerCase();");
+        }
+        g.CopyFramePart("-->scan1");
+        this.gen.print("\t\t\t");
+        if (this.tab.ignored.Elements() > 0) { this.PutRange(this.tab.ignored); } else { this.gen.print("false"); }
+        g.CopyFramePart("-->scan2");
+        if (this.firstComment != null) {
+            this.gen.print("\t\tif (");
+            com = this.firstComment; comIdx = 0;
+            while (com != null) {
+                this.gen.print(this.ChCond(com.start.charAt(0)));
+                this.gen.print(" && Comment" + comIdx + "()");
+                if (com.next != null) this.gen.print(" ||");
+                com = com.next; comIdx++;
+            }
+            this.gen.print(") return NextToken();");
+        }
+        if (this.hasCtxMoves) { this.gen.println(); this.gen.print("\t\tint apx = 0;"); } /* pdt */
+        g.CopyFramePart("-->scan3");
+        for (let state = this.firstState.next; state != null; state = state.next)
+        this.WriteState(state);
+        g.CopyFramePart(null);
+        this.gen.close();
+    }
+
+    constructor( parser:Parser) {
+    this.parser = parser;
+        this.tab = parser.tab;
+        this.errors = parser.errors;
+        this.trace = parser.trace;
+        this.firstState = null; this.lastState = null; this.lastStateNr = -1;
+        this.firstState = this.NewState();
+        this.firstMelted = null; this.firstComment = null;
+        this.ignoreCase = false;
+        this.dirtyDFA = false;
+        this.hasCtxMoves = false;
+}
 }
 

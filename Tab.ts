@@ -40,7 +40,9 @@ export class BitSet {
         return false;
     }
 
-    set(n: number, b?: boolean) {
+    set(n: number, b?: number)
+    set(n: number, b?: boolean)
+    set(n:number, a?: any) {
         return false;
     }
 
@@ -55,9 +57,10 @@ export class BitSet {
 
 
 //TODO:
-class Parser {
+export class Parser {
     trace: Trace;
     errors: Errors;
+    tab: Tab;
 
     SemErr(emptyTokenNotAllowed: string) {
 
@@ -65,7 +68,7 @@ class Parser {
 }
 
 //TODO:
-class Trace {
+export class Trace {
     Write(s: string, number?: number) {
 
     }
@@ -80,7 +83,7 @@ class Trace {
 }
 
 //TODO:
-class Errors {
+export class Errors {
 
 
     Warning(s: string)
@@ -271,7 +274,7 @@ export class Tab {
     public eofSy: Symbol;               // end of file symbol
     public noSym: Symbol;               // used in case of an error
     public allSyncSets: BitSet;         // union of all synchronisation sets
-    public literals: { key: string, value: Symbol }[];         // symbols that are used as literals
+    public literals: [];         // symbols that are used as literals
 
     public srcName: string;             // name of the atg file (including path)
     public srcDir: string;              // directory path of the atg file
@@ -288,7 +291,7 @@ export class Tab {
     trace: Trace;
     errors: Errors;
 
-    public nodes = [];
+    public nodes: Node_[]=[];
     public nTyp = ["    ", "t   ", "pr  ", "nt  ", "clas", "chr ", "wt  ", "any ", "eps ",  /* AW 03-01-14 nTyp[0]: " " --> "    " */
         "sync", "sem ", "alt ", "iter", "opt ", "rslv"];
     dummyNode: Node_;
@@ -614,7 +617,7 @@ export class Tab {
                     break;
                 case Node_.clas:
                     this.trace.Write("      ");
-                    this.trace.Write(p.code, 5);
+                    this.trace.Write(p.code.toString(), 5);
                     this.trace.Write("       ");
                     break;
                 case Node_.alt:
@@ -1437,15 +1440,15 @@ export class Tab {
     public XRef() {
 
         //Comperator: ((Symbol) x).name.compareTo(((Symbol) y).name)
-        let xref = new TreeMap(new SymbolComp());
+        let xref = [];
         // collect lines where symbols have been defined
         //foreach (Symbol sym in Symbol.nonterminals) {
         for (let i = 0; i < this.nonterminals.length; i++) {
             let sym = this.nonterminals[i];
-            let list = xref.get(sym);
+            let list = xref[sym];
             if (list == null) {
                 list = [];
-                xref.put(sym, list);
+                xref[sym] += list;
             }
             list.push(-sym.line);
         }
@@ -1454,10 +1457,10 @@ export class Tab {
         for (let i = 0; i < this.nodes.length; i++) {
             let n = this.nodes[i];
             if (n.typ == Node_.t || n.typ == Node_.wt || n.typ == Node_.nt) {
-                let list = xref.get(n.sym);
+                let list = xref[n.sym];
                 if (list == null) {
                     list = [];
-                    xref.put(n.sym, list);
+                    xref[n.sym]+=list;
                 }
                 list.push(n.line);
             }
@@ -1468,13 +1471,10 @@ export class Tab {
         this.trace.WriteLine("--------------------");
         this.trace.WriteLine();
         //foreach (Symbol sym in xref.Keys) {
-        java.util.Iterator
-        iter = xref.keySet().iterator();
-        while (iter.hasNext()) {
-            let sym = iter.next();
+        for (let xrefKey of xref) {
             this.trace.Write("  ");
-            this.trace.Write(this.Name(sym.name), -12);
-            let list = xref.get(sym);
+            this.trace.Write(this.Name(xrefKey.name), -12);
+            let list = xref[xrefKey];
             let col = 14;
             //foreach (int line in list) {
             for (let j = 0; j < list.length; j++) {
@@ -1488,6 +1488,7 @@ export class Tab {
             }
             this.trace.WriteLine();
         }
+
         this.trace.WriteLine();
         this.trace.WriteLine();
     }
