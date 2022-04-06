@@ -274,7 +274,7 @@ export class CharSet {
 //-----------------------------------------------------------------------------
 //  Generator
 //-----------------------------------------------------------------------------
-class Generator {
+export class Generator {
     private static EOF = -1;
 
     private fram: Reader;
@@ -377,7 +377,7 @@ class Generator {
 //  DFA
 //-----------------------------------------------------------------------------
 
-public class DFA {
+export class DFA {
     public ignoreCase: boolean;    // true if input should be treated case-insensitively
     public hasCtxMoves: boolean;   // DFA has context transitions
 
