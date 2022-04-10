@@ -42,7 +42,8 @@ export class BitSet {
 
     set(n: number, b?: number)
     set(n: number, b?: boolean)
-    set(n:number, a?: any) {
+    set(n:number, a: any, b: any)
+    set(n:number, a?: any, b?: any) {
         return false;
     }
 
@@ -61,6 +62,7 @@ export class Parser {
     trace: Trace;
     errors: Errors;
     tab: Tab;
+    scanner: Buffer;
 
     SemErr(emptyTokenNotAllowed: string) {
 
