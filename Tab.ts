@@ -1,4 +1,5 @@
 import {CharSet, State} from "./DFA";
+import {Trace} from "./Trace";
 
 
 //TODO:
@@ -69,20 +70,6 @@ export class Parser {
     }
 }
 
-//TODO:
-export class Trace {
-    Write(s: string, number?: number) {
-
-    }
-
-    WriteLine(s?: string, n?: number) {
-
-    }
-
-    formatString(s: string, number: number) {
-        return "";
-    }
-}
 
 //TODO:
 export class Errors {

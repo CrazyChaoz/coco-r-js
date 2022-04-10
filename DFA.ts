@@ -1,4 +1,5 @@
-import {BitSet, Node_, Parser, Sets, Symbol, Tab} from "./Tab";
+import {BitSet, Errors, Node_, Parser, Sets, Symbol, Tab} from "./Tab";
+import {Trace} from "./Trace";
 
 
 //-----------------------------------------------------------------------------
