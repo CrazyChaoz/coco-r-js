@@ -254,17 +254,17 @@ public  SemErr ( msg:string) {
     this.tab.noSym = this.tab.NewSym(Node_.t, "???", 0); // noSym gets highest number
     this.tab.SetupAnys();
     this.tab.RenumberPragmas();
-    if (tab.ddt[2]) tab.PrintNodes();
-    if (errors.count == 0) {
-        System.out.println("checking");
-        tab.CompSymbolSets();
-        if (tab.ddt[7]) tab.XRef();
-        if (tab.GrammarOk()) {
-            System.out.print("parser");
-            pgen.WriteParser();
-            if (genScanner) {
-                System.out.print(" + scanner");
-                dfa.WriteScanner();
+    if (this.tab.ddt[2]) this.tab.PrintNodes();
+    if (this.errors.count == 0) {
+        console.log("checking");
+        this.tab.CompSymbolSets();
+        if (this.tab.ddt[7]) this.tab.XRef();
+        if (this.tab.GrammarOk()) {
+            console.log("parser");
+            this.pgen.WriteParser();
+            if (this.genScanner) {
+                console.log(" + scanner");
+                this.dfa.WriteScanner();
                 if (this.tab.ddt[0]) this.dfa.PrintStates();
             }
             console.log(" generated");
@@ -297,64 +297,64 @@ public  SemErr ( msg:string) {
     sym = this.tab.FindSym(s.name);
     if (sym != null) this.SemErr("name declared twice");
     else {
-        sym = tab.NewSym(typ, s.name, t.line);
+        sym = this.tab.NewSym(typ, s.name, t.line);
         sym.tokenKind = Symbol.fixedToken;
     }
-    tokenString = null;
+    this.tokenString = null;
 
-    while (!(StartOf(5))) {SynErr(46); Get();}
-    if (la.kind == 17) {
-        Get();
-        g = TokenExpr();
-        Expect(18);
-        if (s.kind == str) SemErr("a literal must not be declared with a structure");
-        tab.Finish(g);
-        if (tokenString == null || tokenString.equals(noString))
-            dfa.ConvertToStates(g.l, sym);
+    while (!(this.StartOf(5))) {this.SynErr(46); this.Get();}
+    if (this.la.kind == 17) {
+        this.Get();
+        g = this.TokenExpr();
+        this.Expect(18);
+        if (s.kind == Parser.str) this.SemErr("a literal must not be declared with a structure");
+        this.tab.Finish(g);
+        if (this.tokenString == null || this.tokenString===this.noString)
+            this.dfa.ConvertToStates(g.l, sym);
         else { // TokenExpr is a single string
-            if (tab.literals.get(tokenString) != null)
-                SemErr("token string declared twice");
-            tab.literals.put(tokenString, sym);
-            dfa.MatchLiteral(tokenString, sym);
+            if (this.tab.literals.get(this.tokenString) != null)
+                this.SemErr("token string declared twice");
+            this.tab.literals.put(tokenString, sym);
+            this.dfa.MatchLiteral(this.tokenString, sym);
         }
 
-    } else if (StartOf(6)) {
-        if (s.kind == id) genScanner = false;
-        else dfa.MatchLiteral(sym.name, sym);
+    } else if (this.StartOf(6)) {
+        if (s.kind == Parser.id) this.genScanner = false;
+        else this.dfa.MatchLiteral(sym.name, sym);
 
-    } else SynErr(47);
-    if (la.kind == 42) {
-        sym.semPos = SemText();
-        if (typ != Node.pr) SemErr("semantic action not allowed here");
+    } else this.SynErr(47);
+    if (this.la.kind == 42) {
+        sym.semPos = this.SemText();
+        if (typ != Node_.pr) this.SemErr("semantic action not allowed here");
     }
 }
 
   TokenExpr() :Graph{
-    Graph  g;
-    Graph g2;
-    g = TokenTerm();
-    boolean first = true;
-    while (WeakSeparator(33,7,8) ) {
-        g2 = TokenTerm();
-        if (first) { tab.MakeFirstAlt(g); first = false; }
-        tab.MakeAlternative(g, g2);
+    let  g:Graph;
+    let g2:Graph;
+    g = this.TokenTerm();
+    let first = true;
+    while (this.WeakSeparator(33,7,8) ) {
+        g2 = this.TokenTerm();
+        if (first) { this.tab.MakeFirstAlt(g); first = false; }
+        this.tab.MakeAlternative(g, g2);
 
     }
     return g;
 }
 
   Set():CharSet {
-    CharSet  s;
-    CharSet s2;
-    s = SimSet();
-    while (la.kind == 20 || la.kind == 21) {
-        if (la.kind == 20) {
-            Get();
-            s2 = SimSet();
+    let  s:CharSet;
+    let s2:CharSet;
+    s = this.SimSet();
+    while (this.la.kind == 20 || this.la.kind == 21) {
+        if (this.la.kind == 20) {
+            this.Get();
+            s2 = this.SimSet();
             s.Or(s2);
         } else {
-            Get();
-            s2 = SimSet();
+            this.Get();
+            s2 = this.SimSet();
             s.Subtract(s2);
         }
     }
@@ -362,189 +362,192 @@ public  SemErr ( msg:string) {
 }
 
  AttrDecl( sym:Symbol) {
-    int beg, col;
-    if (la.kind == 24) {
-        Get();
-        if (la.kind == 25 || la.kind == 26) {
-            if (la.kind == 25) {
-                Get();
+    let beg, col:number;
+    if (this.la.kind == 24) {
+        this.Get();
+        // @ts-ignore
+        if (this.la.kind == 25 || this.la.kind == 26) {
+            if (this.la.kind == 25) {
+                this.Get();
             } else {
-                Get();
+                this.Get();
             }
-            beg = la.pos;
-            TypeName();
-            sym.retType = scanner.buffer.GetString(beg, la.pos);
-            Expect(1);
-            sym.retVar = t.val;
-            if (la.kind == 27) {
-                Get();
-            } else if (la.kind == 28) {
-                Get();
-                beg = la.pos; col = la.col;
-                while (StartOf(9)) {
-                    Get();
+            beg = this.la.pos;
+            this.TypeName();
+            sym.retType = this.scanner.buffer.GetString(beg, this.la.pos);
+            this.Expect(1);
+            sym.retVar = this.t.val;
+            if (this.la.kind == 27) {
+                this.Get();
+            } else if (this.la.kind == 28) {
+                this.Get();
+                beg = this.la.pos; col = this.la.col;
+                while (this.StartOf(9)) {
+                    this.Get();
                 }
-                Expect(27);
-                if (t.pos > beg)
-                    sym.attrPos = new Position(beg, t.pos, col);
-            } else SynErr(48);
-        } else if (StartOf(10)) {
-            beg = la.pos; col = la.col;
-            if (StartOf(11)) {
-                Get();
-                while (StartOf(9)) {
-                    Get();
+                this.Expect(27);
+                if (this.t.pos > beg)
+                    sym.attrPos = new Position(beg, this.t.pos, col);
+            } else this.SynErr(48);
+        } else if (this.StartOf(10)) {
+            beg = this.la.pos; col = this.la.col;
+            if (this.StartOf(11)) {
+                this.Get();
+                while (this.StartOf(9)) {
+                    this.Get();
                 }
             }
-            Expect(27);
-            if (t.pos > beg)
-                sym.attrPos = new Position(beg, t.pos, col);
-        } else SynErr(49);
-    } else if (la.kind == 29) {
-        Get();
-        if (la.kind == 25 || la.kind == 26) {
-            if (la.kind == 25) {
-                Get();
+            this.Expect(27);
+            if (this.t.pos > beg)
+                sym.attrPos = new Position(beg, this.t.pos, col);
+        } else this.SynErr(49);
+    } else if (this.la.kind == 29) {
+        this.Get();
+        // @ts-ignore
+        if (this.la.kind == 25 || this.la.kind == 26) {
+            if (this.la.kind == 25) {
+                this.Get();
             } else {
-                Get();
+                this.Get();
             }
-            beg = la.pos;
-            TypeName();
-            sym.retType = scanner.buffer.GetString(beg, la.pos);
-            Expect(1);
-            sym.retVar = t.val;
-            if (la.kind == 30) {
-                Get();
-            } else if (la.kind == 28) {
-                Get();
-                beg = la.pos; col = la.col;
-                while (StartOf(12)) {
-                    Get();
+            beg = this.la.pos;
+            this.TypeName();
+            sym.retType = this.scanner.buffer.GetString(beg, this.la.pos);
+            this.Expect(1);
+            sym.retVar = this.t.val;
+            if (this.la.kind == 30) {
+                this.Get();
+            } else if (this.la.kind == 28) {
+                this.Get();
+                beg = this.la.pos; col = this.la.col;
+                while (this.StartOf(12)) {
+                    this.Get();
                 }
-                Expect(30);
-                if (t.pos > beg)
-                    sym.attrPos = new Position(beg, t.pos, col);
-            } else SynErr(50);
-        } else if (StartOf(10)) {
-            beg = la.pos; col = la.col;
-            if (StartOf(13)) {
-                Get();
-                while (StartOf(12)) {
-                    Get();
+                this.Expect(30);
+                if (this.t.pos > beg)
+                    sym.attrPos = new Position(beg, this.t.pos, col);
+            } else this.SynErr(50);
+        } else if (this.StartOf(10)) {
+            beg = this.la.pos; col = this.la.col;
+            if (this.StartOf(13)) {
+                this.Get();
+                while (this.StartOf(12)) {
+                    this.Get();
                 }
             }
-            Expect(30);
-            if (t.pos > beg)
-                sym.attrPos = new Position(beg, t.pos, col);
-        } else SynErr(51);
-    } else SynErr(52);
+            this.Expect(30);
+            if (this.t.pos > beg)
+                sym.attrPos = new Position(beg, this.t.pos, col);
+        } else this.SynErr(51);
+    } else this.SynErr(52);
 }
 
   SemText() :Position{
-    Position  pos;
-    Expect(42);
-    int beg = la.pos; int col = la.col;
-    while (StartOf(14)) {
-        if (StartOf(15)) {
-            Get();
-        } else if (la.kind == 4) {
-            Get();
-            SemErr("bad string in semantic action");
+    let  pos:Position;
+    this.Expect(42);
+    let beg = this.la.pos; let col = this.la.col;
+    while (this.StartOf(14)) {
+        if (this.StartOf(15)) {
+            this.Get();
+        } else if (this.la.kind == 4) {
+            this.Get();
+            this.SemErr("bad string in semantic action");
         } else {
-            Get();
-            SemErr("missing end of previous semantic action");
+            this.Get();
+            this.SemErr("missing end of previous semantic action");
         }
     }
-    Expect(43);
-    pos = new Position(beg, t.pos, col);
+      this.Expect(43);
+    pos = new Position(beg, this.t.pos, col);
     return pos;
 }
 
   Expression() :Graph{
-    Graph  g;
-    Graph g2;
-    g = Term();
-    boolean first = true;
-    while (WeakSeparator(33,16,17) ) {
-        g2 = Term();
-        if (first) { tab.MakeFirstAlt(g); first = false; }
-        tab.MakeAlternative(g, g2);
+    let  g:Graph;
+    let g2:Graph;
+    g = this.Term();
+    let first = true;
+    while (this.WeakSeparator(33,16,17) ) {
+        g2 = this.Term();
+        if (first) { this.tab.MakeFirstAlt(g); first = false; }
+        this.tab.MakeAlternative(g, g2);
 
     }
     return g;
 }
 
   SimSet() :CharSet{
-    CharSet  s;
-    int n1, n2;
+    let  s:CharSet;
+    let n1, n2:number;
     s = new CharSet();
-    if (la.kind == 1) {
-        Get();
-        CharClass c = tab.FindCharClass(t.val);
-        if (c == null) SemErr("undefined name"); else s.Or(c.set);
+    if (this.la.kind == 1) {
+        this.Get();
+        let c = this.tab.FindCharClass(this.t.val);
+        if (c == null) this.SemErr("undefined name"); else s.Or(c.set);
 
-    } else if (la.kind == 3) {
-        Get();
-        String name = t.val;
-        name = tab.Unescape(name.substring(1, name.length()-1));
-        for (int i = 0; i < name.length(); i++)
-        if (dfa.ignoreCase) s.Set(Character.toLowerCase(name.charAt(i)));
+    } else if (this.la.kind == 3) {
+        this.Get();
+        let name = this.t.val;
+        name = this.tab.Unescape(name.substring(1, name.length-1));
+        for (let i = 0; i < name.length; i++)
+        if (this.dfa.ignoreCase) s.Set(Character.toLowerCase(name.charAt(i)));
         else s.Set(name.charAt(i));
-    } else if (la.kind == 5) {
-        n1 = Char();
+    } else if (this.la.kind == 5) {
+        n1 = this.Char();
         s.Set(n1);
-        if (la.kind == 22) {
-            Get();
-            n2 = Char();
-            for (int i = n1; i <= n2; i++) s.Set(i);
+        // @ts-ignore
+        if (this.la.kind == 22) {
+            this.Get();
+            n2 = this.Char();
+            for (let i = n1; i <= n2; i++) s.Set(i);
         }
-    } else if (la.kind == 23) {
-        Get();
+    } else if (this.la.kind == 23) {
+        this.Get();
         s = new CharSet(); s.Fill();
-    } else SynErr(53);
+    } else this.SynErr(53);
     return s;
 }
 
   Char():number {
-    int  n;
-    Expect(5);
-    String name = t.val; n = 0;
-    name = tab.Unescape(name.substring(1, name.length()-1));
-    if (name.length() == 1) n = name.charAt(0);
-    else SemErr("unacceptable character value");
-    if (dfa.ignoreCase && (char)n >= 'A' && (char)n <= 'Z') n += 32;
+    let  n:number;
+    this.Expect(5);
+    let name = this.t.val; n = 0;
+    name = this.tab.Unescape(name.substring(1, name.length-1));
+    if (name.length == 1) n = name.charAt(0).charCodeAt(0);
+    else this.SemErr("unacceptable character value");
+    if (this.dfa.ignoreCase && n >= 'A'.charCodeAt(0) && n <= 'Z'.charCodeAt(0)) n += 32;
 
     return n;
 }
 
   Sym() :SymInfo{
-    SymInfo  s;
-    s = new SymInfo(); s.name = "???"; s.kind = id;
-    if (la.kind == 1) {
-        Get();
-        s.kind = id; s.name = t.val;
-    } else if (la.kind == 3 || la.kind == 5) {
-        if (la.kind == 3) {
-            Get();
-            s.name = t.val;
+    let  s:SymInfo;
+    s = new SymInfo(); s.name = "???"; s.kind = Parser.id;
+    if (this.la.kind == 1) {
+        this.Get();
+        s.kind = Parser.id; s.name = this.t.val;
+    } else if (this.la.kind == 3 || this.la.kind == 5) {
+        if (this.la.kind == 3) {
+            this.Get();
+            s.name = this.t.val;
         } else {
-            Get();
-            s.name = "\"" + t.val.substring(1, t.val.length()-1) + "\"";
+            this.Get();
+            s.name = "\"" + this.t.val.substring(1, this.t.val.length-1) + "\"";
         }
-        s.kind = str;
-        if (dfa.ignoreCase) s.name = s.name.toLowerCase();
+        s.kind = Parser.str;
+        if (this.dfa.ignoreCase) s.name = s.name.toLowerCase();
         if (s.name.indexOf(' ') >= 0)
-            SemErr("literal tokens must not contain blanks");
-    } else SynErr(54);
+            this.SemErr("literal tokens must not contain blanks");
+    } else this.SynErr(54);
     return s;
 }
 
  TypeName() {
-    Expect(1);
-    while (la.kind == 18 || la.kind == 24 || la.kind == 31) {
-        if (la.kind == 18) {
-            Get();
-            Expect(1);
+    this.Expect(1);
+    while (this.la.kind == 18 || this.la.kind == 24 || this.la.kind == 31) {
+        if (this.la.kind == 18) {
+            this.Get();
+            this.Expect(1);
         } else if (la.kind == 31) {
             Get();
             Expect(32);
