@@ -188,6 +188,7 @@ public  SemErr ( msg:string) {
         g1 = this.TokenExpr();
         this.Expect(13);
         g2 = this.TokenExpr();
+        // @ts-ignore
         if (this.la.kind == 14) {
             this.Get();
             nested = true;
@@ -297,7 +298,7 @@ public  SemErr ( msg:string) {
     sym = this.tab.FindSym(s.name);
     if (sym != null) this.SemErr("name declared twice");
     else {
-        sym = this.tab.NewSym(typ, s.name, t.line);
+        sym = this.tab.NewSym(typ, s.name, this.t.line);
         sym.tokenKind = Symbol.fixedToken;
     }
     this.tokenString = null;
@@ -312,9 +313,9 @@ public  SemErr ( msg:string) {
         if (this.tokenString == null || this.tokenString===this.noString)
             this.dfa.ConvertToStates(g.l, sym);
         else { // TokenExpr is a single string
-            if (this.tab.literals.get(this.tokenString) != null)
+            if (this.tab.literals[this.tokenString] != null)
                 this.SemErr("token string declared twice");
-            this.tab.literals.put(tokenString, sym);
+            this.tab.literals[this.tokenString] = sym;
             this.dfa.MatchLiteral(this.tokenString, sym);
         }
 
@@ -548,379 +549,383 @@ public  SemErr ( msg:string) {
         if (this.la.kind == 18) {
             this.Get();
             this.Expect(1);
-        } else if (la.kind == 31) {
-            Get();
-            Expect(32);
+        } else if (this.la.kind == 31) {
+            this.Get();
+            this.Expect(32);
         } else {
-            Get();
-            TypeName();
-            while (la.kind == 28) {
-                Get();
-                TypeName();
+            this.Get();
+            this.TypeName();
+            // @ts-ignore
+            while (this.la.kind == 28) {
+                this.Get();
+                this.TypeName();
             }
-            Expect(27);
+            this.Expect(27);
         }
     }
 }
 
   Term():Graph {
-    Graph  g;
-    Graph g2; Node rslv = null; g = null;
-    if (StartOf(18)) {
-        if (la.kind == 40) {
-            rslv = tab.NewNode(Node.rslv, null, la.line);
-            rslv.pos = Resolver();
+    let  g:Graph;
+    let g2:Graph; let rslv:Node_ = null; g = null;
+    if (this.StartOf(18)) {
+        if (this.la.kind == 40) {
+            rslv = this.tab.NewNode(Node_.rslv, null, this.la.line);
+            rslv.pos = this.Resolver();
             g = new Graph(rslv);
         }
-        g2 = Factor();
-        if (rslv != null) tab.MakeSequence(g, g2);
+        g2 = this.Factor();
+        if (rslv != null) this.tab.MakeSequence(g, g2);
         else g = g2;
 
-        while (StartOf(19)) {
-            g2 = Factor();
-            tab.MakeSequence(g, g2);
+        while (this.StartOf(19)) {
+            g2 = this.Factor();
+            this.tab.MakeSequence(g, g2);
         }
-    } else if (StartOf(20)) {
-        g = new Graph(tab.NewNode(Node.eps, null, 0));
-    } else SynErr(55);
+    } else if (this.StartOf(20)) {
+        g = new Graph(this.tab.NewNode(Node_.eps, null, 0));
+    } else this.SynErr(55);
     if (g == null) // invalid start of Term
-        g = new Graph(tab.NewNode(Node.eps, null, 0));
+        g = new Graph(this.tab.NewNode(Node_.eps, null, 0));
 
     return g;
 }
 
   Resolver() :Position{
-    Position  pos;
-    Expect(40);
-    Expect(35);
-    int beg = la.pos; int col = la.col;
-    Condition();
-    pos = new Position(beg, t.pos, col);
+    let  pos:Position;
+    this.Expect(40);
+    this.Expect(35);
+    let beg = this.la.pos; let col = this.la.col;
+    this.Condition();
+    pos = new Position(beg, this.t.pos, col);
     return pos;
 }
 
   Factor():Graph {
-    Graph  g;
-    SymInfo s; Position pos; boolean weak = false;
+    let  g:Graph;
+    let s:SymInfo; let pos:Position; let weak = false;
     g = null;
-    switch (la.kind) {
+    switch (this.la.kind) {
         case 1: case 3: case 5: case 34: {
-            if (la.kind == 34) {
-                Get();
+            if (this.la.kind == 34) {
+                this.Get();
                 weak = true;
             }
-            s = Sym();
-            let sym = tab.FindSym(s.name);
-            if (sym == null && s.kind == str)
-                sym = tab.literals.get(s.name);
-            boolean undef = sym == null;
+            s = this.Sym();
+            let sym = this.tab.FindSym(s.name);
+            if (sym == null && s.kind == Parser.str)
+                sym = this.tab.literals[s.name];
+            let undef = sym == null;
             if (undef) {
-                if (s.kind == id)
-                    sym = tab.NewSym(Node.nt, s.name, 0);  // forward nt
-                else if (genScanner) {
-                    sym = tab.NewSym(Node.t, s.name, t.line);
-                    dfa.MatchLiteral(sym.name, sym);
+                if (s.kind == Parser.id)
+                    sym = this.tab.NewSym(Node_.nt, s.name, 0);  // forward nt
+                else if (this.genScanner) {
+                    sym = this.tab.NewSym(Node_.t, s.name, this.t.line);
+                    this.dfa.MatchLiteral(sym.name, sym);
                 } else {  // undefined string in production
-                    SemErr("undefined string in production");
-                    sym = tab.eofSy;  // dummy
+                    this.SemErr("undefined string in production");
+                    sym = this.tab.eofSy;  // dummy
                 }
             }
-            int typ = sym.typ;
-            if (typ != Node.t && typ != Node.nt)
-                SemErr("this symbol kind is not allowed in a production");
+            let typ = sym.typ;
+            if (typ != Node_.t && typ != Node_.nt)
+                this.SemErr("this symbol kind is not allowed in a production");
             if (weak)
-                if (typ == Node.t) typ = Node.wt;
-                else SemErr("only terminals may be weak");
-            let p = tab.NewNode(typ, sym, t.line);
+                if (typ == Node_.t) typ = Node_.wt;
+                else this.SemErr("only terminals may be weak");
+            let p = this.tab.NewNode(typ, sym, this.t.line);
             g = new Graph(p);
 
-            if (la.kind == 24 || la.kind == 29) {
-                Attribs(p);
-                if (s.kind != id) SemErr("a literal must not have attributes");
+            // @ts-ignore
+            if (this.la.kind == 24 || this.la.kind == 29) {
+                this.Attribs(p);
+                if (s.kind != Parser.id) this.SemErr("a literal must not have attributes");
             }
             if (undef) {
                 sym.attrPos = p.pos;  // dummy
                 sym.retVar = p.retVar;  // AH - dummy
             } else if ((p.pos == null) != (sym.attrPos == null)
                 || (p.retVar == null) != (sym.retVar == null))
-                SemErr("attribute mismatch between declaration and use of this symbol");
+                this.SemErr("attribute mismatch between declaration and use of this symbol");
 
             break;
         }
         case 35: {
-            Get();
-            g = Expression();
-            Expect(36);
+            this.Get();
+            g = this.Expression();
+            this.Expect(36);
             break;
         }
         case 31: {
-            Get();
-            g = Expression();
-            Expect(32);
-            tab.MakeOption(g);
+            this.Get();
+            g = this.Expression();
+            this.Expect(32);
+            this.tab.MakeOption(g);
             break;
         }
         case 37: {
-            Get();
-            g = Expression();
-            Expect(38);
-            tab.MakeIteration(g);
+            this.Get();
+            g = this.Expression();
+            this.Expect(38);
+            this.tab.MakeIteration(g);
             break;
         }
         case 42: {
-            pos = SemText();
-            let p = tab.NewNode(Node_.sem, null, 0);
+            pos = this.SemText();
+            let p = this.tab.NewNode(Node_.sem, null, 0);
             p.pos = pos;
             g = new Graph(p);
 
             break;
         }
         case 23: {
-            Get();
-            let p = tab.NewNode(Node_.any, null, t.line);  // p.set is set in tab.SetupAnys
+            this.Get();
+            let p = this.tab.NewNode(Node_.any, null, t.line);  // p.set is set in tab.SetupAnys
             g = new Graph(p);
 
             break;
         }
         case 39: {
-            Get();
-            let p = tab.NewNode(Node_.sync, null, 0);
+            this.Get();
+            let p = this.tab.NewNode(Node_.sync, null, 0);
             g = new Graph(p);
 
             break;
         }
-        default: SynErr(56); break;
+        default: this.SynErr(56); break;
     }
     if (g == null) // invalid start of Factor
-        g = new Graph(tab.NewNode(Node_.eps, null, 0));
+        g = new Graph(this.tab.NewNode(Node_.eps, null, 0));
 
     return g;
 }
 
  Attribs( n:Node_) {
-    int beg, col;
-    if (la.kind == 24) {
-        Get();
-        if (la.kind == 25 || la.kind == 26) {
-            if (la.kind == 25) {
-                Get();
+    let beg, col:number;
+    if (this.la.kind == 24) {
+        this.Get();
+        // @ts-ignore
+        if (this.la.kind == 25 || this.la.kind == 26) {
+            if (this.la.kind == 25) {
+                this.Get();
             } else {
-                Get();
+                this.Get();
             }
-            beg = la.pos;
-            while (StartOf(21)) {
-                if (StartOf(22)) {
-                    Get();
-                } else if (la.kind == 31 || la.kind == 35) {
-                    Bracketed();
+            beg = this.la.pos;
+            while (this.StartOf(21)) {
+                if (this.StartOf(22)) {
+                    this.Get();
+                } else if (this.la.kind == 31 || this.la.kind == 35) {
+                    this.Bracketed();
                 } else {
-                    Get();
-                    SemErr("bad string in attributes");
+                    this.Get();
+                    this.SemErr("bad string in attributes");
                 }
             }
-            n.retVar = scanner.buffer.GetString(beg, la.pos);
-            if (la.kind == 27) {
-                Get();
-            } else if (la.kind == 28) {
-                Get();
-                beg = la.pos; col = la.col;
-                while (StartOf(9)) {
-                    if (StartOf(23)) {
-                        Get();
+            n.retVar = this.scanner.buffer.GetString(beg, this.la.pos);
+            if (this.la.kind == 27) {
+                this.Get();
+            } else if (this.la.kind == 28) {
+                this.Get();
+                beg = this.la.pos; col = this.la.col;
+                while (this.StartOf(9)) {
+                    if (this.StartOf(23)) {
+                        this.Get();
                     } else {
-                        Get();
-                        SemErr("bad string in attributes");
+                        this.Get();
+                        this.SemErr("bad string in attributes");
                     }
                 }
-                Expect(27);
-                if (t.pos > beg) n.pos = new Position(beg, t.pos, col);
-            } else SynErr(57);
-        } else if (StartOf(10)) {
-            beg = la.pos; col = la.col;
-            if (StartOf(11)) {
-                if (StartOf(24)) {
-                    Get();
+                this.Expect(27);
+                if (this.t.pos > beg) n.pos = new Position(beg, this.t.pos, col);
+            } else this.SynErr(57);
+        } else if (this.StartOf(10)) {
+            beg = this.la.pos; col = this.la.col;
+            if (this.StartOf(11)) {
+                if (this.StartOf(24)) {
+                    this.Get();
                 } else {
-                    Get();
-                    SemErr("bad string in attributes");
+                    this.Get();
+                    this.SemErr("bad string in attributes");
                 }
-                while (StartOf(9)) {
-                    if (StartOf(23)) {
-                        Get();
+                while (this.StartOf(9)) {
+                    if (this.StartOf(23)) {
+                        this.Get();
                     } else {
-                        Get();
-                        SemErr("bad string in attributes");
+                        this.Get();
+                        this.SemErr("bad string in attributes");
                     }
                 }
             }
-            Expect(27);
-            if (t.pos > beg) n.pos = new Position(beg, t.pos, col);
-        } else SynErr(58);
-    } else if (la.kind == 29) {
-        Get();
-        if (la.kind == 25 || la.kind == 26) {
-            if (la.kind == 25) {
-                Get();
+            this.Expect(27);
+            if (this.t.pos > beg) n.pos = new Position(beg, t.pos, col);
+        } else this.SynErr(58);
+    } else if (this.la.kind == 29) {
+        this.Get();
+        // @ts-ignore
+        if (this.la.kind == 25 || this.la.kind == 26) {
+            if (this.la.kind == 25) {
+                this.Get();
             } else {
-                Get();
+                this.Get();
             }
-            beg = la.pos;
-            while (StartOf(25)) {
-                if (StartOf(26)) {
-                    Get();
-                } else if (la.kind == 31 || la.kind == 35) {
-                    Bracketed();
+            beg = this.la.pos;
+            while (this.StartOf(25)) {
+                if (this.StartOf(26)) {
+                    this.Get();
+                } else if (this.la.kind == 31 || this.la.kind == 35) {
+                    this.Bracketed();
                 } else {
-                    Get();
-                    SemErr("bad string in attributes");
+                    this.Get();
+                    this.SemErr("bad string in attributes");
                 }
             }
-            n.retVar = scanner.buffer.GetString(beg, la.pos);
-            if (la.kind == 30) {
-                Get();
-            } else if (la.kind == 28) {
-                Get();
-                beg = la.pos; col = la.col;
-                while (StartOf(12)) {
-                    if (StartOf(27)) {
-                        Get();
+            n.retVar = this.scanner.buffer.GetString(beg, this.la.pos);
+            if (this.la.kind == 30) {
+                this.Get();
+            } else if (this.la.kind == 28) {
+                this.Get();
+                beg = this.la.pos; col = this.la.col;
+                while (this.StartOf(12)) {
+                    if (this.StartOf(27)) {
+                        this.Get();
                     } else {
-                        Get();
-                        SemErr("bad string in attributes");
+                        this.Get();
+                        this.SemErr("bad string in attributes");
                     }
                 }
-                Expect(30);
-                if (t.pos > beg) n.pos = new Position(beg, t.pos, col);
-            } else SynErr(59);
-        } else if (StartOf(10)) {
-            beg = la.pos; col = la.col;
-            if (StartOf(13)) {
-                if (StartOf(28)) {
-                    Get();
+                this.Expect(30);
+                if (this.t.pos > beg) n.pos = new Position(beg, this.t.pos, col);
+            } else this.SynErr(59);
+        } else if (this.StartOf(10)) {
+            beg = this.la.pos; col = this.la.col;
+            if (this.StartOf(13)) {
+                if (this.StartOf(28)) {
+                    this.Get();
                 } else {
-                    Get();
-                    SemErr("bad string in attributes");
+                    this.Get();
+                    this.SemErr("bad string in attributes");
                 }
-                while (StartOf(12)) {
-                    if (StartOf(27)) {
-                        Get();
+                while (this.StartOf(12)) {
+                    if (this.StartOf(27)) {
+                        this.Get();
                     } else {
-                        Get();
-                        SemErr("bad string in attributes");
+                        this.Get();
+                        this.SemErr("bad string in attributes");
                     }
                 }
             }
-            Expect(30);
-            if (t.pos > beg) n.pos = new Position(beg, t.pos, col);
-        } else SynErr(60);
-    } else SynErr(61);
+            this.Expect(30);
+            if (this.t.pos > beg) n.pos = new Position(beg, this.t.pos, col);
+        } else this.SynErr(60);
+    } else this.SynErr(61);
 }
 
  Condition() {
-    while (StartOf(29)) {
-        if (la.kind == 35) {
-            Get();
-            Condition();
+    while (this.StartOf(29)) {
+        if (this.la.kind == 35) {
+            this.Get();
+            this.Condition();
         } else {
-            Get();
+            this.Get();
         }
     }
-    Expect(36);
+    this.Expect(36);
 }
 
   TokenTerm():Graph {
-    Graph  g;
-    Graph g2;
-    g = TokenFactor();
-    while (StartOf(7)) {
-        g2 = TokenFactor();
-        tab.MakeSequence(g, g2);
+    let  g:Graph;
+    let g2:Graph;
+    g = this.TokenFactor();
+    while (this.StartOf(7)) {
+        g2 = this.TokenFactor();
+        this.tab.MakeSequence(g, g2);
     }
-    if (la.kind == 41) {
-        Get();
-        Expect(35);
-        g2 = TokenExpr();
-        tab.SetContextTrans(g2.l); dfa.hasCtxMoves = true;
-        tab.MakeSequence(g, g2);
-        Expect(36);
+    if (this.la.kind == 41) {
+        this.Get();
+        this.Expect(35);
+        g2 = this.TokenExpr();
+        this.tab.SetContextTrans(g2.l); this.dfa.hasCtxMoves = true;
+        this.tab.MakeSequence(g, g2);
+        this.Expect(36);
     }
     return g;
 }
 
   TokenFactor():Graph {
-    Graph  g;
-    SymInfo s;
+    let  g:Graph;
+    let s:SymInfo;
     g = null;
-    if (la.kind == 1 || la.kind == 3 || la.kind == 5) {
-        s = Sym();
-        if (s.kind == id) {
-            CharClass c = tab.FindCharClass(s.name);
+    if (this.la.kind == 1 || this.la.kind == 3 || this.la.kind == 5) {
+        s = this.Sym();
+        if (s.kind == Parser.id) {
+            let c = this.tab.FindCharClass(s.name);
             if (c == null) {
-                SemErr("undefined name");
-                c = tab.NewCharClass(s.name, new CharSet());
+                this.SemErr("undefined name");
+                c = this.tab.NewCharClass(s.name, new CharSet());
             }
-            Node p = tab.NewNode(Node.clas, null, 0); p.val = c.n;
+            let p = this.tab.NewNode(Node_.clas, null, 0); p.val = c.n;
             g = new Graph(p);
-            tokenString = noString;
+            this.tokenString = this.noString;
         } else { // str
-            g = tab.StrToGraph(s.name);
-            if (tokenString == null) tokenString = s.name;
-            else tokenString = noString;
+            g = this.tab.StrToGraph(s.name);
+            if (this.tokenString == null) this.tokenString = s.name;
+            else this.tokenString = this.noString;
         }
 
-    } else if (la.kind == 35) {
-        Get();
-        g = TokenExpr();
-        Expect(36);
-    } else if (la.kind == 31) {
-        Get();
-        g = TokenExpr();
-        Expect(32);
-        tab.MakeOption(g); tokenString = noString;
-    } else if (la.kind == 37) {
-        Get();
-        g = TokenExpr();
-        Expect(38);
-        tab.MakeIteration(g); tokenString = noString;
-    } else SynErr(62);
+    } else if (this.la.kind == 35) {
+        this.Get();
+        g = this.TokenExpr();
+        this.Expect(36);
+    } else if (this.la.kind == 31) {
+        this.Get();
+        g = this.TokenExpr();
+        this.Expect(32);
+        this.tab.MakeOption(g); this.tokenString = this.noString;
+    } else if (this.la.kind == 37) {
+        this.Get();
+        g = this.TokenExpr();
+        this.Expect(38);
+        this.tab.MakeIteration(g); this.tokenString = this.noString;
+    } else this.SynErr(62);
     if (g == null) // invalid start of TokenFactor
-        g = new Graph(tab.NewNode(Node.eps, null, 0));
+        g = new Graph(this.tab.NewNode(Node_.eps, null, 0));
     return g;
 }
 
 Bracketed() {
-    if (la.kind == 35) {
-        Get();
-        while (StartOf(29)) {
-            if (la.kind == 31 || la.kind == 35) {
-                Bracketed();
+    if (this.la.kind == 35) {
+        this.Get();
+        while (this.StartOf(29)) {
+            // @ts-ignore
+            if (this.la.kind == 31 || this.la.kind == 35) {
+                this.Bracketed();
             } else {
-                Get();
+                this.Get();
             }
         }
-        Expect(36);
-    } else if (la.kind == 31) {
-        Get();
-        while (StartOf(30)) {
-            if (la.kind == 31 || la.kind == 35) {
-                Bracketed();
+        this.Expect(36);
+    } else if (this.la.kind == 31) {
+        this.Get();
+        while (this.StartOf(30)) {
+            if (this.la.kind == 31 || this.la.kind == 35) {
+                this.Bracketed();
             } else {
-                Get();
+                this.Get();
             }
         }
         this.Expect(32);
-    } else SynErr(63);
+    } else this.SynErr(63);
 }
 
 
 
 public Parse() {
     this.la = new Token();
-    la.val = "";
-    Get();
-    Coco();
-    Expect(0);
-
+    this.la.val = "";
+    this.Get();
+    this.Coco();
+    this.Expect(0);
 }
 
 static set = [

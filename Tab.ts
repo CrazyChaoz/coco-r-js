@@ -331,7 +331,7 @@ export class Tab {
         this.trace.WriteLine(" " + (this.tKind)[sym.tokenKind]);
     }
 
-    public PrintSymbolTable(s: string) {
+    public PrintSymbolTable(s?: string) {
         this.trace.WriteLine("Symbol Table:");
         this.trace.WriteLine("------------");
         this.trace.WriteLine();
