@@ -1,5 +1,6 @@
 import {CharSet, State} from "./DFA";
 import {Trace} from "./Trace";
+import {Errors, Parser} from "./Parser";
 
 
 //TODO:
@@ -57,36 +58,6 @@ export class BitSet {
     }
 }
 
-
-//TODO:
-export class Parser {
-    trace: Trace;
-    errors: Errors;
-    tab: Tab;
-    scanner: Buffer;
-
-    SemErr(emptyTokenNotAllowed: string) {
-
-    }
-}
-
-
-//TODO:
-export class Errors {
-
-
-    Warning(s: string)
-
-    Warning(line: number, col: number, s: string)
-
-    Warning(arg0, arg1?, arg2?) {
-
-    }
-
-    SemErr(s: string) {
-
-    }
-}
 
 
 export class Position {

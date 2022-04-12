@@ -27,7 +27,7 @@ Coco/R itself) does not fall under the GNU General Public License.
 -------------------------------------------------------------------------*/
 
 
-class Token {
+export class Token {
     public kind: number;    // token kind
     public pos: number;     // token position in bytes in the source text (starting at 0)
     public charPos: number; // token position in characters in the source text (starting at 0)
@@ -40,7 +40,7 @@ class Token {
 //-----------------------------------------------------------------------------------
 // Buffer
 //-----------------------------------------------------------------------------------
-class Buffer {
+export class Buffer {
     // This Buffer supports the following cases:
     // 1) seekable stream (file)
     //    a) whole stream in buffer
@@ -214,7 +214,7 @@ class Buffer {
 //-----------------------------------------------------------------------------------
 // UTF8Buffer
 //-----------------------------------------------------------------------------------
-class UTF8Buffer extends Buffer {
+export class UTF8Buffer extends Buffer {
     constructor(b: Buffer) {
         super(b);
     }
@@ -271,7 +271,7 @@ class Elem {
 //-----------------------------------------------------------------------------------
 // StartStates  -- maps characters to start states of tokens
 //-----------------------------------------------------------------------------------
-class StartStates {
+export class StartStates {
 
 
     private tab = new Elem[128];
@@ -293,7 +293,7 @@ class StartStates {
 //-----------------------------------------------------------------------------------
 // Scanner
 //-----------------------------------------------------------------------------------
-class Scanner {
+export class Scanner {
     static EOL = '\n';
     static eofSym = 0;
     static maxT = 44;
