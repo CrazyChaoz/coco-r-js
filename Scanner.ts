@@ -66,13 +66,13 @@ export class Buffer {
         if (typeof a == "InputStream") {
             this.stream = a;
             this.fileLen = this.bufLen = this.bufStart = this.bufPos = 0;
-            this.buf = new byte[Buffer.MIN_BUFFER_LENGTH];
+            this.buf = new Array[Buffer.MIN_BUFFER_LENGTH];
         } else if (typeof a == "string") {
             try {
                 this.file = new RandomAccessFile(a, "r");
                 this.fileLen = this.file.length();
                 this.bufLen = Math.min(this.fileLen, Buffer.MAX_BUFFER_LENGTH);
-                this.buf = new byte[bufLen];
+                this.buf = new Array[this.bufLen];
                 this.bufStart = Integer.MAX_VALUE; // nothing in buffer so far
                 if (this.fileLen > 0) this.setPos(0); // setup buffer to position 0 (start)
                 else this.bufPos = 0; // index 0 is already after the file, thus setPos(0) is invalid
@@ -189,9 +189,11 @@ export class Buffer {
             // we can neither seek in the stream, nor can we
             // foresee the maximum length, thus we must adapt
             // the buffer size on demand.
-            let newBuf = new byte[this.bufLen * 2];
-            System.arraycopy(this.buf, 0, newBuf, 0, this.bufLen);
-            this.buf = newBuf;
+
+            //TODO: maybe remove length calculation at all, since arrays grow automatically in .js
+            // let newBuf = new Array[this.bufLen * 2];
+            // System.arraycopy(this.buf, 0, newBuf, 0, this.bufLen);
+            // this.buf = newBuf;
             free = this.bufLen;
         }
 
@@ -310,7 +312,7 @@ export class Scanner {
     line: number;          // line number of current character
     oldEols: number;       // EOLs that appeared in a comment;
     static start: StartStates; // maps initial token character to start state
-    static literals: Map;      // maps literal strings to literal kinds
+    static literals: [];      // maps literal strings to literal kinds
 
     tokens: Token;      // list of tokens already peeked (first token is a dummy)
     pt: Token;          // current peek token
@@ -321,7 +323,7 @@ export class Scanner {
     //TODO: does this even work?
     private static _initialize = (() => {
         Scanner.start = new StartStates();
-        Scanner.literals = new HashMap();
+        Scanner.literals = [];
         for (let i = 65; i <= 90; ++i) Scanner.start.set(i, 1);
         for (let i = 95; i <= 95; ++i) Scanner.start.set(i, 1);
         for (let i = 97; i <= 122; ++i) Scanner.start.set(i, 1);
@@ -345,24 +347,24 @@ export class Scanner {
         Scanner.start.set(123, 29);
         Scanner.start.set(125, 30);
         Scanner.start.set(Buffer.EOF, -1);
-        Scanner.literals.put("COMPILER", 6);
-        Scanner.literals.put("IGNORECASE", 7);
-        Scanner.literals.put("CHARACTERS", 8);
-        Scanner.literals.put("TOKENS", 9);
-        Scanner.literals.put("PRAGMAS", 10);
-        Scanner.literals.put("COMMENTS", 11);
-        Scanner.literals.put("FROM", 12);
-        Scanner.literals.put("TO", 13);
-        Scanner.literals.put("NESTED", 14);
-        Scanner.literals.put("IGNORE", 15);
-        Scanner.literals.put("PRODUCTIONS", 16);
-        Scanner.literals.put("END", 19);
-        Scanner.literals.put("ANY", 23);
-        Scanner.literals.put("out", 26);
-        Scanner.literals.put("WEAK", 34);
-        Scanner.literals.put("SYNC", 39);
-        Scanner.literals.put("IF", 40);
-        Scanner.literals.put("CONTEXT", 41);
+        Scanner.literals["COMPILER"] = 6;
+        Scanner.literals["IGNORECASE"] =  7;
+        Scanner.literals["CHARACTERS"] =  8;
+        Scanner.literals["TOKENS"] =  9;
+        Scanner.literals["PRAGMAS"] =  10;
+        Scanner.literals["COMMENTS"] =  11;
+        Scanner.literals["FROM"] = 12;
+        Scanner.literals["TO"] = 13;
+        Scanner.literals["NESTED"] = 14;
+        Scanner.literals["IGNORE"] =  15;
+        Scanner.literals["PRODUCTIONS"] = 16;
+        Scanner.literals["END"] = 19;
+        Scanner.literals["ANY"] =  23;
+        Scanner.literals["out"] =  26;
+        Scanner.literals["WEAK"] =  34;
+        Scanner.literals["SYNC"] = 39;
+        Scanner.literals["IF"] =  40;
+        Scanner.literals["CONTEXT"] =  41;
 
     })();
 
@@ -400,7 +402,7 @@ export class Scanner {
 
     NextCh() {
         if (this.oldEols > 0) {
-            this.ch = Scanner.EOL;
+            this.ch = Scanner.EOL.charCodeAt(0);
             this.oldEols--;
         } else {
             this.pos = this.buffer.getPos();
@@ -420,11 +422,12 @@ export class Scanner {
     }
 
     AddCh() {
-        if (this.tlen >= this.tval.length) {
-            let newBuf = new char[2 * this.tval.length];
-            System.arraycopy(this.tval, 0, newBuf, 0, this.tval.length);
-            this.tval = newBuf;
-        }
+        //unused, since arrays grow automatically in .js
+        // if (this.tlen >= this.tval.length) {
+        //     let newBuf = new Array[2 * this.tval.length];
+        //     arraycopy(this.tval, 0, newBuf, 0, this.tval.length);
+        //     this.tval = newBuf;
+        // }
         if (this.ch != Buffer.EOF) {
             this.tval[this.tlen++] = this.ch;
 
@@ -546,7 +549,9 @@ export class Scanner {
                         break;
                     } else {
                         this.t.kind = 1;
-                        this.t.val = new String(this.tval, 0, this.tlen);
+                        //TODO:look over this
+                        // this.t.val = new String(this.tval, 0, this.tlen);
+                        this.t.val = this.tval.join();
                         this.CheckLiteral();
                         return this.t;
                     }
@@ -815,7 +820,9 @@ export class Scanner {
 
             }
         }
-        this.t.val = new String(this.tval, 0, this.tlen);
+        //TODO: look over this
+        // this.t.val = new String(this.tval, 0, this.tlen);
+        this.t.val = this.tval.join();
         return this.t;
     }
 

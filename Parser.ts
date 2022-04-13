@@ -32,7 +32,7 @@ import {ParserGen} from "./ParserGen";
 import {CharSet, DFA} from "./DFA";
 import {Scanner, Token} from "./Scanner";
 
-public export class Parser {
+export class Parser {
     public static _EOF = 0;
     public static _ident = 1;
     public static _number = 2;
@@ -516,8 +516,8 @@ public export class Parser {
             let name = this.t.val;
             name = this.tab.Unescape(name.substring(1, name.length - 1));
             for (let i = 0; i < name.length; i++)
-                if (this.dfa.ignoreCase) s.Set(Character.toLowerCase(name.charAt(i)));
-                else s.Set(name.charAt(i));
+                if (this.dfa.ignoreCase) s.Set(name.toLowerCase().charCodeAt(0));
+                else s.Set(name.charCodeAt(i));
         } else if (this.la.kind == 5) {
             n1 = this.Char();
             s.Set(n1);
@@ -718,7 +718,7 @@ public export class Parser {
             }
             case 23: {
                 this.Get();
-                let p = this.tab.NewNode(Node_.any, null, t.line);  // p.set is set in tab.SetupAnys
+                let p = this.tab.NewNode(Node_.any, null, this.t.line);  // p.set is set in tab.SetupAnys
                 g = new Graph(p);
 
                 break;
@@ -800,7 +800,7 @@ public export class Parser {
                     }
                 }
                 this.Expect(27);
-                if (this.t.pos > beg) n.pos = new Position(beg, t.pos, col);
+                if (this.t.pos > beg) n.pos = new Position(beg, this.t.pos, col);
             } else this.SynErr(58);
         } else if (this.la.kind == 29) {
             this.Get();
@@ -1014,24 +1014,23 @@ public export class Parser {
 
 export class Errors {
     public count = 0;                                    // number of errors detected
-    public errorStream = System.out;     // error messages go to this stream
+    //public errorStream = System.out;     // error messages go to this stream
     public errMsgFormat = "-- line {0} col {1}: {2}"; // 0=line, 1=column, 2=text
 
     protected printMsg(line: number, column: number, msg: string) {
-        let b = new StringBuffer(this.errMsgFormat);
+        let b = "-- line {0} col {1}: {2}";
         let pos = b.indexOf("{0}");
         if (pos >= 0) {
-            b.delete(pos, pos + 3);
-            b.insert(pos, line);
+            b.replace("{0}",line+"")
         }
         pos = b.indexOf("{1}");
         if (pos >= 0) {
-            b.delete(pos, pos + 3);
-            b.insert(pos, column);
+            b.replace("{1}",line+"")
         }
         pos = b.indexOf("{2}");
-        if (pos >= 0) b.replace(pos, pos + 3, msg);
-        this.errorStream.println(b.toString());
+        if (pos >= 0)
+            b.replace("{2}",msg)
+        console.error(b.toString());
     }
 
     public SynErr(line: number, col: number, n: number) {
@@ -1237,20 +1236,26 @@ export class Errors {
         this.count++;
     }
 
-    public SemErr(line?: number, col?: number, s: string) {
-        if (line != undefined)
+    public SemErr(s: string)
+    public SemErr(line: number, col: number, s: string)
+    //internal useage
+    public SemErr(line: any, col?: number, s?: string) {
+        if (s != undefined)
             this.printMsg(line, col, s);
         else
-            this.errorStream.println(s);
+            console.error(line);
         this.count++;
     }
 
 
-    public Warning(line?: number, col?: number, s: string) {
-        if (line != undefined)
+    public Warning(s: string)
+    public Warning(line: number, col: number, s: string)
+    //internal useage
+    public Warning(line: any, col?: number, s?: string) {
+        if (s != undefined)
             this.printMsg(line, col, s);
         else
-            this.errorStream.println(s);
+            console.warn(line);
     }
 
 } // Errors
