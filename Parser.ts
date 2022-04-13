@@ -27,1048 +27,1231 @@ Coco/R itself) does not fall under the GNU General Public License.
 -------------------------------------------------------------------------*/
 
 import {Trace} from "./Trace";
-import {Graph, Node_, Position, SymInfo, Tab, Symbol} from "./Tab";
+import {Graph, Node_, Position, Symbol, SymInfo, Tab} from "./Tab";
 import {ParserGen} from "./ParserGen";
 import {CharSet, DFA} from "./DFA";
 import {Scanner, Token} from "./Scanner";
 
 public export class Parser {
-    public static   _EOF = 0;
-    public static   _ident = 1;
-    public static   _number = 2;
-    public static   _string = 3;
-    public static   _badString = 4;
-    public static   _char = 5;
-    public static   maxT = 44;
-    public static   _ddtSym = 45;
-    public static   _optionSym = 46;
+    public static _EOF = 0;
+    public static _ident = 1;
+    public static _number = 2;
+    public static _string = 3;
+    public static _badString = 4;
+    public static _char = 5;
+    public static maxT = 44;
+    public static _ddtSym = 45;
+    public static _optionSym = 46;
 
-    static   _T = true;
-    static   _x = false;
-    static   minErrDist = 2;
+    static _T = true;
+    static _x = false;
+    static minErrDist = 2;
 
-    public  t:Token;    // last recognized token
-    public  la:Token;   // lookahead token
+    public t: Token;    // last recognized token
+    public la: Token;   // lookahead token
     errDist = Parser.minErrDist;
 
-    public  scanner:Scanner;
-    public  errors:Errors;
+    public scanner: Scanner;
+    public errors: Errors;
 
-    static   id = 0;
-    static   str = 1;
+    static id = 0;
+    static str = 1;
 
-    public  trace:Trace;         // other Coco objects referenced by this ATG
-    public  tab:Tab;
-    public  dfa:DFA;
-    public  pgen:ParserGen;
+    public trace: Trace;         // other Coco objects referenced by this ATG
+    public tab: Tab;
+    public dfa: DFA;
+    public pgen: ParserGen;
 
-     genScanner:boolean;
-     tokenString:string;         // used in declarations of literal tokens
-     noString = "-none-"; // used in declarations of literal tokens
+    genScanner: boolean;
+    tokenString: string;         // used in declarations of literal tokens
+    noString = "-none-"; // used in declarations of literal tokens
 
     /*-------------------------------------------------------------------------*/
 
 
-
-    constructor( scanner:Scanner) {
-    this.scanner = scanner;
-    this.errors = new Errors();
-}
-
- SynErr ( n:number) {
-    if (this.errDist >= Parser.minErrDist) this.errors.SynErr(this.la.line, this.la.col, n);
-    this.errDist = 0;
-}
-
-public  SemErr ( msg:string) {
-    if (this.errDist >= Parser.minErrDist) this.errors.SemErr(this.t.line, this.t.col, msg);
-    this.errDist = 0;
-}
-
- Get () {
-    for (;;) {
-        this.t = this.la;
-        this.la = this.scanner.Scan();
-        if (this.la.kind <= Parser.maxT) {
-            ++this.errDist;
-            break;
-        }
-
-        if (this.la.kind == 45) {
-            this.tab.SetDDT(this.la.val);
-        }
-        if (this.la.kind == 46) {
-            this.tab.SetOption(this.la.val);
-        }
-        this.la = this.t;
+    constructor(scanner: Scanner) {
+        this.scanner = scanner;
+        this.errors = new Errors();
     }
-}
 
- Expect ( n:number) {
-    if (this.la.kind==n) this.Get(); else { this.SynErr(n); }
-}
-
- StartOf ( s:number) :boolean{
-    return Parser.set[s][this.la.kind];
-}
-
- ExpectWeak ( n:number,  follow:number) {
-    if (this.la.kind == n) this.Get();
-    else {
-        this.SynErr(n);
-        while (!this.StartOf(follow)) this.Get();
+    SynErr(n: number) {
+        if (this.errDist >= Parser.minErrDist) this.errors.SynErr(this.la.line, this.la.col, n);
+        this.errDist = 0;
     }
-}
 
- WeakSeparator ( n:number,  syFol:number,  repFol:number):boolean {
-    let kind = this.la.kind;
-    if (kind == n) { this.Get(); return true; }
-    else if (this.StartOf(repFol)) return false;
-    else {
-        this.SynErr(n);
-        while (!(Parser.set[syFol][kind] || Parser.set[repFol][kind] || Parser.set[0][kind])) {
+    public SemErr(msg: string) {
+        if (this.errDist >= Parser.minErrDist) this.errors.SemErr(this.t.line, this.t.col, msg);
+        this.errDist = 0;
+    }
+
+    Get() {
+        for (; ;) {
+            this.t = this.la;
+            this.la = this.scanner.Scan();
+            if (this.la.kind <= Parser.maxT) {
+                ++this.errDist;
+                break;
+            }
+
+            if (this.la.kind == 45) {
+                this.tab.SetDDT(this.la.val);
+            }
+            if (this.la.kind == 46) {
+                this.tab.SetOption(this.la.val);
+            }
+            this.la = this.t;
+        }
+    }
+
+    Expect(n: number) {
+        if (this.la.kind == n) this.Get(); else {
+            this.SynErr(n);
+        }
+    }
+
+    StartOf(s: number): boolean {
+        return Parser.set[s][this.la.kind];
+    }
+
+    ExpectWeak(n: number, follow: number) {
+        if (this.la.kind == n) this.Get();
+        else {
+            this.SynErr(n);
+            while (!this.StartOf(follow)) this.Get();
+        }
+    }
+
+    WeakSeparator(n: number, syFol: number, repFol: number): boolean {
+        let kind = this.la.kind;
+        if (kind == n) {
             this.Get();
-            kind = this.la.kind;
+            return true;
+        } else if (this.StartOf(repFol)) return false;
+        else {
+            this.SynErr(n);
+            while (!(Parser.set[syFol][kind] || Parser.set[repFol][kind] || Parser.set[0][kind])) {
+                this.Get();
+                kind = this.la.kind;
+            }
+            return this.StartOf(syFol);
         }
-        return this.StartOf(syFol);
     }
-}
 
- Coco() {
-    let sym:Symbol;
-    let g, g1, g2:Graph; let gramName:string;  let s:CharSet; let beg:number;
-    if (this.StartOf(1)) {
-        this.Get();
-        beg = this.t.pos;
-        while (this.StartOf(1)) {
+    Coco() {
+        let sym: Symbol;
+        let g, g1, g2: Graph;
+        let gramName: string;
+        let s: CharSet;
+        let beg: number;
+        if (this.StartOf(1)) {
+            this.Get();
+            beg = this.t.pos;
+            while (this.StartOf(1)) {
+                this.Get();
+            }
+            this.pgen.usingPos = new Position(beg, this.la.pos, 0);
+        }
+        this.Expect(6);
+        this.genScanner = true;
+        this.tab.ignored = new CharSet();
+        this.Expect(1);
+        gramName = this.t.val;
+        beg = this.la.pos;
+
+        while (this.StartOf(2)) {
             this.Get();
         }
-        this.pgen.usingPos = new Position(beg, this.la.pos, 0);
-    }
-    this.Expect(6);
-     this.genScanner = true;
-    this.tab.ignored = new CharSet();
-     this.Expect(1);
-    gramName = this.t.val;
-    beg = this.la.pos;
+        this.tab.semDeclPos = new Position(beg, this.la.pos, 0);
+        if (this.la.kind == 7) {
+            this.Get();
+            this.dfa.ignoreCase = true;
+        }
+        if (this.la.kind == 8) {
+            this.Get();
+            // @ts-ignore
+            while (this.la.kind == 1) {
+                this.SetDecl();
+            }
+        }
+        if (this.la.kind == 9) {
+            this.Get();
+            // @ts-ignore
+            while (this.la.kind == 1 || this.la.kind == 3 || this.la.kind == 5) {
+                this.TokenDecl(Node_.t);
+            }
+        }
+        if (this.la.kind == 10) {
+            this.Get();
+            // @ts-ignore
+            while (this.la.kind == 1 || this.la.kind == 3 || this.la.kind == 5) {
+                this.TokenDecl(Node_.pr);
+            }
+        }
+        while (this.la.kind == 11) {
+            this.Get();
+            let nested = false;
+            this.Expect(12);
+            g1 = this.TokenExpr();
+            this.Expect(13);
+            g2 = this.TokenExpr();
+            // @ts-ignore
+            if (this.la.kind == 14) {
+                this.Get();
+                nested = true;
+            }
+            this.dfa.NewComment(g1.l, g2.l, nested);
+        }
+        while (this.la.kind == 15) {
+            this.Get();
+            s = this.Set();
+            this.tab.ignored.Or(s);
+        }
+        while (!(this.la.kind == 0 || this.la.kind == 16)) {
+            this.SynErr(45);
+            this.Get();
+        }
+        this.Expect(16);
+        if (this.genScanner) this.dfa.MakeDeterministic();
+        this.tab.DeleteNodes();
 
-    while (this.StartOf(2)) {
-        this.Get();
-    }
-    this.tab.semDeclPos = new Position(beg, this.la.pos, 0);
-    if (this.la.kind == 7) {
-        this.Get();
-        this.dfa.ignoreCase = true;
-    }
-    if (this.la.kind == 8) {
-        this.Get();
         // @ts-ignore
         while (this.la.kind == 1) {
-            this.SetDecl();
-        }
-    }
-    if (this.la.kind == 9) {
-        this.Get();
-        // @ts-ignore
-        while (this.la.kind == 1 || this.la.kind == 3 || this.la.kind == 5) {
-            this.TokenDecl(Node_.t);
-        }
-    }
-    if (this.la.kind == 10) {
-        this.Get();
-        // @ts-ignore
-        while (this.la.kind == 1 || this.la.kind == 3 || this.la.kind == 5) {
-            this.TokenDecl(Node_.pr);
-        }
-    }
-    while (this.la.kind == 11) {
-        this.Get();
-        let nested = false;
-        this.Expect(12);
-        g1 = this.TokenExpr();
-        this.Expect(13);
-        g2 = this.TokenExpr();
-        // @ts-ignore
-        if (this.la.kind == 14) {
             this.Get();
-            nested = true;
-        }
-        this.dfa.NewComment(g1.l, g2.l, nested);
-    }
-    while (this.la.kind == 15) {
-        this.Get();
-        s = this.Set();
-        this.tab.ignored.Or(s);
-    }
-    while (!(this.la.kind == 0 || this.la.kind == 16)) {this.SynErr(45); this.Get();}
-    this.Expect(16);
-    if (this.genScanner) this.dfa.MakeDeterministic();
-    this.tab.DeleteNodes();
+            sym = this.tab.FindSym(this.t.val);
+            let undef = sym == null;
+            if (undef) sym = this.tab.NewSym(Node_.nt, this.t.val, this.t.line);
+            else {
+                if (sym.typ == Node_.nt) {
+                    if (sym.graph != null) this.SemErr("name declared twice");
+                } else this.SemErr("this symbol kind not allowed on left side of production");
+                sym.line = this.t.line;
+            }
+            let noAttrs = sym.attrPos == null;
+            sym.attrPos = null;
+            let noRet = sym.retVar == null;
+            sym.retVar = null;
 
-    // @ts-ignore
-     while (this.la.kind == 1) {
-        this.Get();
-        sym = this.tab.FindSym(this.t.val);
-        let undef = sym == null;
-        if (undef) sym = this.tab.NewSym(Node_.nt, this.t.val, this.t.line);
+            if (this.la.kind == 24 || this.la.kind == 29) {
+                this.AttrDecl(sym);
+            }
+            if (!undef)
+                if (noAttrs != (sym.attrPos == null)
+                    || noRet != (sym.retVar == null))
+                    this.SemErr("attribute mismatch between declaration and use of this symbol");
+
+            if (this.la.kind == 42) {
+                sym.semPos = this.SemText();
+            }
+            this.ExpectWeak(17, 3);
+            g = this.Expression();
+            sym.graph = g.l;
+            this.tab.Finish(g);
+
+            this.ExpectWeak(18, 4);
+        }
+        this.Expect(19);
+        this.Expect(1);
+        if (gramName != this.t.val)
+            this.SemErr("name does not match grammar name");
+        this.tab.gramSy = this.tab.FindSym(gramName);
+        if (this.tab.gramSy == null)
+            this.SemErr("missing production for grammar name");
         else {
-            if (sym.typ == Node_.nt) {
-                if (sym.graph != null) this.SemErr("name declared twice");
-            } else this.SemErr("this symbol kind not allowed on left side of production");
-            sym.line = this.t.line;
+            sym = this.tab.gramSy;
+            if (sym.attrPos != null)
+                this.SemErr("grammar symbol must not have attributes");
         }
-        let noAttrs = sym.attrPos == null;
-        sym.attrPos = null;
-        let noRet = sym.retVar==null;
-        sym.retVar = null;
-
-        if (this.la.kind == 24 || this.la.kind == 29) {
-            this.AttrDecl(sym);
+        this.tab.noSym = this.tab.NewSym(Node_.t, "???", 0); // noSym gets highest number
+        this.tab.SetupAnys();
+        this.tab.RenumberPragmas();
+        if (this.tab.ddt[2]) this.tab.PrintNodes();
+        if (this.errors.count == 0) {
+            console.log("checking");
+            this.tab.CompSymbolSets();
+            if (this.tab.ddt[7]) this.tab.XRef();
+            if (this.tab.GrammarOk()) {
+                console.log("parser");
+                this.pgen.WriteParser();
+                if (this.genScanner) {
+                    console.log(" + scanner");
+                    this.dfa.WriteScanner();
+                    if (this.tab.ddt[0]) this.dfa.PrintStates();
+                }
+                console.log(" generated");
+                if (this.tab.ddt[8]) this.pgen.WriteStatistics();
+            }
         }
-        if (!undef)
-            if (noAttrs != (sym.attrPos == null)
-                || noRet != (sym.retVar == null))
-                this.SemErr("attribute mismatch between declaration and use of this symbol");
+        if (this.tab.ddt[6]) this.tab.PrintSymbolTable();
 
+        this.Expect(18);
+    }
+
+    SetDecl() {
+        let s: CharSet;
+        this.Expect(1);
+        let name = this.t.val;
+        let c = this.tab.FindCharClass(name);
+        if (c != null) this.SemErr("name declared twice");
+
+        this.Expect(17);
+        s = this.Set();
+        if (s.Elements() == 0) this.SemErr("character set must not be empty");
+        c = this.tab.NewCharClass(name, s);
+
+        this.Expect(18);
+    }
+
+    TokenDecl(typ: number) {
+        let s: SymInfo;
+        let sym: Symbol;
+        let g: Graph;
+        s = this.Sym();
+        sym = this.tab.FindSym(s.name);
+        if (sym != null) this.SemErr("name declared twice");
+        else {
+            sym = this.tab.NewSym(typ, s.name, this.t.line);
+            sym.tokenKind = Symbol.fixedToken;
+        }
+        this.tokenString = null;
+
+        while (!(this.StartOf(5))) {
+            this.SynErr(46);
+            this.Get();
+        }
+        if (this.la.kind == 17) {
+            this.Get();
+            g = this.TokenExpr();
+            this.Expect(18);
+            if (s.kind == Parser.str) this.SemErr("a literal must not be declared with a structure");
+            this.tab.Finish(g);
+            if (this.tokenString == null || this.tokenString === this.noString)
+                this.dfa.ConvertToStates(g.l, sym);
+            else { // TokenExpr is a single string
+                if (this.tab.literals[this.tokenString] != null)
+                    this.SemErr("token string declared twice");
+                this.tab.literals[this.tokenString] = sym;
+                this.dfa.MatchLiteral(this.tokenString, sym);
+            }
+
+        } else if (this.StartOf(6)) {
+            if (s.kind == Parser.id) this.genScanner = false;
+            else this.dfa.MatchLiteral(sym.name, sym);
+
+        } else this.SynErr(47);
         if (this.la.kind == 42) {
             sym.semPos = this.SemText();
+            if (typ != Node_.pr) this.SemErr("semantic action not allowed here");
         }
-         this.ExpectWeak(17, 3);
-        g = this.Expression();
-        sym.graph = g.l;
-        this.tab.Finish(g);
+    }
 
-        this.ExpectWeak(18, 4);
-    }
-    this.Expect(19);
-    this.Expect(1);
-    if (gramName!=this.t.val)
-        this.SemErr("name does not match grammar name");
-    this.tab.gramSy = this.tab.FindSym(gramName);
-    if (this.tab.gramSy == null)
-        this.SemErr("missing production for grammar name");
-    else {
-        sym = this.tab.gramSy;
-        if (sym.attrPos != null)
-            this.SemErr("grammar symbol must not have attributes");
-    }
-    this.tab.noSym = this.tab.NewSym(Node_.t, "???", 0); // noSym gets highest number
-    this.tab.SetupAnys();
-    this.tab.RenumberPragmas();
-    if (this.tab.ddt[2]) this.tab.PrintNodes();
-    if (this.errors.count == 0) {
-        console.log("checking");
-        this.tab.CompSymbolSets();
-        if (this.tab.ddt[7]) this.tab.XRef();
-        if (this.tab.GrammarOk()) {
-            console.log("parser");
-            this.pgen.WriteParser();
-            if (this.genScanner) {
-                console.log(" + scanner");
-                this.dfa.WriteScanner();
-                if (this.tab.ddt[0]) this.dfa.PrintStates();
+    TokenExpr(): Graph {
+        let g: Graph;
+        let g2: Graph;
+        g = this.TokenTerm();
+        let first = true;
+        while (this.WeakSeparator(33, 7, 8)) {
+            g2 = this.TokenTerm();
+            if (first) {
+                this.tab.MakeFirstAlt(g);
+                first = false;
             }
-            console.log(" generated");
-            if (this.tab.ddt[8]) this.pgen.WriteStatistics();
+            this.tab.MakeAlternative(g, g2);
+
         }
+        return g;
     }
-    if (this.tab.ddt[6]) this.tab.PrintSymbolTable();
 
-    this.Expect(18);
-}
-
- SetDecl() {
-    let s:CharSet;
-    this.Expect(1);
-    let name = this.t.val;
-    let c = this.tab.FindCharClass(name);
-    if (c != null) this.SemErr("name declared twice");
-
-    this.Expect(17);
-    s = this.Set();
-    if (s.Elements() == 0) this.SemErr("character set must not be empty");
-    c = this.tab.NewCharClass(name, s);
-
-    this.Expect(18);
-}
-
- TokenDecl( typ:number) {
-    let s:SymInfo; let sym:Symbol; let g:Graph;
-    s = this.Sym();
-    sym = this.tab.FindSym(s.name);
-    if (sym != null) this.SemErr("name declared twice");
-    else {
-        sym = this.tab.NewSym(typ, s.name, this.t.line);
-        sym.tokenKind = Symbol.fixedToken;
-    }
-    this.tokenString = null;
-
-    while (!(this.StartOf(5))) {this.SynErr(46); this.Get();}
-    if (this.la.kind == 17) {
-        this.Get();
-        g = this.TokenExpr();
-        this.Expect(18);
-        if (s.kind == Parser.str) this.SemErr("a literal must not be declared with a structure");
-        this.tab.Finish(g);
-        if (this.tokenString == null || this.tokenString===this.noString)
-            this.dfa.ConvertToStates(g.l, sym);
-        else { // TokenExpr is a single string
-            if (this.tab.literals[this.tokenString] != null)
-                this.SemErr("token string declared twice");
-            this.tab.literals[this.tokenString] = sym;
-            this.dfa.MatchLiteral(this.tokenString, sym);
-        }
-
-    } else if (this.StartOf(6)) {
-        if (s.kind == Parser.id) this.genScanner = false;
-        else this.dfa.MatchLiteral(sym.name, sym);
-
-    } else this.SynErr(47);
-    if (this.la.kind == 42) {
-        sym.semPos = this.SemText();
-        if (typ != Node_.pr) this.SemErr("semantic action not allowed here");
-    }
-}
-
-  TokenExpr() :Graph{
-    let  g:Graph;
-    let g2:Graph;
-    g = this.TokenTerm();
-    let first = true;
-    while (this.WeakSeparator(33,7,8) ) {
-        g2 = this.TokenTerm();
-        if (first) { this.tab.MakeFirstAlt(g); first = false; }
-        this.tab.MakeAlternative(g, g2);
-
-    }
-    return g;
-}
-
-  Set():CharSet {
-    let  s:CharSet;
-    let s2:CharSet;
-    s = this.SimSet();
-    while (this.la.kind == 20 || this.la.kind == 21) {
-        if (this.la.kind == 20) {
-            this.Get();
-            s2 = this.SimSet();
-            s.Or(s2);
-        } else {
-            this.Get();
-            s2 = this.SimSet();
-            s.Subtract(s2);
-        }
-    }
-    return s;
-}
-
- AttrDecl( sym:Symbol) {
-    let beg, col:number;
-    if (this.la.kind == 24) {
-        this.Get();
-        // @ts-ignore
-        if (this.la.kind == 25 || this.la.kind == 26) {
-            if (this.la.kind == 25) {
+    Set(): CharSet {
+        let s: CharSet;
+        let s2: CharSet;
+        s = this.SimSet();
+        while (this.la.kind == 20 || this.la.kind == 21) {
+            if (this.la.kind == 20) {
                 this.Get();
+                s2 = this.SimSet();
+                s.Or(s2);
             } else {
                 this.Get();
+                s2 = this.SimSet();
+                s.Subtract(s2);
             }
-            beg = this.la.pos;
-            this.TypeName();
-            sym.retType = this.scanner.buffer.GetString(beg, this.la.pos);
-            this.Expect(1);
-            sym.retVar = this.t.val;
-            if (this.la.kind == 27) {
-                this.Get();
-            } else if (this.la.kind == 28) {
-                this.Get();
-                beg = this.la.pos; col = this.la.col;
-                while (this.StartOf(9)) {
+        }
+        return s;
+    }
+
+    AttrDecl(sym: Symbol) {
+        let beg, col: number;
+        if (this.la.kind == 24) {
+            this.Get();
+            // @ts-ignore
+            if (this.la.kind == 25 || this.la.kind == 26) {
+                if (this.la.kind == 25) {
                     this.Get();
+                } else {
+                    this.Get();
+                }
+                beg = this.la.pos;
+                this.TypeName();
+                sym.retType = this.scanner.buffer.GetString(beg, this.la.pos);
+                this.Expect(1);
+                sym.retVar = this.t.val;
+                if (this.la.kind == 27) {
+                    this.Get();
+                } else if (this.la.kind == 28) {
+                    this.Get();
+                    beg = this.la.pos;
+                    col = this.la.col;
+                    while (this.StartOf(9)) {
+                        this.Get();
+                    }
+                    this.Expect(27);
+                    if (this.t.pos > beg)
+                        sym.attrPos = new Position(beg, this.t.pos, col);
+                } else this.SynErr(48);
+            } else if (this.StartOf(10)) {
+                beg = this.la.pos;
+                col = this.la.col;
+                if (this.StartOf(11)) {
+                    this.Get();
+                    while (this.StartOf(9)) {
+                        this.Get();
+                    }
                 }
                 this.Expect(27);
                 if (this.t.pos > beg)
                     sym.attrPos = new Position(beg, this.t.pos, col);
-            } else this.SynErr(48);
-        } else if (this.StartOf(10)) {
-            beg = this.la.pos; col = this.la.col;
-            if (this.StartOf(11)) {
-                this.Get();
-                while (this.StartOf(9)) {
+            } else this.SynErr(49);
+        } else if (this.la.kind == 29) {
+            this.Get();
+            // @ts-ignore
+            if (this.la.kind == 25 || this.la.kind == 26) {
+                if (this.la.kind == 25) {
+                    this.Get();
+                } else {
                     this.Get();
                 }
-            }
-            this.Expect(27);
-            if (this.t.pos > beg)
-                sym.attrPos = new Position(beg, this.t.pos, col);
-        } else this.SynErr(49);
-    } else if (this.la.kind == 29) {
-        this.Get();
-        // @ts-ignore
-        if (this.la.kind == 25 || this.la.kind == 26) {
-            if (this.la.kind == 25) {
-                this.Get();
-            } else {
-                this.Get();
-            }
-            beg = this.la.pos;
-            this.TypeName();
-            sym.retType = this.scanner.buffer.GetString(beg, this.la.pos);
-            this.Expect(1);
-            sym.retVar = this.t.val;
-            if (this.la.kind == 30) {
-                this.Get();
-            } else if (this.la.kind == 28) {
-                this.Get();
-                beg = this.la.pos; col = this.la.col;
-                while (this.StartOf(12)) {
+                beg = this.la.pos;
+                this.TypeName();
+                sym.retType = this.scanner.buffer.GetString(beg, this.la.pos);
+                this.Expect(1);
+                sym.retVar = this.t.val;
+                if (this.la.kind == 30) {
                     this.Get();
+                } else if (this.la.kind == 28) {
+                    this.Get();
+                    beg = this.la.pos;
+                    col = this.la.col;
+                    while (this.StartOf(12)) {
+                        this.Get();
+                    }
+                    this.Expect(30);
+                    if (this.t.pos > beg)
+                        sym.attrPos = new Position(beg, this.t.pos, col);
+                } else this.SynErr(50);
+            } else if (this.StartOf(10)) {
+                beg = this.la.pos;
+                col = this.la.col;
+                if (this.StartOf(13)) {
+                    this.Get();
+                    while (this.StartOf(12)) {
+                        this.Get();
+                    }
                 }
                 this.Expect(30);
                 if (this.t.pos > beg)
                     sym.attrPos = new Position(beg, this.t.pos, col);
-            } else this.SynErr(50);
-        } else if (this.StartOf(10)) {
-            beg = this.la.pos; col = this.la.col;
-            if (this.StartOf(13)) {
+            } else this.SynErr(51);
+        } else this.SynErr(52);
+    }
+
+    SemText(): Position {
+        let pos: Position;
+        this.Expect(42);
+        let beg = this.la.pos;
+        let col = this.la.col;
+        while (this.StartOf(14)) {
+            if (this.StartOf(15)) {
                 this.Get();
-                while (this.StartOf(12)) {
-                    this.Get();
-                }
+            } else if (this.la.kind == 4) {
+                this.Get();
+                this.SemErr("bad string in semantic action");
+            } else {
+                this.Get();
+                this.SemErr("missing end of previous semantic action");
             }
-            this.Expect(30);
-            if (this.t.pos > beg)
-                sym.attrPos = new Position(beg, this.t.pos, col);
-        } else this.SynErr(51);
-    } else this.SynErr(52);
-}
-
-  SemText() :Position{
-    let  pos:Position;
-    this.Expect(42);
-    let beg = this.la.pos; let col = this.la.col;
-    while (this.StartOf(14)) {
-        if (this.StartOf(15)) {
-            this.Get();
-        } else if (this.la.kind == 4) {
-            this.Get();
-            this.SemErr("bad string in semantic action");
-        } else {
-            this.Get();
-            this.SemErr("missing end of previous semantic action");
         }
+        this.Expect(43);
+        pos = new Position(beg, this.t.pos, col);
+        return pos;
     }
-      this.Expect(43);
-    pos = new Position(beg, this.t.pos, col);
-    return pos;
-}
 
-  Expression() :Graph{
-    let  g:Graph;
-    let g2:Graph;
-    g = this.Term();
-    let first = true;
-    while (this.WeakSeparator(33,16,17) ) {
-        g2 = this.Term();
-        if (first) { this.tab.MakeFirstAlt(g); first = false; }
-        this.tab.MakeAlternative(g, g2);
+    Expression(): Graph {
+        let g: Graph;
+        let g2: Graph;
+        g = this.Term();
+        let first = true;
+        while (this.WeakSeparator(33, 16, 17)) {
+            g2 = this.Term();
+            if (first) {
+                this.tab.MakeFirstAlt(g);
+                first = false;
+            }
+            this.tab.MakeAlternative(g, g2);
 
+        }
+        return g;
     }
-    return g;
-}
 
-  SimSet() :CharSet{
-    let  s:CharSet;
-    let n1, n2:number;
-    s = new CharSet();
-    if (this.la.kind == 1) {
-        this.Get();
-        let c = this.tab.FindCharClass(this.t.val);
-        if (c == null) this.SemErr("undefined name"); else s.Or(c.set);
+    SimSet(): CharSet {
+        let s: CharSet;
+        let n1, n2: number;
+        s = new CharSet();
+        if (this.la.kind == 1) {
+            this.Get();
+            let c = this.tab.FindCharClass(this.t.val);
+            if (c == null) this.SemErr("undefined name"); else s.Or(c.set);
 
-    } else if (this.la.kind == 3) {
-        this.Get();
-        let name = this.t.val;
-        name = this.tab.Unescape(name.substring(1, name.length-1));
-        for (let i = 0; i < name.length; i++)
-        if (this.dfa.ignoreCase) s.Set(Character.toLowerCase(name.charAt(i)));
-        else s.Set(name.charAt(i));
-    } else if (this.la.kind == 5) {
-        n1 = this.Char();
-        s.Set(n1);
-        // @ts-ignore
-        if (this.la.kind == 22) {
+        } else if (this.la.kind == 3) {
             this.Get();
-            n2 = this.Char();
-            for (let i = n1; i <= n2; i++) s.Set(i);
-        }
-    } else if (this.la.kind == 23) {
-        this.Get();
-        s = new CharSet(); s.Fill();
-    } else this.SynErr(53);
-    return s;
-}
-
-  Char():number {
-    let  n:number;
-    this.Expect(5);
-    let name = this.t.val; n = 0;
-    name = this.tab.Unescape(name.substring(1, name.length-1));
-    if (name.length == 1) n = name.charAt(0).charCodeAt(0);
-    else this.SemErr("unacceptable character value");
-    if (this.dfa.ignoreCase && n >= 'A'.charCodeAt(0) && n <= 'Z'.charCodeAt(0)) n += 32;
-
-    return n;
-}
-
-  Sym() :SymInfo{
-    let  s:SymInfo;
-    s = new SymInfo(); s.name = "???"; s.kind = Parser.id;
-    if (this.la.kind == 1) {
-        this.Get();
-        s.kind = Parser.id; s.name = this.t.val;
-    } else if (this.la.kind == 3 || this.la.kind == 5) {
-        if (this.la.kind == 3) {
-            this.Get();
-            s.name = this.t.val;
-        } else {
-            this.Get();
-            s.name = "\"" + this.t.val.substring(1, this.t.val.length-1) + "\"";
-        }
-        s.kind = Parser.str;
-        if (this.dfa.ignoreCase) s.name = s.name.toLowerCase();
-        if (s.name.indexOf(' ') >= 0)
-            this.SemErr("literal tokens must not contain blanks");
-    } else this.SynErr(54);
-    return s;
-}
-
- TypeName() {
-    this.Expect(1);
-    while (this.la.kind == 18 || this.la.kind == 24 || this.la.kind == 31) {
-        if (this.la.kind == 18) {
-            this.Get();
-            this.Expect(1);
-        } else if (this.la.kind == 31) {
-            this.Get();
-            this.Expect(32);
-        } else {
-            this.Get();
-            this.TypeName();
+            let name = this.t.val;
+            name = this.tab.Unescape(name.substring(1, name.length - 1));
+            for (let i = 0; i < name.length; i++)
+                if (this.dfa.ignoreCase) s.Set(Character.toLowerCase(name.charAt(i)));
+                else s.Set(name.charAt(i));
+        } else if (this.la.kind == 5) {
+            n1 = this.Char();
+            s.Set(n1);
             // @ts-ignore
-            while (this.la.kind == 28) {
+            if (this.la.kind == 22) {
+                this.Get();
+                n2 = this.Char();
+                for (let i = n1; i <= n2; i++) s.Set(i);
+            }
+        } else if (this.la.kind == 23) {
+            this.Get();
+            s = new CharSet();
+            s.Fill();
+        } else this.SynErr(53);
+        return s;
+    }
+
+    Char(): number {
+        let n: number;
+        this.Expect(5);
+        let name = this.t.val;
+        n = 0;
+        name = this.tab.Unescape(name.substring(1, name.length - 1));
+        if (name.length == 1) n = name.charAt(0).charCodeAt(0);
+        else this.SemErr("unacceptable character value");
+        if (this.dfa.ignoreCase && n >= 'A'.charCodeAt(0) && n <= 'Z'.charCodeAt(0)) n += 32;
+
+        return n;
+    }
+
+    Sym(): SymInfo {
+        let s: SymInfo;
+        s = new SymInfo();
+        s.name = "???";
+        s.kind = Parser.id;
+        if (this.la.kind == 1) {
+            this.Get();
+            s.kind = Parser.id;
+            s.name = this.t.val;
+        } else if (this.la.kind == 3 || this.la.kind == 5) {
+            if (this.la.kind == 3) {
+                this.Get();
+                s.name = this.t.val;
+            } else {
+                this.Get();
+                s.name = "\"" + this.t.val.substring(1, this.t.val.length - 1) + "\"";
+            }
+            s.kind = Parser.str;
+            if (this.dfa.ignoreCase) s.name = s.name.toLowerCase();
+            if (s.name.indexOf(' ') >= 0)
+                this.SemErr("literal tokens must not contain blanks");
+        } else this.SynErr(54);
+        return s;
+    }
+
+    TypeName() {
+        this.Expect(1);
+        while (this.la.kind == 18 || this.la.kind == 24 || this.la.kind == 31) {
+            if (this.la.kind == 18) {
+                this.Get();
+                this.Expect(1);
+            } else if (this.la.kind == 31) {
+                this.Get();
+                this.Expect(32);
+            } else {
                 this.Get();
                 this.TypeName();
-            }
-            this.Expect(27);
-        }
-    }
-}
-
-  Term():Graph {
-    let  g:Graph;
-    let g2:Graph; let rslv:Node_ = null; g = null;
-    if (this.StartOf(18)) {
-        if (this.la.kind == 40) {
-            rslv = this.tab.NewNode(Node_.rslv, null, this.la.line);
-            rslv.pos = this.Resolver();
-            g = new Graph(rslv);
-        }
-        g2 = this.Factor();
-        if (rslv != null) this.tab.MakeSequence(g, g2);
-        else g = g2;
-
-        while (this.StartOf(19)) {
-            g2 = this.Factor();
-            this.tab.MakeSequence(g, g2);
-        }
-    } else if (this.StartOf(20)) {
-        g = new Graph(this.tab.NewNode(Node_.eps, null, 0));
-    } else this.SynErr(55);
-    if (g == null) // invalid start of Term
-        g = new Graph(this.tab.NewNode(Node_.eps, null, 0));
-
-    return g;
-}
-
-  Resolver() :Position{
-    let  pos:Position;
-    this.Expect(40);
-    this.Expect(35);
-    let beg = this.la.pos; let col = this.la.col;
-    this.Condition();
-    pos = new Position(beg, this.t.pos, col);
-    return pos;
-}
-
-  Factor():Graph {
-    let  g:Graph;
-    let s:SymInfo; let pos:Position; let weak = false;
-    g = null;
-    switch (this.la.kind) {
-        case 1: case 3: case 5: case 34: {
-            if (this.la.kind == 34) {
-                this.Get();
-                weak = true;
-            }
-            s = this.Sym();
-            let sym = this.tab.FindSym(s.name);
-            if (sym == null && s.kind == Parser.str)
-                sym = this.tab.literals[s.name];
-            let undef = sym == null;
-            if (undef) {
-                if (s.kind == Parser.id)
-                    sym = this.tab.NewSym(Node_.nt, s.name, 0);  // forward nt
-                else if (this.genScanner) {
-                    sym = this.tab.NewSym(Node_.t, s.name, this.t.line);
-                    this.dfa.MatchLiteral(sym.name, sym);
-                } else {  // undefined string in production
-                    this.SemErr("undefined string in production");
-                    sym = this.tab.eofSy;  // dummy
-                }
-            }
-            let typ = sym.typ;
-            if (typ != Node_.t && typ != Node_.nt)
-                this.SemErr("this symbol kind is not allowed in a production");
-            if (weak)
-                if (typ == Node_.t) typ = Node_.wt;
-                else this.SemErr("only terminals may be weak");
-            let p = this.tab.NewNode(typ, sym, this.t.line);
-            g = new Graph(p);
-
-            // @ts-ignore
-            if (this.la.kind == 24 || this.la.kind == 29) {
-                this.Attribs(p);
-                if (s.kind != Parser.id) this.SemErr("a literal must not have attributes");
-            }
-            if (undef) {
-                sym.attrPos = p.pos;  // dummy
-                sym.retVar = p.retVar;  // AH - dummy
-            } else if ((p.pos == null) != (sym.attrPos == null)
-                || (p.retVar == null) != (sym.retVar == null))
-                this.SemErr("attribute mismatch between declaration and use of this symbol");
-
-            break;
-        }
-        case 35: {
-            this.Get();
-            g = this.Expression();
-            this.Expect(36);
-            break;
-        }
-        case 31: {
-            this.Get();
-            g = this.Expression();
-            this.Expect(32);
-            this.tab.MakeOption(g);
-            break;
-        }
-        case 37: {
-            this.Get();
-            g = this.Expression();
-            this.Expect(38);
-            this.tab.MakeIteration(g);
-            break;
-        }
-        case 42: {
-            pos = this.SemText();
-            let p = this.tab.NewNode(Node_.sem, null, 0);
-            p.pos = pos;
-            g = new Graph(p);
-
-            break;
-        }
-        case 23: {
-            this.Get();
-            let p = this.tab.NewNode(Node_.any, null, t.line);  // p.set is set in tab.SetupAnys
-            g = new Graph(p);
-
-            break;
-        }
-        case 39: {
-            this.Get();
-            let p = this.tab.NewNode(Node_.sync, null, 0);
-            g = new Graph(p);
-
-            break;
-        }
-        default: this.SynErr(56); break;
-    }
-    if (g == null) // invalid start of Factor
-        g = new Graph(this.tab.NewNode(Node_.eps, null, 0));
-
-    return g;
-}
-
- Attribs( n:Node_) {
-    let beg, col:number;
-    if (this.la.kind == 24) {
-        this.Get();
-        // @ts-ignore
-        if (this.la.kind == 25 || this.la.kind == 26) {
-            if (this.la.kind == 25) {
-                this.Get();
-            } else {
-                this.Get();
-            }
-            beg = this.la.pos;
-            while (this.StartOf(21)) {
-                if (this.StartOf(22)) {
+                // @ts-ignore
+                while (this.la.kind == 28) {
                     this.Get();
-                } else if (this.la.kind == 31 || this.la.kind == 35) {
-                    this.Bracketed();
+                    this.TypeName();
+                }
+                this.Expect(27);
+            }
+        }
+    }
+
+    Term(): Graph {
+        let g: Graph;
+        let g2: Graph;
+        let rslv: Node_ = null;
+        g = null;
+        if (this.StartOf(18)) {
+            if (this.la.kind == 40) {
+                rslv = this.tab.NewNode(Node_.rslv, null, this.la.line);
+                rslv.pos = this.Resolver();
+                g = new Graph(rslv);
+            }
+            g2 = this.Factor();
+            if (rslv != null) this.tab.MakeSequence(g, g2);
+            else g = g2;
+
+            while (this.StartOf(19)) {
+                g2 = this.Factor();
+                this.tab.MakeSequence(g, g2);
+            }
+        } else if (this.StartOf(20)) {
+            g = new Graph(this.tab.NewNode(Node_.eps, null, 0));
+        } else this.SynErr(55);
+        if (g == null) // invalid start of Term
+            g = new Graph(this.tab.NewNode(Node_.eps, null, 0));
+
+        return g;
+    }
+
+    Resolver(): Position {
+        let pos: Position;
+        this.Expect(40);
+        this.Expect(35);
+        let beg = this.la.pos;
+        let col = this.la.col;
+        this.Condition();
+        pos = new Position(beg, this.t.pos, col);
+        return pos;
+    }
+
+    Factor(): Graph {
+        let g: Graph;
+        let s: SymInfo;
+        let pos: Position;
+        let weak = false;
+        g = null;
+        switch (this.la.kind) {
+            case 1:
+            case 3:
+            case 5:
+            case 34: {
+                if (this.la.kind == 34) {
+                    this.Get();
+                    weak = true;
+                }
+                s = this.Sym();
+                let sym = this.tab.FindSym(s.name);
+                if (sym == null && s.kind == Parser.str)
+                    sym = this.tab.literals[s.name];
+                let undef = sym == null;
+                if (undef) {
+                    if (s.kind == Parser.id)
+                        sym = this.tab.NewSym(Node_.nt, s.name, 0);  // forward nt
+                    else if (this.genScanner) {
+                        sym = this.tab.NewSym(Node_.t, s.name, this.t.line);
+                        this.dfa.MatchLiteral(sym.name, sym);
+                    } else {  // undefined string in production
+                        this.SemErr("undefined string in production");
+                        sym = this.tab.eofSy;  // dummy
+                    }
+                }
+                let typ = sym.typ;
+                if (typ != Node_.t && typ != Node_.nt)
+                    this.SemErr("this symbol kind is not allowed in a production");
+                if (weak)
+                    if (typ == Node_.t) typ = Node_.wt;
+                    else this.SemErr("only terminals may be weak");
+                let p = this.tab.NewNode(typ, sym, this.t.line);
+                g = new Graph(p);
+
+                // @ts-ignore
+                if (this.la.kind == 24 || this.la.kind == 29) {
+                    this.Attribs(p);
+                    if (s.kind != Parser.id) this.SemErr("a literal must not have attributes");
+                }
+                if (undef) {
+                    sym.attrPos = p.pos;  // dummy
+                    sym.retVar = p.retVar;  // AH - dummy
+                } else if ((p.pos == null) != (sym.attrPos == null)
+                    || (p.retVar == null) != (sym.retVar == null))
+                    this.SemErr("attribute mismatch between declaration and use of this symbol");
+
+                break;
+            }
+            case 35: {
+                this.Get();
+                g = this.Expression();
+                this.Expect(36);
+                break;
+            }
+            case 31: {
+                this.Get();
+                g = this.Expression();
+                this.Expect(32);
+                this.tab.MakeOption(g);
+                break;
+            }
+            case 37: {
+                this.Get();
+                g = this.Expression();
+                this.Expect(38);
+                this.tab.MakeIteration(g);
+                break;
+            }
+            case 42: {
+                pos = this.SemText();
+                let p = this.tab.NewNode(Node_.sem, null, 0);
+                p.pos = pos;
+                g = new Graph(p);
+
+                break;
+            }
+            case 23: {
+                this.Get();
+                let p = this.tab.NewNode(Node_.any, null, t.line);  // p.set is set in tab.SetupAnys
+                g = new Graph(p);
+
+                break;
+            }
+            case 39: {
+                this.Get();
+                let p = this.tab.NewNode(Node_.sync, null, 0);
+                g = new Graph(p);
+
+                break;
+            }
+            default:
+                this.SynErr(56);
+                break;
+        }
+        if (g == null) // invalid start of Factor
+            g = new Graph(this.tab.NewNode(Node_.eps, null, 0));
+
+        return g;
+    }
+
+    Attribs(n: Node_) {
+        let beg, col: number;
+        if (this.la.kind == 24) {
+            this.Get();
+            // @ts-ignore
+            if (this.la.kind == 25 || this.la.kind == 26) {
+                if (this.la.kind == 25) {
+                    this.Get();
                 } else {
                     this.Get();
-                    this.SemErr("bad string in attributes");
                 }
-            }
-            n.retVar = this.scanner.buffer.GetString(beg, this.la.pos);
-            if (this.la.kind == 27) {
-                this.Get();
-            } else if (this.la.kind == 28) {
-                this.Get();
-                beg = this.la.pos; col = this.la.col;
-                while (this.StartOf(9)) {
-                    if (this.StartOf(23)) {
+                beg = this.la.pos;
+                while (this.StartOf(21)) {
+                    if (this.StartOf(22)) {
+                        this.Get();
+                    } else if (this.la.kind == 31 || this.la.kind == 35) {
+                        this.Bracketed();
+                    } else {
+                        this.Get();
+                        this.SemErr("bad string in attributes");
+                    }
+                }
+                n.retVar = this.scanner.buffer.GetString(beg, this.la.pos);
+                if (this.la.kind == 27) {
+                    this.Get();
+                } else if (this.la.kind == 28) {
+                    this.Get();
+                    beg = this.la.pos;
+                    col = this.la.col;
+                    while (this.StartOf(9)) {
+                        if (this.StartOf(23)) {
+                            this.Get();
+                        } else {
+                            this.Get();
+                            this.SemErr("bad string in attributes");
+                        }
+                    }
+                    this.Expect(27);
+                    if (this.t.pos > beg) n.pos = new Position(beg, this.t.pos, col);
+                } else this.SynErr(57);
+            } else if (this.StartOf(10)) {
+                beg = this.la.pos;
+                col = this.la.col;
+                if (this.StartOf(11)) {
+                    if (this.StartOf(24)) {
                         this.Get();
                     } else {
                         this.Get();
                         this.SemErr("bad string in attributes");
+                    }
+                    while (this.StartOf(9)) {
+                        if (this.StartOf(23)) {
+                            this.Get();
+                        } else {
+                            this.Get();
+                            this.SemErr("bad string in attributes");
+                        }
                     }
                 }
                 this.Expect(27);
-                if (this.t.pos > beg) n.pos = new Position(beg, this.t.pos, col);
-            } else this.SynErr(57);
-        } else if (this.StartOf(10)) {
-            beg = this.la.pos; col = this.la.col;
-            if (this.StartOf(11)) {
-                if (this.StartOf(24)) {
+                if (this.t.pos > beg) n.pos = new Position(beg, t.pos, col);
+            } else this.SynErr(58);
+        } else if (this.la.kind == 29) {
+            this.Get();
+            // @ts-ignore
+            if (this.la.kind == 25 || this.la.kind == 26) {
+                if (this.la.kind == 25) {
                     this.Get();
                 } else {
                     this.Get();
-                    this.SemErr("bad string in attributes");
                 }
-                while (this.StartOf(9)) {
-                    if (this.StartOf(23)) {
+                beg = this.la.pos;
+                while (this.StartOf(25)) {
+                    if (this.StartOf(26)) {
                         this.Get();
+                    } else if (this.la.kind == 31 || this.la.kind == 35) {
+                        this.Bracketed();
                     } else {
                         this.Get();
                         this.SemErr("bad string in attributes");
                     }
                 }
-            }
-            this.Expect(27);
-            if (this.t.pos > beg) n.pos = new Position(beg, t.pos, col);
-        } else this.SynErr(58);
-    } else if (this.la.kind == 29) {
-        this.Get();
-        // @ts-ignore
-        if (this.la.kind == 25 || this.la.kind == 26) {
-            if (this.la.kind == 25) {
-                this.Get();
-            } else {
-                this.Get();
-            }
-            beg = this.la.pos;
-            while (this.StartOf(25)) {
-                if (this.StartOf(26)) {
+                n.retVar = this.scanner.buffer.GetString(beg, this.la.pos);
+                if (this.la.kind == 30) {
                     this.Get();
-                } else if (this.la.kind == 31 || this.la.kind == 35) {
-                    this.Bracketed();
-                } else {
+                } else if (this.la.kind == 28) {
                     this.Get();
-                    this.SemErr("bad string in attributes");
-                }
-            }
-            n.retVar = this.scanner.buffer.GetString(beg, this.la.pos);
-            if (this.la.kind == 30) {
-                this.Get();
-            } else if (this.la.kind == 28) {
-                this.Get();
-                beg = this.la.pos; col = this.la.col;
-                while (this.StartOf(12)) {
-                    if (this.StartOf(27)) {
+                    beg = this.la.pos;
+                    col = this.la.col;
+                    while (this.StartOf(12)) {
+                        if (this.StartOf(27)) {
+                            this.Get();
+                        } else {
+                            this.Get();
+                            this.SemErr("bad string in attributes");
+                        }
+                    }
+                    this.Expect(30);
+                    if (this.t.pos > beg) n.pos = new Position(beg, this.t.pos, col);
+                } else this.SynErr(59);
+            } else if (this.StartOf(10)) {
+                beg = this.la.pos;
+                col = this.la.col;
+                if (this.StartOf(13)) {
+                    if (this.StartOf(28)) {
                         this.Get();
                     } else {
                         this.Get();
                         this.SemErr("bad string in attributes");
+                    }
+                    while (this.StartOf(12)) {
+                        if (this.StartOf(27)) {
+                            this.Get();
+                        } else {
+                            this.Get();
+                            this.SemErr("bad string in attributes");
+                        }
                     }
                 }
                 this.Expect(30);
                 if (this.t.pos > beg) n.pos = new Position(beg, this.t.pos, col);
-            } else this.SynErr(59);
-        } else if (this.StartOf(10)) {
-            beg = this.la.pos; col = this.la.col;
-            if (this.StartOf(13)) {
-                if (this.StartOf(28)) {
-                    this.Get();
-                } else {
-                    this.Get();
-                    this.SemErr("bad string in attributes");
-                }
-                while (this.StartOf(12)) {
-                    if (this.StartOf(27)) {
-                        this.Get();
-                    } else {
-                        this.Get();
-                        this.SemErr("bad string in attributes");
-                    }
-                }
-            }
-            this.Expect(30);
-            if (this.t.pos > beg) n.pos = new Position(beg, this.t.pos, col);
-        } else this.SynErr(60);
-    } else this.SynErr(61);
-}
+            } else this.SynErr(60);
+        } else this.SynErr(61);
+    }
 
- Condition() {
-    while (this.StartOf(29)) {
+    Condition() {
+        while (this.StartOf(29)) {
+            if (this.la.kind == 35) {
+                this.Get();
+                this.Condition();
+            } else {
+                this.Get();
+            }
+        }
+        this.Expect(36);
+    }
+
+    TokenTerm(): Graph {
+        let g: Graph;
+        let g2: Graph;
+        g = this.TokenFactor();
+        while (this.StartOf(7)) {
+            g2 = this.TokenFactor();
+            this.tab.MakeSequence(g, g2);
+        }
+        if (this.la.kind == 41) {
+            this.Get();
+            this.Expect(35);
+            g2 = this.TokenExpr();
+            this.tab.SetContextTrans(g2.l);
+            this.dfa.hasCtxMoves = true;
+            this.tab.MakeSequence(g, g2);
+            this.Expect(36);
+        }
+        return g;
+    }
+
+    TokenFactor(): Graph {
+        let g: Graph;
+        let s: SymInfo;
+        g = null;
+        if (this.la.kind == 1 || this.la.kind == 3 || this.la.kind == 5) {
+            s = this.Sym();
+            if (s.kind == Parser.id) {
+                let c = this.tab.FindCharClass(s.name);
+                if (c == null) {
+                    this.SemErr("undefined name");
+                    c = this.tab.NewCharClass(s.name, new CharSet());
+                }
+                let p = this.tab.NewNode(Node_.clas, null, 0);
+                p.val = c.n;
+                g = new Graph(p);
+                this.tokenString = this.noString;
+            } else { // str
+                g = this.tab.StrToGraph(s.name);
+                if (this.tokenString == null) this.tokenString = s.name;
+                else this.tokenString = this.noString;
+            }
+
+        } else if (this.la.kind == 35) {
+            this.Get();
+            g = this.TokenExpr();
+            this.Expect(36);
+        } else if (this.la.kind == 31) {
+            this.Get();
+            g = this.TokenExpr();
+            this.Expect(32);
+            this.tab.MakeOption(g);
+            this.tokenString = this.noString;
+        } else if (this.la.kind == 37) {
+            this.Get();
+            g = this.TokenExpr();
+            this.Expect(38);
+            this.tab.MakeIteration(g);
+            this.tokenString = this.noString;
+        } else this.SynErr(62);
+        if (g == null) // invalid start of TokenFactor
+            g = new Graph(this.tab.NewNode(Node_.eps, null, 0));
+        return g;
+    }
+
+    Bracketed() {
         if (this.la.kind == 35) {
             this.Get();
-            this.Condition();
-        } else {
+            while (this.StartOf(29)) {
+                // @ts-ignore
+                if (this.la.kind == 31 || this.la.kind == 35) {
+                    this.Bracketed();
+                } else {
+                    this.Get();
+                }
+            }
+            this.Expect(36);
+        } else if (this.la.kind == 31) {
             this.Get();
-        }
-    }
-    this.Expect(36);
-}
-
-  TokenTerm():Graph {
-    let  g:Graph;
-    let g2:Graph;
-    g = this.TokenFactor();
-    while (this.StartOf(7)) {
-        g2 = this.TokenFactor();
-        this.tab.MakeSequence(g, g2);
-    }
-    if (this.la.kind == 41) {
-        this.Get();
-        this.Expect(35);
-        g2 = this.TokenExpr();
-        this.tab.SetContextTrans(g2.l); this.dfa.hasCtxMoves = true;
-        this.tab.MakeSequence(g, g2);
-        this.Expect(36);
-    }
-    return g;
-}
-
-  TokenFactor():Graph {
-    let  g:Graph;
-    let s:SymInfo;
-    g = null;
-    if (this.la.kind == 1 || this.la.kind == 3 || this.la.kind == 5) {
-        s = this.Sym();
-        if (s.kind == Parser.id) {
-            let c = this.tab.FindCharClass(s.name);
-            if (c == null) {
-                this.SemErr("undefined name");
-                c = this.tab.NewCharClass(s.name, new CharSet());
+            while (this.StartOf(30)) {
+                if (this.la.kind == 31 || this.la.kind == 35) {
+                    this.Bracketed();
+                } else {
+                    this.Get();
+                }
             }
-            let p = this.tab.NewNode(Node_.clas, null, 0); p.val = c.n;
-            g = new Graph(p);
-            this.tokenString = this.noString;
-        } else { // str
-            g = this.tab.StrToGraph(s.name);
-            if (this.tokenString == null) this.tokenString = s.name;
-            else this.tokenString = this.noString;
-        }
+            this.Expect(32);
+        } else this.SynErr(63);
+    }
 
-    } else if (this.la.kind == 35) {
+
+    public Parse() {
+        this.la = new Token();
+        this.la.val = "";
         this.Get();
-        g = this.TokenExpr();
-        this.Expect(36);
-    } else if (this.la.kind == 31) {
-        this.Get();
-        g = this.TokenExpr();
-        this.Expect(32);
-        this.tab.MakeOption(g); this.tokenString = this.noString;
-    } else if (this.la.kind == 37) {
-        this.Get();
-        g = this.TokenExpr();
-        this.Expect(38);
-        this.tab.MakeIteration(g); this.tokenString = this.noString;
-    } else this.SynErr(62);
-    if (g == null) // invalid start of TokenFactor
-        g = new Graph(this.tab.NewNode(Node_.eps, null, 0));
-    return g;
-}
+        this.Coco();
+        this.Expect(0);
+    }
 
-Bracketed() {
-    if (this.la.kind == 35) {
-        this.Get();
-        while (this.StartOf(29)) {
-            // @ts-ignore
-            if (this.la.kind == 31 || this.la.kind == 35) {
-                this.Bracketed();
-            } else {
-                this.Get();
-            }
-        }
-        this.Expect(36);
-    } else if (this.la.kind == 31) {
-        this.Get();
-        while (this.StartOf(30)) {
-            if (this.la.kind == 31 || this.la.kind == 35) {
-                this.Bracketed();
-            } else {
-                this.Get();
-            }
-        }
-        this.Expect(32);
-    } else this.SynErr(63);
-}
+    static set = [
+        [Parser._T, Parser._T, Parser._x, Parser._T, Parser._x, Parser._T, Parser._x, Parser._x, Parser._x, Parser._x, Parser._T, Parser._T, Parser._x, Parser._x, Parser._x, Parser._T, Parser._T, Parser._T, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._T, Parser._x, Parser._x, Parser._x],
+        [Parser._x, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._x, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._x],
+        [Parser._x, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._T, Parser._T, Parser._T, Parser._x, Parser._x, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._x],
+        [Parser._T, Parser._T, Parser._x, Parser._T, Parser._x, Parser._T, Parser._x, Parser._x, Parser._x, Parser._x, Parser._T, Parser._T, Parser._x, Parser._x, Parser._x, Parser._T, Parser._T, Parser._T, Parser._T, Parser._x, Parser._x, Parser._x, Parser._x, Parser._T, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._T, Parser._x, Parser._T, Parser._T, Parser._T, Parser._x, Parser._T, Parser._x, Parser._T, Parser._T, Parser._x, Parser._T, Parser._x, Parser._x, Parser._x],
+        [Parser._T, Parser._T, Parser._x, Parser._T, Parser._x, Parser._T, Parser._x, Parser._x, Parser._x, Parser._x, Parser._T, Parser._T, Parser._x, Parser._x, Parser._x, Parser._T, Parser._T, Parser._T, Parser._x, Parser._T, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._T, Parser._x, Parser._x, Parser._x],
+        [Parser._T, Parser._T, Parser._x, Parser._T, Parser._x, Parser._T, Parser._x, Parser._x, Parser._x, Parser._x, Parser._T, Parser._T, Parser._x, Parser._x, Parser._x, Parser._T, Parser._T, Parser._T, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._T, Parser._x, Parser._x, Parser._x],
+        [Parser._x, Parser._T, Parser._x, Parser._T, Parser._x, Parser._T, Parser._x, Parser._x, Parser._x, Parser._x, Parser._T, Parser._T, Parser._x, Parser._x, Parser._x, Parser._T, Parser._T, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._T, Parser._x, Parser._x, Parser._x],
+        [Parser._x, Parser._T, Parser._x, Parser._T, Parser._x, Parser._T, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._T, Parser._x, Parser._x, Parser._x, Parser._T, Parser._x, Parser._T, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x],
+        [Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._T, Parser._x, Parser._T, Parser._T, Parser._T, Parser._T, Parser._x, Parser._T, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._T, Parser._x, Parser._x, Parser._x, Parser._T, Parser._x, Parser._T, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x],
+        [Parser._x, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._x, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._x],
+        [Parser._x, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._x, Parser._x, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._x],
+        [Parser._x, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._x, Parser._x, Parser._x, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._x],
+        [Parser._x, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._x, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._x],
+        [Parser._x, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._x, Parser._x, Parser._T, Parser._T, Parser._T, Parser._x, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._x],
+        [Parser._x, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._x, Parser._T, Parser._x],
+        [Parser._x, Parser._T, Parser._T, Parser._T, Parser._x, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._x, Parser._x, Parser._T, Parser._x],
+        [Parser._x, Parser._T, Parser._x, Parser._T, Parser._x, Parser._T, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._T, Parser._x, Parser._x, Parser._x, Parser._x, Parser._T, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._x, Parser._T, Parser._x, Parser._x, Parser._x],
+        [Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._T, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._T, Parser._x, Parser._x, Parser._x, Parser._T, Parser._x, Parser._T, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x],
+        [Parser._x, Parser._T, Parser._x, Parser._T, Parser._x, Parser._T, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._T, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._T, Parser._x, Parser._x, Parser._T, Parser._T, Parser._x, Parser._T, Parser._x, Parser._T, Parser._T, Parser._x, Parser._T, Parser._x, Parser._x, Parser._x],
+        [Parser._x, Parser._T, Parser._x, Parser._T, Parser._x, Parser._T, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._T, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._T, Parser._x, Parser._x, Parser._T, Parser._T, Parser._x, Parser._T, Parser._x, Parser._T, Parser._x, Parser._x, Parser._T, Parser._x, Parser._x, Parser._x],
+        [Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._T, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._T, Parser._T, Parser._x, Parser._x, Parser._T, Parser._x, Parser._T, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x],
+        [Parser._x, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._x, Parser._x, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._x],
+        [Parser._x, Parser._T, Parser._T, Parser._T, Parser._x, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._x, Parser._x, Parser._T, Parser._T, Parser._x, Parser._T, Parser._T, Parser._T, Parser._x, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._x],
+        [Parser._x, Parser._T, Parser._T, Parser._T, Parser._x, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._x, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._x],
+        [Parser._x, Parser._T, Parser._T, Parser._T, Parser._x, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._x, Parser._x, Parser._x, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._x],
+        [Parser._x, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._x, Parser._T, Parser._x, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._x],
+        [Parser._x, Parser._T, Parser._T, Parser._T, Parser._x, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._x, Parser._T, Parser._x, Parser._x, Parser._T, Parser._T, Parser._T, Parser._x, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._x],
+        [Parser._x, Parser._T, Parser._T, Parser._T, Parser._x, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._x, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._x],
+        [Parser._x, Parser._T, Parser._T, Parser._T, Parser._x, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._x, Parser._x, Parser._T, Parser._T, Parser._T, Parser._x, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._x],
+        [Parser._x, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._x, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._x],
+        [Parser._x, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._x, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._x]
 
-
-
-public Parse() {
-    this.la = new Token();
-    this.la.val = "";
-    this.Get();
-    this.Coco();
-    this.Expect(0);
-}
-
-static set = [
-    [Parser._T,Parser._T,Parser._x,Parser._T, Parser._x,Parser._T,Parser._x,Parser._x, Parser._x,Parser._x,Parser._T,Parser._T, Parser._x,Parser._x,Parser._x,Parser._T, Parser._T,Parser._T,Parser._x,Parser._x, Parser._x,Parser._x,Parser._x,Parser._x, Parser._x,Parser._x,Parser._x,Parser._x, Parser._x,Parser._x,Parser._x,Parser._x, Parser._x,Parser._x,Parser._x,Parser._x, Parser._x,Parser._x,Parser._x,Parser._x, Parser._x,Parser._x,Parser._T,Parser._x, Parser._x,Parser._x],
-    [Parser._x,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._x,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._x],
-    [Parser._x,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._x, Parser._x,Parser._x,Parser._x,Parser._x, Parser._T,Parser._T,Parser._T,Parser._x, Parser._x,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._x],
-    [Parser._T,Parser._T,Parser._x,Parser._T, Parser._x,Parser._T,Parser._x,Parser._x, Parser._x,Parser._x,Parser._T,Parser._T, Parser._x,Parser._x,Parser._x,Parser._T, Parser._T,Parser._T,Parser._T,Parser._x, Parser._x,Parser._x,Parser._x,Parser._T, Parser._x,Parser._x,Parser._x,Parser._x, Parser._x,Parser._x,Parser._x,Parser._T, Parser._x,Parser._T,Parser._T,Parser._T, Parser._x,Parser._T,Parser._x,Parser._T, Parser._T,Parser._x,Parser._T,Parser._x, Parser._x,Parser._x],
-    [Parser._T,Parser._T,Parser._x,Parser._T, Parser._x,Parser._T,Parser._x,Parser._x, Parser._x,Parser._x,Parser._T,Parser._T, Parser._x,Parser._x,Parser._x,Parser._T, Parser._T,Parser._T,Parser._x,Parser._T, Parser._x,Parser._x,Parser._x,Parser._x, Parser._x,Parser._x,Parser._x,Parser._x, Parser._x,Parser._x,Parser._x,Parser._x, Parser._x,Parser._x,Parser._x,Parser._x, Parser._x,Parser._x,Parser._x,Parser._x, Parser._x,Parser._x,Parser._T,Parser._x, Parser._x,Parser._x],
-    [Parser._T,Parser._T,Parser._x,Parser._T, Parser._x,Parser._T,Parser._x,Parser._x, Parser._x,Parser._x,Parser._T,Parser._T, Parser._x,Parser._x,Parser._x,Parser._T, Parser._T,Parser._T,Parser._x,Parser._x, Parser._x,Parser._x,Parser._x,Parser._x, Parser._x,Parser._x,Parser._x,Parser._x, Parser._x,Parser._x,Parser._x,Parser._x, Parser._x,Parser._x,Parser._x,Parser._x, Parser._x,Parser._x,Parser._x,Parser._x, Parser._x,Parser._x,Parser._T,Parser._x, Parser._x,Parser._x],
-    [Parser._x,Parser._T,Parser._x,Parser._T, Parser._x,Parser._T,Parser._x,Parser._x, Parser._x,Parser._x,Parser._T,Parser._T, Parser._x,Parser._x,Parser._x,Parser._T, Parser._T,Parser._x,Parser._x,Parser._x, Parser._x,Parser._x,Parser._x,Parser._x, Parser._x,Parser._x,Parser._x,Parser._x, Parser._x,Parser._x,Parser._x,Parser._x, Parser._x,Parser._x,Parser._x,Parser._x, Parser._x,Parser._x,Parser._x,Parser._x, Parser._x,Parser._x,Parser._T,Parser._x, Parser._x,Parser._x],
-    [Parser._x,Parser._T,Parser._x,Parser._T, Parser._x,Parser._T,Parser._x,Parser._x, Parser._x,Parser._x,Parser._x,Parser._x, Parser._x,Parser._x,Parser._x,Parser._x, Parser._x,Parser._x,Parser._x,Parser._x, Parser._x,Parser._x,Parser._x,Parser._x, Parser._x,Parser._x,Parser._x,Parser._x, Parser._x,Parser._x,Parser._x,Parser._T, Parser._x,Parser._x,Parser._x,Parser._T, Parser._x,Parser._T,Parser._x,Parser._x, Parser._x,Parser._x,Parser._x,Parser._x, Parser._x,Parser._x],
-    [Parser._x,Parser._x,Parser._x,Parser._x, Parser._x,Parser._x,Parser._x,Parser._x, Parser._x,Parser._x,Parser._x,Parser._T, Parser._x,Parser._T,Parser._T,Parser._T, Parser._T,Parser._x,Parser._T,Parser._x, Parser._x,Parser._x,Parser._x,Parser._x, Parser._x,Parser._x,Parser._x,Parser._x, Parser._x,Parser._x,Parser._x,Parser._x, Parser._T,Parser._x,Parser._x,Parser._x, Parser._T,Parser._x,Parser._T,Parser._x, Parser._x,Parser._x,Parser._x,Parser._x, Parser._x,Parser._x],
-    [Parser._x,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._x, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._x],
-    [Parser._x,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._x,Parser._x,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._x],
-    [Parser._x,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._x,Parser._x,Parser._x, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._x],
-    [Parser._x,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._x,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._x],
-    [Parser._x,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._x,Parser._x,Parser._T, Parser._T,Parser._T,Parser._x,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._x],
-    [Parser._x,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._x, Parser._T,Parser._x],
-    [Parser._x,Parser._T,Parser._T,Parser._T, Parser._x,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._x,Parser._x, Parser._T,Parser._x],
-    [Parser._x,Parser._T,Parser._x,Parser._T, Parser._x,Parser._T,Parser._x,Parser._x, Parser._x,Parser._x,Parser._x,Parser._x, Parser._x,Parser._x,Parser._x,Parser._x, Parser._x,Parser._x,Parser._T,Parser._x, Parser._x,Parser._x,Parser._x,Parser._T, Parser._x,Parser._x,Parser._x,Parser._x, Parser._x,Parser._x,Parser._x,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._x,Parser._T,Parser._x, Parser._x,Parser._x],
-    [Parser._x,Parser._x,Parser._x,Parser._x, Parser._x,Parser._x,Parser._x,Parser._x, Parser._x,Parser._x,Parser._x,Parser._x, Parser._x,Parser._x,Parser._x,Parser._x, Parser._x,Parser._x,Parser._T,Parser._x, Parser._x,Parser._x,Parser._x,Parser._x, Parser._x,Parser._x,Parser._x,Parser._x, Parser._x,Parser._x,Parser._x,Parser._x, Parser._T,Parser._x,Parser._x,Parser._x, Parser._T,Parser._x,Parser._T,Parser._x, Parser._x,Parser._x,Parser._x,Parser._x, Parser._x,Parser._x],
-    [Parser._x,Parser._T,Parser._x,Parser._T, Parser._x,Parser._T,Parser._x,Parser._x, Parser._x,Parser._x,Parser._x,Parser._x, Parser._x,Parser._x,Parser._x,Parser._x, Parser._x,Parser._x,Parser._x,Parser._x, Parser._x,Parser._x,Parser._x,Parser._T, Parser._x,Parser._x,Parser._x,Parser._x, Parser._x,Parser._x,Parser._x,Parser._T, Parser._x,Parser._x,Parser._T,Parser._T, Parser._x,Parser._T,Parser._x,Parser._T, Parser._T,Parser._x,Parser._T,Parser._x, Parser._x,Parser._x],
-    [Parser._x,Parser._T,Parser._x,Parser._T, Parser._x,Parser._T,Parser._x,Parser._x, Parser._x,Parser._x,Parser._x,Parser._x, Parser._x,Parser._x,Parser._x,Parser._x, Parser._x,Parser._x,Parser._x,Parser._x, Parser._x,Parser._x,Parser._x,Parser._T, Parser._x,Parser._x,Parser._x,Parser._x, Parser._x,Parser._x,Parser._x,Parser._T, Parser._x,Parser._x,Parser._T,Parser._T, Parser._x,Parser._T,Parser._x,Parser._T, Parser._x,Parser._x,Parser._T,Parser._x, Parser._x,Parser._x],
-    [Parser._x,Parser._x,Parser._x,Parser._x, Parser._x,Parser._x,Parser._x,Parser._x, Parser._x,Parser._x,Parser._x,Parser._x, Parser._x,Parser._x,Parser._x,Parser._x, Parser._x,Parser._x,Parser._T,Parser._x, Parser._x,Parser._x,Parser._x,Parser._x, Parser._x,Parser._x,Parser._x,Parser._x, Parser._x,Parser._x,Parser._x,Parser._x, Parser._T,Parser._T,Parser._x,Parser._x, Parser._T,Parser._x,Parser._T,Parser._x, Parser._x,Parser._x,Parser._x,Parser._x, Parser._x,Parser._x],
-    [Parser._x,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._x, Parser._x,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._x],
-    [Parser._x,Parser._T,Parser._T,Parser._T, Parser._x,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._x, Parser._x,Parser._T,Parser._T,Parser._x, Parser._T,Parser._T,Parser._T,Parser._x, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._x],
-    [Parser._x,Parser._T,Parser._T,Parser._T, Parser._x,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._x, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._x],
-    [Parser._x,Parser._T,Parser._T,Parser._T, Parser._x,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._x,Parser._x,Parser._x, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._x],
-    [Parser._x,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._x,Parser._T,Parser._x,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._x],
-    [Parser._x,Parser._T,Parser._T,Parser._T, Parser._x,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._x,Parser._T,Parser._x,Parser._x, Parser._T,Parser._T,Parser._T,Parser._x, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._x],
-    [Parser._x,Parser._T,Parser._T,Parser._T, Parser._x,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._x,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._x],
-    [Parser._x,Parser._T,Parser._T,Parser._T, Parser._x,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._x,Parser._x,Parser._T, Parser._T,Parser._T,Parser._x,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._x],
-    [Parser._x,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._x,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._x],
-    [Parser._x,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._x,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._T,Parser._T,Parser._T, Parser._T,Parser._x]
-
-];
+    ];
 } // end Parser
 
 
 export class Errors {
-    public  count = 0;                                    // number of errors detected
+    public count = 0;                                    // number of errors detected
     public errorStream = System.out;     // error messages go to this stream
     public errMsgFormat = "-- line {0} col {1}: {2}"; // 0=line, 1=column, 2=text
 
-    protected  printMsg( line:number,  column:number,  msg:string) {
-    let b = new StringBuffer(this.errMsgFormat);
-    let pos = b.indexOf("{0}");
-    if (pos >= 0) { b.delete(pos, pos+3); b.insert(pos, line); }
-pos = b.indexOf("{1}");
-if (pos >= 0) { b.delete(pos, pos+3); b.insert(pos, column); }
-pos = b.indexOf("{2}");
-if (pos >= 0) b.replace(pos, pos+3, msg);
-this.errorStream.println(b.toString());
-}
-
-public SynErr ( line:number,  col:number,  n:number) {
-    let s:string;
-    switch (n) {
-        case 0: s = "EOF expected"; break;
-        case 1: s = "ident expected"; break;
-        case 2: s = "number expected"; break;
-        case 3: s = "string expected"; break;
-        case 4: s = "badString expected"; break;
-        case 5: s = "char expected"; break;
-        case 6: s = "\"COMPILER\" expected"; break;
-        case 7: s = "\"IGNORECASE\" expected"; break;
-        case 8: s = "\"CHARACTERS\" expected"; break;
-        case 9: s = "\"TOKENS\" expected"; break;
-        case 10: s = "\"PRAGMAS\" expected"; break;
-        case 11: s = "\"COMMENTS\" expected"; break;
-        case 12: s = "\"FROM\" expected"; break;
-        case 13: s = "\"TO\" expected"; break;
-        case 14: s = "\"NESTED\" expected"; break;
-        case 15: s = "\"IGNORE\" expected"; break;
-        case 16: s = "\"PRODUCTIONS\" expected"; break;
-        case 17: s = "\"=\" expected"; break;
-        case 18: s = "\".\" expected"; break;
-        case 19: s = "\"END\" expected"; break;
-        case 20: s = "\"+\" expected"; break;
-        case 21: s = "\"-\" expected"; break;
-        case 22: s = "\"..\" expected"; break;
-        case 23: s = "\"ANY\" expected"; break;
-        case 24: s = "\"<\" expected"; break;
-        case 25: s = "\"^\" expected"; break;
-        case 26: s = "\"out\" expected"; break;
-        case 27: s = "\">\" expected"; break;
-        case 28: s = "\",\" expected"; break;
-        case 29: s = "\"<.\" expected"; break;
-        case 30: s = "\".>\" expected"; break;
-        case 31: s = "\"[\" expected"; break;
-        case 32: s = "\"]\" expected"; break;
-        case 33: s = "\"|\" expected"; break;
-        case 34: s = "\"WEAK\" expected"; break;
-        case 35: s = "\"(\" expected"; break;
-        case 36: s = "\")\" expected"; break;
-        case 37: s = "\"{\" expected"; break;
-        case 38: s = "\"}\" expected"; break;
-        case 39: s = "\"SYNC\" expected"; break;
-        case 40: s = "\"IF\" expected"; break;
-        case 41: s = "\"CONTEXT\" expected"; break;
-        case 42: s = "\"(.\" expected"; break;
-        case 43: s = "\".)\" expected"; break;
-        case 44: s = "??? expected"; break;
-        case 45: s = "this symbol not expected in Coco"; break;
-        case 46: s = "this symbol not expected in TokenDecl"; break;
-        case 47: s = "invalid TokenDecl"; break;
-        case 48: s = "invalid AttrDecl"; break;
-        case 49: s = "invalid AttrDecl"; break;
-        case 50: s = "invalid AttrDecl"; break;
-        case 51: s = "invalid AttrDecl"; break;
-        case 52: s = "invalid AttrDecl"; break;
-        case 53: s = "invalid SimSet"; break;
-        case 54: s = "invalid Sym"; break;
-        case 55: s = "invalid Term"; break;
-        case 56: s = "invalid Factor"; break;
-        case 57: s = "invalid Attribs"; break;
-        case 58: s = "invalid Attribs"; break;
-        case 59: s = "invalid Attribs"; break;
-        case 60: s = "invalid Attribs"; break;
-        case 61: s = "invalid Attribs"; break;
-        case 62: s = "invalid TokenFactor"; break;
-        case 63: s = "invalid Bracketed"; break;
-        default: s = "error " + n; break;
+    protected printMsg(line: number, column: number, msg: string) {
+        let b = new StringBuffer(this.errMsgFormat);
+        let pos = b.indexOf("{0}");
+        if (pos >= 0) {
+            b.delete(pos, pos + 3);
+            b.insert(pos, line);
+        }
+        pos = b.indexOf("{1}");
+        if (pos >= 0) {
+            b.delete(pos, pos + 3);
+            b.insert(pos, column);
+        }
+        pos = b.indexOf("{2}");
+        if (pos >= 0) b.replace(pos, pos + 3, msg);
+        this.errorStream.println(b.toString());
     }
-    this.printMsg(line, col, s);
-    this.count++;
-}
 
-public  SemErr ( line?:number,  col?:number,  s:string) {
-        if (line!=undefined)
+    public SynErr(line: number, col: number, n: number) {
+        let s: string;
+        switch (n) {
+            case 0:
+                s = "EOF expected";
+                break;
+            case 1:
+                s = "ident expected";
+                break;
+            case 2:
+                s = "number expected";
+                break;
+            case 3:
+                s = "string expected";
+                break;
+            case 4:
+                s = "badString expected";
+                break;
+            case 5:
+                s = "char expected";
+                break;
+            case 6:
+                s = "\"COMPILER\" expected";
+                break;
+            case 7:
+                s = "\"IGNORECASE\" expected";
+                break;
+            case 8:
+                s = "\"CHARACTERS\" expected";
+                break;
+            case 9:
+                s = "\"TOKENS\" expected";
+                break;
+            case 10:
+                s = "\"PRAGMAS\" expected";
+                break;
+            case 11:
+                s = "\"COMMENTS\" expected";
+                break;
+            case 12:
+                s = "\"FROM\" expected";
+                break;
+            case 13:
+                s = "\"TO\" expected";
+                break;
+            case 14:
+                s = "\"NESTED\" expected";
+                break;
+            case 15:
+                s = "\"IGNORE\" expected";
+                break;
+            case 16:
+                s = "\"PRODUCTIONS\" expected";
+                break;
+            case 17:
+                s = "\"=\" expected";
+                break;
+            case 18:
+                s = "\".\" expected";
+                break;
+            case 19:
+                s = "\"END\" expected";
+                break;
+            case 20:
+                s = "\"+\" expected";
+                break;
+            case 21:
+                s = "\"-\" expected";
+                break;
+            case 22:
+                s = "\"..\" expected";
+                break;
+            case 23:
+                s = "\"ANY\" expected";
+                break;
+            case 24:
+                s = "\"<\" expected";
+                break;
+            case 25:
+                s = "\"^\" expected";
+                break;
+            case 26:
+                s = "\"out\" expected";
+                break;
+            case 27:
+                s = "\">\" expected";
+                break;
+            case 28:
+                s = "\",\" expected";
+                break;
+            case 29:
+                s = "\"<.\" expected";
+                break;
+            case 30:
+                s = "\".>\" expected";
+                break;
+            case 31:
+                s = "\"[\" expected";
+                break;
+            case 32:
+                s = "\"]\" expected";
+                break;
+            case 33:
+                s = "\"|\" expected";
+                break;
+            case 34:
+                s = "\"WEAK\" expected";
+                break;
+            case 35:
+                s = "\"(\" expected";
+                break;
+            case 36:
+                s = "\")\" expected";
+                break;
+            case 37:
+                s = "\"{\" expected";
+                break;
+            case 38:
+                s = "\"}\" expected";
+                break;
+            case 39:
+                s = "\"SYNC\" expected";
+                break;
+            case 40:
+                s = "\"IF\" expected";
+                break;
+            case 41:
+                s = "\"CONTEXT\" expected";
+                break;
+            case 42:
+                s = "\"(.\" expected";
+                break;
+            case 43:
+                s = "\".)\" expected";
+                break;
+            case 44:
+                s = "??? expected";
+                break;
+            case 45:
+                s = "this symbol not expected in Coco";
+                break;
+            case 46:
+                s = "this symbol not expected in TokenDecl";
+                break;
+            case 47:
+                s = "invalid TokenDecl";
+                break;
+            case 48:
+                s = "invalid AttrDecl";
+                break;
+            case 49:
+                s = "invalid AttrDecl";
+                break;
+            case 50:
+                s = "invalid AttrDecl";
+                break;
+            case 51:
+                s = "invalid AttrDecl";
+                break;
+            case 52:
+                s = "invalid AttrDecl";
+                break;
+            case 53:
+                s = "invalid SimSet";
+                break;
+            case 54:
+                s = "invalid Sym";
+                break;
+            case 55:
+                s = "invalid Term";
+                break;
+            case 56:
+                s = "invalid Factor";
+                break;
+            case 57:
+                s = "invalid Attribs";
+                break;
+            case 58:
+                s = "invalid Attribs";
+                break;
+            case 59:
+                s = "invalid Attribs";
+                break;
+            case 60:
+                s = "invalid Attribs";
+                break;
+            case 61:
+                s = "invalid Attribs";
+                break;
+            case 62:
+                s = "invalid TokenFactor";
+                break;
+            case 63:
+                s = "invalid Bracketed";
+                break;
+            default:
+                s = "error " + n;
+                break;
+        }
+        this.printMsg(line, col, s);
+        this.count++;
+    }
+
+    public SemErr(line?: number, col?: number, s: string) {
+        if (line != undefined)
             this.printMsg(line, col, s);
         else
             this.errorStream.println(s);
-    this.count++;
-}
+        this.count++;
+    }
 
 
-public  Warning ( line?:number,  col?:number,  s:string) {
-    if (line!=undefined)
-        this.printMsg(line, col, s);
-    else
-        this.errorStream.println(s);
-}
+    public Warning(line?: number, col?: number, s: string) {
+        if (line != undefined)
+            this.printMsg(line, col, s);
+        else
+            this.errorStream.println(s);
+    }
 
 } // Errors
 
