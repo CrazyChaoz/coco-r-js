@@ -1405,10 +1405,10 @@ export class Tab {
         //foreach (Symbol sym in Symbol.nonterminals) {
         for (let i = 0; i < this.nonterminals.length; i++) {
             let sym = this.nonterminals[i];
-            let list = xref[sym];
+            let list = xref[sym.name];
             if (list == null) {
                 list = [];
-                xref[sym] += list;
+                xref[sym.name] += list;
             }
             list.push(-sym.line);
         }
@@ -1417,10 +1417,10 @@ export class Tab {
         for (let i = 0; i < this.nodes.length; i++) {
             let n = this.nodes[i];
             if (n.typ == Node_.t || n.typ == Node_.wt || n.typ == Node_.nt) {
-                let list = xref[n.sym];
+                let list = xref[n.sym.name];
                 if (list == null) {
                     list = [];
-                    xref[n.sym]+=list;
+                    xref[n.sym.name]+=list;
                 }
                 list.push(n.line);
             }
@@ -1431,6 +1431,7 @@ export class Tab {
         this.trace.WriteLine("--------------------");
         this.trace.WriteLine();
         //foreach (Symbol sym in xref.Keys) {
+        //Todo:sort
         for (let xrefKey of xref) {
             this.trace.Write("  ");
             this.trace.Write(this.Name(xrefKey.name), -12);

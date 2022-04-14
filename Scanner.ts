@@ -27,6 +27,8 @@ Coco/R itself) does not fall under the GNU General Public License.
 -------------------------------------------------------------------------*/
 
 
+import * as fs from "fs";
+
 export class Token {
     public kind: number;    // token kind
     public pos: number;     // token position in bytes in the source text (starting at 0)
@@ -47,7 +49,7 @@ export class Buffer {
     //    b) part of stream in buffer
     // 2) non seekable stream (network, console)
 
-    public static EOF = Character.MAX_VALUE + 1;
+    public static EOF = 65535 + 1;
     private static MIN_BUFFER_LENGTH = 1024; // 1KB
     private static MAX_BUFFER_LENGTH = Buffer.MIN_BUFFER_LENGTH * 64; // 64KB
     private buf: [];   // input buffer
@@ -55,7 +57,7 @@ export class Buffer {
     private bufLen: number;   // length of buffer
     private fileLen: number;  // length of input stream (may change if stream is no file)
     private bufPos: number;      // current position in buffer
-    private file: RandomAccessFile; // input stream (seekable)
+    private file: number; // input stream (seekable)
     private stream: InputStream; // growing input stream (e.g.: console, network)
 
     constructor(s: InputStream);
@@ -69,7 +71,15 @@ export class Buffer {
             this.buf = new Array[Buffer.MIN_BUFFER_LENGTH];
         } else if (typeof a == "string") {
             try {
-                this.file = new RandomAccessFile(a, "r");
+                //this.file = new RandomAccessFile(a, "r");
+                let tmp_fd: number;
+                fs.open(a, "r", function (err, fd) {
+                    if (err) {
+                        return console.error(err);
+                    }
+                    tmp_fd = fd
+                });
+                this.file = tmp_fd
                 this.fileLen = this.file.length();
                 this.bufLen = Math.min(this.fileLen, Buffer.MAX_BUFFER_LENGTH);
                 this.buf = new Array[this.bufLen];
@@ -104,7 +114,7 @@ export class Buffer {
         let file;
         if (this.file != null) {
             try {
-                this.file.close();
+                fs.close(this.file)
                 file = null;
             } catch (e) {
                 throw new Error(e.getMessage());
@@ -348,23 +358,23 @@ export class Scanner {
         Scanner.start.set(125, 30);
         Scanner.start.set(Buffer.EOF, -1);
         Scanner.literals["COMPILER"] = 6;
-        Scanner.literals["IGNORECASE"] =  7;
-        Scanner.literals["CHARACTERS"] =  8;
-        Scanner.literals["TOKENS"] =  9;
-        Scanner.literals["PRAGMAS"] =  10;
-        Scanner.literals["COMMENTS"] =  11;
+        Scanner.literals["IGNORECASE"] = 7;
+        Scanner.literals["CHARACTERS"] = 8;
+        Scanner.literals["TOKENS"] = 9;
+        Scanner.literals["PRAGMAS"] = 10;
+        Scanner.literals["COMMENTS"] = 11;
         Scanner.literals["FROM"] = 12;
         Scanner.literals["TO"] = 13;
         Scanner.literals["NESTED"] = 14;
-        Scanner.literals["IGNORE"] =  15;
+        Scanner.literals["IGNORE"] = 15;
         Scanner.literals["PRODUCTIONS"] = 16;
         Scanner.literals["END"] = 19;
-        Scanner.literals["ANY"] =  23;
-        Scanner.literals["out"] =  26;
-        Scanner.literals["WEAK"] =  34;
+        Scanner.literals["ANY"] = 23;
+        Scanner.literals["out"] = 26;
+        Scanner.literals["WEAK"] = 34;
         Scanner.literals["SYNC"] = 39;
-        Scanner.literals["IF"] =  40;
-        Scanner.literals["CONTEXT"] =  41;
+        Scanner.literals["IF"] = 40;
+        Scanner.literals["CONTEXT"] = 41;
 
     })();
 

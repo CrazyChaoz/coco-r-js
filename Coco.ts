@@ -42,10 +42,12 @@ Coco/R itself) does not fall under the GNU General Public License.
   -------------------------------------------------------------------------*/
 
 
-import {Parser, Tab} from "./Tab";
+import { Tab} from "./Tab";
 import {DFA} from "./DFA";
 import {Trace} from "./Trace";
 import {ParserGen} from "./ParserGen";
+import {Parser} from "./Parser";
+import {Scanner} from "./Scanner";
 
 
 

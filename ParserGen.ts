@@ -28,398 +28,446 @@ Coco/R itself) does not fall under the GNU General Public License.
 ------------------------------------------------------------------------*/
 
 
-
-import {BitSet, Errors, Node_, Position, Tab, Trace, Symbol, Sets, Parser} from "./Tab";
+import {BitSet, Node_, Position, Sets, Symbol, Tab} from "./Tab";
 import {Generator} from "./DFA";
+import {Errors, Parser} from "./Parser";
+import {Trace} from "./Trace";
+import {Buffer} from "./Scanner";
 
 export class ParserGen {
 
-    static   maxTerm = 3;   // sets of size < maxTerm are enumerated
-    static   CR  = '\r';
-    static   LF  = '\n';
-    static   EOF = -1;
-    static   ls = System.getProperty("line.separator");
+    static maxTerm = 3;   // sets of size < maxTerm are enumerated
+    static CR = '\r';
+    static LF = '\n';
+    static EOF = -1;
+    static ls = System.getProperty("line.separator");
 
-    static   tErr = 0;      // error codes
-    static   altErr = 1;
-    static  syncErr = 2;
+    static tErr = 0;      // error codes
+    static altErr = 1;
+    static syncErr = 2;
 
-    public  usingPos:Position; // "using" definitions from the attributed grammar
+    public usingPos: Position; // "using" definitions from the attributed grammar
 
-     errorNr:number;       // highest parser error number
-     curSy:Symbol;      // symbol whose production is currently generated
-    private  fram:Reader;  // parser frame input     /* pdt */
-    protected  gen:PrintWriter; // generated parser file  /* pdt */
-     err:StringWriter;  // generated parser error messages
-     srcName:string;    // name of attributed grammar file
-     srcDir:string;     // directory of attributed grammar file
+    errorNr: number;       // highest parser error number
+    curSy: Symbol;      // symbol whose production is currently generated
+    private fram: Reader;  // parser frame input     /* pdt */
+    protected gen: PrintWriter; // generated parser file  /* pdt */
+    err: StringWriter;  // generated parser error messages
+    srcName: string;    // name of attributed grammar file
+    srcDir: string;     // directory of attributed grammar file
     symSet = [];
 
-     tab:Tab;           // other Coco objects
-     trace:Trace;
-     errors:Errors;
-     buffer:Buffer;
+    tab: Tab;           // other Coco objects
+    trace: Trace;
+    errors: Errors;
+    buffer: Buffer;
 
     // --------------------------------------------------------------------------
 
-     Indent ( n:number) {
-    for (let i = 1; i <= n; i++) this.gen.print('\t');
-}
-
- Overlaps ( s1:BitSet,  s2:BitSet):boolean {
-    let len = s1.length;
-    for (let i = 0; i < len; ++i) {
-        if (s1.get(i) && s2.get(i)) {
-            return true;
-        }
+    Indent(n: number) {
+        for (let i = 1; i <= n; i++) this.gen.print('\t');
     }
-    return false;
-}
+
+    Overlaps(s1: BitSet, s2: BitSet): boolean {
+        let len = s1.length;
+        for (let i = 0; i < len; ++i) {
+            if (s1.get(i) && s2.get(i)) {
+                return true;
+            }
+        }
+        return false;
+    }
 
 // AW: use a switch if more than 5 alternatives and none starts with a resolver, no LL1 warning
- UseSwitch ( p:Node_):boolean {
-    let s1, s2:BitSet;
-    if (p.typ != Node_.alt) return false;
-    let nAlts = 0;
-    s1 = new BitSet(this.tab.terminals.length);
-    while (p != null) {
-        s2 = this.tab.Expected0(p.sub, this.curSy);
-        // must not optimize with switch statement, if there are ll1 warnings
-        if (this.Overlaps(s1, s2)) { return false; }
-        s1.or(s2);
-        ++nAlts;
-        // must not optimize with switch-statement, if alt uses a resolver expression
-        if (p.sub.typ == Node_.rslv) return false;
-        p = p.down;
-    }
-    return nAlts > 5;
-}
-
- CopySourcePart ( pos:Position, indent:number) {
-    // Copy text described by pos from atg to gen
-    let ch, i:number;
-    if (pos != null) {
-        this.buffer.setPos(pos.beg); ch = this.buffer.Read();
-        this.Indent(indent);
-        done: while (this.buffer.getPos() <= pos.end) {
-            while (ch == ParserGen.CR || ch == ParserGen.LF) {  // eol is either CR or CRLF or LF
-                this.gen.println(); this.Indent(indent);
-                if (ch == ParserGen.CR) { ch = this.buffer.Read(); }  // skip CR
-                if (ch == ParserGen.LF) { ch = this.buffer.Read(); }  // skip LF
-                for (i = 1; i <= pos.col && ch <= ' '; i++) {
-                    // skip blanks at beginning of line
-                    ch = this.buffer.Read();
-                }
-                if (this.buffer.getPos() > pos.end) break done;
+    UseSwitch(p: Node_): boolean {
+        let s1, s2: BitSet;
+        if (p.typ != Node_.alt) return false;
+        let nAlts = 0;
+        s1 = new BitSet(this.tab.terminals.length);
+        while (p != null) {
+            s2 = this.tab.Expected0(p.sub, this.curSy);
+            // must not optimize with switch statement, if there are ll1 warnings
+            if (this.Overlaps(s1, s2)) {
+                return false;
             }
-            this.gen.print((ch));
+            s1.or(s2);
+            ++nAlts;
+            // must not optimize with switch-statement, if alt uses a resolver expression
+            if (p.sub.typ == Node_.rslv) return false;
+            p = p.down;
+        }
+        return nAlts > 5;
+    }
+
+    CopySourcePart(pos: Position, indent: number) {
+        // Copy text described by pos from atg to gen
+        let ch, i: number;
+        if (pos != null) {
+            this.buffer.setPos(pos.beg);
             ch = this.buffer.Read();
-        }
-        if (indent > 0) this.gen.println();
-    }
-}
-
- GenErrorMsg ( errTyp:number,  sym:Symbol) {
-    this.errorNr++;
-    this.err.write(ParserGen.ls + "\t\t\tcase " + this.errorNr + ": s = \"");
-    switch (errTyp) {
-        case ParserGen.tErr:
-            if (sym.name.charAt(0) == '"') this.err.write(this.tab.Escape(sym.name) + " expected");
-            else this.err.write(sym.name + " expected");
-            break;
-        case ParserGen.altErr: this.err.write("invalid " + sym.name); break;
-        case ParserGen.syncErr: this.err.write("this symbol not expected in " + sym.name); break;
-    }
-    this.err.write("\"; break;");
-}
-
- NewCondSet ( s:BitSet):number {
-    for (let i = 1; i < this.symSet.length; i++) // skip symSet[0] (reserved for union of SYNC sets)
-    if (Sets.Equals(s, this.symSet[i])) return i;
-    this.symSet.push(s.clone());
-    return this.symSet.length - 1;
-}
-
- GenCond ( s:BitSet,  p:Node_) {
-    if (p.typ == Node_.rslv) this.CopySourcePart(p.pos, 0);
-    else {
-        let n = Sets.Elements(s);
-        if (n == 0) this.gen.print("false"); // happens if an ANY set matches no symbol
-        else if (n <= ParserGen.maxTerm) {
-            for (let i = 0; i < this.tab.terminals.length; i++) {
-                let sym = this.tab.terminals[i];
-                if (s.get(sym.n)) {
-                    this.gen.print("la.kind == " + sym.n);
-                    --n;
-                    if (n > 0) this.gen.print(" || ");
-                }
-            }
-        } else
-            this.gen.print("StartOf(" + this.NewCondSet(s) + ")");
-    }
-}
-
- PutCaseLabels ( s:BitSet) {
-    for (let i = 0; i < this.tab.terminals.length; i++) {
-        let sym = this.tab.terminals[i];
-        if (s.get(sym.n)) this.gen.print("case " + sym.n + ": ");
-    }
-}
-
- GenCode ( p:Node_,  indent:number,  isChecked:BitSet) {
-    let p2:Node_;
-    let s1, s2:BitSet;
-    while (p != null) {
-        switch (p.typ) {
-            case Node_.nt: {
-                this.Indent(indent);
-                if (p.retVar != null) this.gen.print(p.retVar + " = ");
-                this.gen.print(p.sym.name + "(");
-                this.CopySourcePart(p.pos, 0);
-                this.gen.println(");");
-                break;
-            }
-            case Node_.t: {
-                this.Indent(indent);
-                // assert: if isChecked[p.sym.n] is true, then isChecked contains only p.sym.n
-                if (isChecked.get(p.sym.n)) this.gen.println("Get();");
-                else this.gen.println("Expect(" + p.sym.n + ");");
-                break;
-            }
-            case Node_.wt: {
-                this.Indent(indent);
-                s1 = this.tab.Expected(p.next, this.curSy);
-                s1.or(this.tab.allSyncSets);
-                this.gen.println("ExpectWeak(" + p.sym.n + ", " + this.NewCondSet(s1) + ");");
-                break;
-            }
-            case Node_.any: {
-                this.Indent(indent);
-                let acc = Sets.Elements(p.set);
-                if (this.tab.terminals.length == (acc + 1) || (acc > 0 && Sets.Equals(p.set, isChecked))) {
-                    // either this ANY accepts any terminal (the + 1 = end of file), or exactly what's allowed here
-                    this.gen.println("Get();");
-                } else {
-                    this.GenErrorMsg(ParserGen.altErr, this.curSy);
-                    if (acc > 0) {
-                        this.gen.print("if ("); this.GenCond(p.set, p); this.gen.println(") Get(); else SynErr(" + this.errorNr + ");");
-                    } else this.gen.println("SynErr(" + this.errorNr + "); // ANY node that matches no symbol");
-                }
-                break;
-            }
-            case Node_.eps: break;  // nothing
-            case Node_.rslv: break; // nothing
-            case Node_.sem: {
-                this.CopySourcePart(p.pos, indent);
-                break;
-            }
-            case Node_.sync: {
-                this.Indent(indent);
-                this.GenErrorMsg(ParserGen.syncErr, this.curSy);
-                s1 = p.set.clone();
-                this.gen.print("while (!("); this.GenCond(s1,p); this.gen.print(")) {");
-                this.gen.print("SynErr(" + this.errorNr + "); Get();"); this.gen.println("}");
-                break;
-            }
-            case Node_.alt: {
-                s1 = this.tab.First(p);
-                let equal = Sets.Equals(s1, isChecked);
-                let useSwitch = this.UseSwitch(p);
-                if (useSwitch) { this.Indent(indent); this.gen.println("switch (la.kind) {"); }
-                p2 = p;
-                while (p2 != null) {
-                    s1 = this.tab.Expected(p2.sub, this.curSy);
+            this.Indent(indent);
+            done: while (this.buffer.getPos() <= pos.end) {
+                while (ch == ParserGen.CR || ch == ParserGen.LF) {  // eol is either CR or CRLF or LF
+                    this.gen.println();
                     this.Indent(indent);
-                    if (useSwitch) {
-                        this.PutCaseLabels(s1); this.gen.println("{");
-                    } else if (p2 == p) {
-                        this.gen.print("if ("); this.GenCond(s1, p2.sub); this.gen.println(") {");
-                    } else if (p2.down == null && equal) { this.gen.println("} else {");
-                    } else {
-                        this.gen.print("} else if (");  this.GenCond(s1, p2.sub); this.gen.println(") {");
+                    if (ch == ParserGen.CR) {
+                        ch = this.buffer.Read();
+                    }  // skip CR
+                    if (ch == ParserGen.LF) {
+                        ch = this.buffer.Read();
+                    }  // skip LF
+                    for (i = 1; i <= pos.col && ch <= ' '; i++) {
+                        // skip blanks at beginning of line
+                        ch = this.buffer.Read();
                     }
-                    this.GenCode(p2.sub, indent + 1, s1);
-                    if (useSwitch) {
-                        this.Indent(indent); this.gen.println("\tbreak;");
-                        this.Indent(indent); this.gen.println("}");
-                    }
-                    p2 = p2.down;
+                    if (this.buffer.getPos() > pos.end) break done;
                 }
-                this.Indent(indent);
-                if (equal) {
+                this.gen.print((ch));
+                ch = this.buffer.Read();
+            }
+            if (indent > 0) this.gen.println();
+        }
+    }
+
+    GenErrorMsg(errTyp: number, sym: Symbol) {
+        this.errorNr++;
+        this.err.write(ParserGen.ls + "\t\t\tcase " + this.errorNr + ": s = \"");
+        switch (errTyp) {
+            case ParserGen.tErr:
+                if (sym.name.charAt(0) == '"') this.err.write(this.tab.Escape(sym.name) + " expected");
+                else this.err.write(sym.name + " expected");
+                break;
+            case ParserGen.altErr:
+                this.err.write("invalid " + sym.name);
+                break;
+            case ParserGen.syncErr:
+                this.err.write("this symbol not expected in " + sym.name);
+                break;
+        }
+        this.err.write("\"; break;");
+    }
+
+    NewCondSet(s: BitSet): number {
+        for (let i = 1; i < this.symSet.length; i++) // skip symSet[0] (reserved for union of SYNC sets)
+            if (Sets.Equals(s, this.symSet[i])) return i;
+        this.symSet.push(s.clone());
+        return this.symSet.length - 1;
+    }
+
+    GenCond(s: BitSet, p: Node_) {
+        if (p.typ == Node_.rslv) this.CopySourcePart(p.pos, 0);
+        else {
+            let n = Sets.Elements(s);
+            if (n == 0) this.gen.print("false"); // happens if an ANY set matches no symbol
+            else if (n <= ParserGen.maxTerm) {
+                for (let i = 0; i < this.tab.terminals.length; i++) {
+                    let sym = this.tab.terminals[i];
+                    if (s.get(sym.n)) {
+                        this.gen.print("la.kind == " + sym.n);
+                        --n;
+                        if (n > 0) this.gen.print(" || ");
+                    }
+                }
+            } else
+                this.gen.print("StartOf(" + this.NewCondSet(s) + ")");
+        }
+    }
+
+    PutCaseLabels(s: BitSet) {
+        for (let i = 0; i < this.tab.terminals.length; i++) {
+            let sym = this.tab.terminals[i];
+            if (s.get(sym.n)) this.gen.print("case " + sym.n + ": ");
+        }
+    }
+
+    GenCode(p: Node_, indent: number, isChecked: BitSet) {
+        let p2: Node_;
+        let s1, s2: BitSet;
+        while (p != null) {
+            switch (p.typ) {
+                case Node_.nt: {
+                    this.Indent(indent);
+                    if (p.retVar != null) this.gen.print(p.retVar + " = ");
+                    this.gen.print(p.sym.name + "(");
+                    this.CopySourcePart(p.pos, 0);
+                    this.gen.println(");");
+                    break;
+                }
+                case Node_.t: {
+                    this.Indent(indent);
+                    // assert: if isChecked[p.sym.n] is true, then isChecked contains only p.sym.n
+                    if (isChecked.get(p.sym.n)) this.gen.println("Get();");
+                    else this.gen.println("Expect(" + p.sym.n + ");");
+                    break;
+                }
+                case Node_.wt: {
+                    this.Indent(indent);
+                    s1 = this.tab.Expected(p.next, this.curSy);
+                    s1.or(this.tab.allSyncSets);
+                    this.gen.println("ExpectWeak(" + p.sym.n + ", " + this.NewCondSet(s1) + ");");
+                    break;
+                }
+                case Node_.any: {
+                    this.Indent(indent);
+                    let acc = Sets.Elements(p.set);
+                    if (this.tab.terminals.length == (acc + 1) || (acc > 0 && Sets.Equals(p.set, isChecked))) {
+                        // either this ANY accepts any terminal (the + 1 = end of file), or exactly what's allowed here
+                        this.gen.println("Get();");
+                    } else {
+                        this.GenErrorMsg(ParserGen.altErr, this.curSy);
+                        if (acc > 0) {
+                            this.gen.print("if (");
+                            this.GenCond(p.set, p);
+                            this.gen.println(") Get(); else SynErr(" + this.errorNr + ");");
+                        } else this.gen.println("SynErr(" + this.errorNr + "); // ANY node that matches no symbol");
+                    }
+                    break;
+                }
+                case Node_.eps:
+                    break;  // nothing
+                case Node_.rslv:
+                    break; // nothing
+                case Node_.sem: {
+                    this.CopySourcePart(p.pos, indent);
+                    break;
+                }
+                case Node_.sync: {
+                    this.Indent(indent);
+                    this.GenErrorMsg(ParserGen.syncErr, this.curSy);
+                    s1 = p.set.clone();
+                    this.gen.print("while (!(");
+                    this.GenCond(s1, p);
+                    this.gen.print(")) {");
+                    this.gen.print("SynErr(" + this.errorNr + "); Get();");
                     this.gen.println("}");
-                } else {
-                    this.GenErrorMsg(ParserGen.altErr, this.curSy);
+                    break;
+                }
+                case Node_.alt: {
+                    s1 = this.tab.First(p);
+                    let equal = Sets.Equals(s1, isChecked);
+                    let useSwitch = this.UseSwitch(p);
                     if (useSwitch) {
-                        this.gen.println("default: SynErr(" + this.errorNr + "); break;");
-                        this.Indent(indent); this.gen.println("}");
-                    } else {
-                        this.gen.print("} "); this.gen.println("else SynErr(" + this.errorNr + ");");
+                        this.Indent(indent);
+                        this.gen.println("switch (la.kind) {");
                     }
+                    p2 = p;
+                    while (p2 != null) {
+                        s1 = this.tab.Expected(p2.sub, this.curSy);
+                        this.Indent(indent);
+                        if (useSwitch) {
+                            this.PutCaseLabels(s1);
+                            this.gen.println("{");
+                        } else if (p2 == p) {
+                            this.gen.print("if (");
+                            this.GenCond(s1, p2.sub);
+                            this.gen.println(") {");
+                        } else if (p2.down == null && equal) {
+                            this.gen.println("} else {");
+                        } else {
+                            this.gen.print("} else if (");
+                            this.GenCond(s1, p2.sub);
+                            this.gen.println(") {");
+                        }
+                        this.GenCode(p2.sub, indent + 1, s1);
+                        if (useSwitch) {
+                            this.Indent(indent);
+                            this.gen.println("\tbreak;");
+                            this.Indent(indent);
+                            this.gen.println("}");
+                        }
+                        p2 = p2.down;
+                    }
+                    this.Indent(indent);
+                    if (equal) {
+                        this.gen.println("}");
+                    } else {
+                        this.GenErrorMsg(ParserGen.altErr, this.curSy);
+                        if (useSwitch) {
+                            this.gen.println("default: SynErr(" + this.errorNr + "); break;");
+                            this.Indent(indent);
+                            this.gen.println("}");
+                        } else {
+                            this.gen.print("} ");
+                            this.gen.println("else SynErr(" + this.errorNr + ");");
+                        }
+                    }
+                    break;
                 }
-                break;
-            }
-            case Node_.iter: {
-                this.Indent(indent);
-                p2 = p.sub;
-                this.gen.print("while (");
-                if (p2.typ == Node_.wt) {
-                    s1 = this.tab.Expected(p2.next, this.curSy);
-                    s2 = this.tab.Expected(p.next, this.curSy);
-                    this.gen.print("WeakSeparator(" + p2.sym.n + "," + this.NewCondSet(s1) + ","
-                        + this.NewCondSet(s2) + ") ");
-                    s1 = new BitSet(this.tab.terminals.length);  // for inner structure
-                    if (p2.up || p2.next == null) p2 = null; else p2 = p2.next;
-                } else {
-                    s1 = this.tab.First(p2);
-                    this.GenCond(s1, p2);
+                case Node_.iter: {
+                    this.Indent(indent);
+                    p2 = p.sub;
+                    this.gen.print("while (");
+                    if (p2.typ == Node_.wt) {
+                        s1 = this.tab.Expected(p2.next, this.curSy);
+                        s2 = this.tab.Expected(p.next, this.curSy);
+                        this.gen.print("WeakSeparator(" + p2.sym.n + "," + this.NewCondSet(s1) + ","
+                            + this.NewCondSet(s2) + ") ");
+                        s1 = new BitSet(this.tab.terminals.length);  // for inner structure
+                        if (p2.up || p2.next == null) p2 = null; else p2 = p2.next;
+                    } else {
+                        s1 = this.tab.First(p2);
+                        this.GenCond(s1, p2);
+                    }
+                    this.gen.println(") {");
+                    this.GenCode(p2, indent + 1, s1);
+                    this.Indent(indent);
+                    this.gen.println("}");
+                    break;
                 }
-                this.gen.println(") {");
-                this.GenCode(p2, indent + 1, s1);
-                this.Indent(indent); this.gen.println("}");
-                break;
+                case Node_.opt:
+                    s1 = this.tab.First(p.sub);
+                    this.Indent(indent);
+                    this.gen.print("if (");
+                    this.GenCond(s1, p.sub);
+                    this.gen.println(") {");
+                    this.GenCode(p.sub, indent + 1, s1);
+                    this.Indent(indent);
+                    this.gen.println("}");
+                    break;
             }
-            case Node_.opt:
-                s1 = this.tab.First(p.sub);
-                this.Indent(indent);
-                this.gen.print("if ("); this.GenCond(s1, p.sub); this.gen.println(") {");
-                this.GenCode(p.sub, indent + 1, s1);
-                this.Indent(indent); this.gen.println("}");
-                break;
+            if (p.typ != Node_.eps && p.typ != Node_.sem && p.typ != Node_.sync)
+                isChecked.set(0, isChecked.size(), false);  // = new BitArray(Symbol.terminals.Count);
+            if (p.up) break;
+            p = p.next;
         }
-        if (p.typ != Node_.eps && p.typ != Node_.sem && p.typ != Node_.sync)
-            isChecked.set(0, isChecked.size(), false);  // = new BitArray(Symbol.terminals.Count);
-        if (p.up) break;
-        p = p.next;
     }
-}
 
- GenTokens() {
-    //foreach (Symbol sym in Symbol.terminals) {
-    for (let i = 0; i < this.tab.terminals.length; i++) {
-        let sym = this.tab.terminals[i];
-        if (Character.isLetter(sym.name.charAt(0)))
-            this.gen.println("\tpublic static final int _" + sym.name + " = " + sym.n + ";");
-    }
-}
-
-GenPragmas() {
-    for (let i = 0; i < this.tab.pragmas.length; i++) {
-        let sym = this.tab.pragmas[i];
-        this.gen.println("\tpublic static final int _" + sym.name + " = " + sym.n + ";");
-    }
-}
-
- GenCodePragmas() {
-    //foreach (Symbol sym in Symbol.pragmas) {
-    for (let i = 0; i < this.tab.pragmas.length; i++) {
-        let sym = this.tab.pragmas[i];
-        this.gen.println();
-        this.gen.println("\t\t\tif (la.kind == " + sym.n + ") {");
-        this.CopySourcePart(sym.semPos, 4);
-        this.gen.print  ("\t\t\t}");
-    }
-}
-
- GenProductions() {
-    for (let i = 0; i < this.tab.nonterminals.length; i++) {
-        let sym = this.tab.nonterminals[i];
-        this.curSy = sym;
-        this.gen.print("\t");
-        if (sym.retType == null) this.gen.print("void "); else this.gen.print(sym.retType + " ");
-        this.gen.print(sym.name + "(");
-        this.CopySourcePart(sym.attrPos, 0);
-        this.gen.println(") {");
-        if (sym.retVar != null) this.gen.println("\t\t" + sym.retType + " " + sym.retVar + ";");
-        this.CopySourcePart(sym.semPos, 2);
-        this.GenCode(sym.graph, 2, new BitSet(this.tab.terminals.length));
-        if (sym.retVar != null) this.gen.println("\t\treturn " + sym.retVar + ";");
-        this.gen.println("\t}"); this.gen.println();
-    }
-}
-
- InitSets() {
-    for (let i = 0; i < this.symSet.length; i++) {
-        let s = this.symSet[i];
-        this.gen.print("\t\t{");
-        let j = 0;
+    GenTokens() {
         //foreach (Symbol sym in Symbol.terminals) {
-        for (let k = 0; k < this.tab.terminals.length; k++) {
-            let sym = this.tab.terminals[k];
-            if (s.get(sym.n)) this.gen.print("_T,"); else this.gen.print("_x,");
-            ++j;
-            if (j%4 == 0) this.gen.print(" ");
+        for (let i = 0; i < this.tab.terminals.length; i++) {
+            let sym = this.tab.terminals[i];
+            //in latin and other capitalizeable scripts the first part hits, in the non-ascii scripts the second part hits
+            if (sym.name.charAt(0).toUpperCase() != sym.name.charAt(0).toLowerCase() || sym.name.charAt(0).codePointAt(0) > 127)
+                // if (Character.isLetter(sym.name.charAt(0)))
+                this.gen.println("\tpublic static final int _" + sym.name + " = " + sym.n + ";");
         }
-        if (i == this.symSet.length-1) this.gen.println("_x}"); else this.gen.println("_x},");
-    }
-}
-
-public  WriteParser () {
-    let g = new Generator(this.tab);
-    let oldPos = this.buffer.getPos();  // Buffer.pos is modified by CopySourcePart
-    this.symSet.push(this.tab.allSyncSets);
-
-    this.fram = g.OpenFrame("Parser.frame");
-    this.gen = g.OpenGen("Parser.java");
-    this.err = new StringWriter();
-    //foreach (Symbol sym in Symbol.terminals)
-    for (let i = 0; i < this.tab.terminals.length; i++) {
-        let sym = this.tab.terminals[i];
-        this.GenErrorMsg(ParserGen.tErr, sym);
     }
 
-    this.OnWriteParserInitializationDone();
-
-    g.GenCopyright();
-    g.SkipFramePart("-->begin");
-
-    if (this.tab.nsName != null && this.tab.nsName.length > 0) {
-        this.gen.print("package ");
-        this.gen.print(this.tab.nsName);
-        this.gen.print(";");
+    GenPragmas() {
+        for (let i = 0; i < this.tab.pragmas.length; i++) {
+            let sym = this.tab.pragmas[i];
+            this.gen.println("\tpublic static final int _" + sym.name + " = " + sym.n + ";");
+        }
     }
-    if (this.usingPos != null) {
-        this.gen.println(); this.gen.println();
-        this.CopySourcePart(this.usingPos, 0);
+
+    GenCodePragmas() {
+        //foreach (Symbol sym in Symbol.pragmas) {
+        for (let i = 0; i < this.tab.pragmas.length; i++) {
+            let sym = this.tab.pragmas[i];
+            this.gen.println();
+            this.gen.println("\t\t\tif (la.kind == " + sym.n + ") {");
+            this.CopySourcePart(sym.semPos, 4);
+            this.gen.print("\t\t\t}");
+        }
     }
-    g.CopyFramePart("-->constants");
-    this.GenTokens();
-    this.gen.println("\tpublic static final int maxT = " + (this.tab.terminals.length-1) + ";");
-    this.GenPragmas();
-    g.CopyFramePart("-->declarations"); this.CopySourcePart(this.tab.semDeclPos, 0);
-    g.CopyFramePart("-->pragmas"); this.GenCodePragmas();
-    g.CopyFramePart("-->productions"); this.GenProductions();
-    g.CopyFramePart("-->parseRoot"); this.gen.println("\t\t" + this.tab.gramSy.name + "();"); if (this.tab.checkEOF) this.gen.println("\t\tExpect(0);");
-    g.CopyFramePart("-->initialization"); this.InitSets();
-    g.CopyFramePart("-->errors"); this.gen.print(this.err.toString());
-    g.CopyFramePart(null);
-    this.gen.close();
-    this.buffer.setPos(oldPos);
-}
+
+    GenProductions() {
+        for (let i = 0; i < this.tab.nonterminals.length; i++) {
+            let sym = this.tab.nonterminals[i];
+            this.curSy = sym;
+            this.gen.print("\t");
+            if (sym.retType == null) this.gen.print("void "); else this.gen.print(sym.retType + " ");
+            this.gen.print(sym.name + "(");
+            this.CopySourcePart(sym.attrPos, 0);
+            this.gen.println(") {");
+            if (sym.retVar != null) this.gen.println("\t\t" + sym.retType + " " + sym.retVar + ";");
+            this.CopySourcePart(sym.semPos, 2);
+            this.GenCode(sym.graph, 2, new BitSet(this.tab.terminals.length));
+            if (sym.retVar != null) this.gen.println("\t\treturn " + sym.retVar + ";");
+            this.gen.println("\t}");
+            this.gen.println();
+        }
+    }
+
+    InitSets() {
+        for (let i = 0; i < this.symSet.length; i++) {
+            let s = this.symSet[i];
+            this.gen.print("\t\t{");
+            let j = 0;
+            //foreach (Symbol sym in Symbol.terminals) {
+            for (let k = 0; k < this.tab.terminals.length; k++) {
+                let sym = this.tab.terminals[k];
+                if (s.get(sym.n)) this.gen.print("_T,"); else this.gen.print("_x,");
+                ++j;
+                if (j % 4 == 0) this.gen.print(" ");
+            }
+            if (i == this.symSet.length - 1) this.gen.println("_x}"); else this.gen.println("_x},");
+        }
+    }
+
+    public WriteParser() {
+        let g = new Generator(this.tab);
+        let oldPos = this.buffer.getPos();  // Buffer.pos is modified by CopySourcePart
+        this.symSet.push(this.tab.allSyncSets);
+
+        this.fram = g.OpenFrame("Parser.frame");
+        this.gen = g.OpenGen("Parser.java");
+        //foreach (Symbol sym in Symbol.terminals)
+        for (let i = 0; i < this.tab.terminals.length; i++) {
+            let sym = this.tab.terminals[i];
+            this.GenErrorMsg(ParserGen.tErr, sym);
+        }
+
+        this.OnWriteParserInitializationDone();
+
+        g.GenCopyright();
+        g.SkipFramePart("-->begin");
+
+        if (this.tab.nsName != null && this.tab.nsName.length > 0) {
+            this.gen.print("package ");
+            this.gen.print(this.tab.nsName);
+            this.gen.print(";");
+        }
+        if (this.usingPos != null) {
+            this.gen.println();
+            this.gen.println();
+            this.CopySourcePart(this.usingPos, 0);
+        }
+        g.CopyFramePart("-->constants");
+        this.GenTokens();
+        this.gen.println("\tpublic static final int maxT = " + (this.tab.terminals.length - 1) + ";");
+        this.GenPragmas();
+        g.CopyFramePart("-->declarations");
+        this.CopySourcePart(this.tab.semDeclPos, 0);
+        g.CopyFramePart("-->pragmas");
+        this.GenCodePragmas();
+        g.CopyFramePart("-->productions");
+        this.GenProductions();
+        g.CopyFramePart("-->parseRoot");
+        this.gen.println("\t\t" + this.tab.gramSy.name + "();");
+        if (this.tab.checkEOF) this.gen.println("\t\tExpect(0);");
+        g.CopyFramePart("-->initialization");
+        this.InitSets();
+        g.CopyFramePart("-->errors");
+        this.gen.print(this.err.toString());
+        g.CopyFramePart(null);
+        this.gen.close();
+        this.buffer.setPos(oldPos);
+    }
 
 // Override this method if you need to replace anything before the parser is written.
 // This can be used by plugins to catch the generated parser, e.g., this is used by the
 // Eclipse Plugin of the Institue for System Software.
-protected  OnWriteParserInitializationDone() {
-    // nothing to do
-}
+    protected OnWriteParserInitializationDone() {
+        // nothing to do
+    }
 
-public  WriteStatistics () {
-    this.trace.WriteLine();
-    this.trace.WriteLine(this.tab.terminals.length + " terminals");
-    this.trace.WriteLine(this.tab.terminals.length + this.tab.pragmas.length +
-        this.tab.nonterminals.length + " symbols");
-    this.trace.WriteLine(this.tab.nodes.length + " nodes");
-    this.trace.WriteLine(this.symSet.length + " sets");
-}
+    public WriteStatistics() {
+        this.trace.WriteLine();
+        this.trace.WriteLine(this.tab.terminals.length + " terminals");
+        this.trace.WriteLine(this.tab.terminals.length + this.tab.pragmas.length +
+            this.tab.nonterminals.length + " symbols");
+        this.trace.WriteLine(this.tab.nodes.length + " nodes");
+        this.trace.WriteLine(this.symSet.length + " sets");
+    }
 
-constructor( parser:Parser) {
-    this.tab = parser.tab;
-    this.errors = parser.errors;
-    this.trace = parser.trace;
-    this.buffer = parser.scanner.buffer;
-    this.errorNr = -1;
-    this.usingPos = null;
-}
+    constructor(parser: Parser) {
+        this.tab = parser.tab;
+        this.errors = parser.errors;
+        this.trace = parser.trace;
+        this.buffer = parser.scanner.buffer;
+        this.errorNr = -1;
+        this.usingPos = null;
+    }
 
 }

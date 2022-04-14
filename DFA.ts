@@ -266,8 +266,8 @@ export class CharSet {
     }
 
     public Fill() {
-        //TODO: Implement this
-        //this.head = new Range(Character.MIN_VALUE, Character.MAX_VALUE);
+        this.head = new Range(0, 65535);
+        // this.head = new Range(Character.MIN_VALUE, Character.MAX_VALUE);
     }
 }
 
@@ -788,7 +788,7 @@ export class DFA {
                     this.trace.Write((this.tab.classes[action.sym]).name);
                 else this.trace.Write(this.Ch(action.sym.toString()), 3);
                 for (let targ = action.target; targ != null; targ = targ.next)
-                    this.trace.Write(targ.state.nr, 3);
+                    this.trace.Write(targ.state.nr+"", 3);
                 if (action.tc == Node_.contextTrans) this.trace.WriteLine(" context"); else this.trace.WriteLine();
             }
         }
