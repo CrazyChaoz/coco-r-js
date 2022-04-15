@@ -42,13 +42,12 @@ Coco/R itself) does not fall under the GNU General Public License.
   -------------------------------------------------------------------------*/
 
 
-import { Tab} from "./Tab";
+import {Tab} from "./Tab";
 import {DFA} from "./DFA";
 import {Trace} from "./Trace";
 import {ParserGen} from "./ParserGen";
 import {Parser} from "./Parser";
 import {Scanner} from "./Scanner";
-
 
 
 function main() {
@@ -85,7 +84,9 @@ function main() {
 
             parser.trace.Close();
             console.log(parser.errors.count + " errors detected");
-            if (parser.errors.count == 0) { retVal = 0; }
+            if (parser.errors.count == 0) {
+                retVal = 0;
+            }
         } catch (e) {
             console.log(e.getMessage());
         }
@@ -112,4 +113,5 @@ function main() {
     }
     process.exit(retVal);
 }
+
 // end Coco

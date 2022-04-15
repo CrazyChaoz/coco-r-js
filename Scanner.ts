@@ -29,6 +29,7 @@ Coco/R itself) does not fall under the GNU General Public License.
 
 import * as fs from "fs";
 
+
 export class Token {
     public kind: number;    // token kind
     public pos: number;     // token position in bytes in the source text (starting at 0)
@@ -58,32 +59,27 @@ export class Buffer {
     private fileLen: number;  // length of input stream (may change if stream is no file)
     private bufPos: number;      // current position in buffer
     private file: number; // input stream (seekable)
-    private stream: InputStream; // growing input stream (e.g.: console, network)
+    //private stream: InputStream; // growing input stream (e.g.: console, network)
 
-    constructor(s: InputStream);
+    //constructor(s: InputStream);
     constructor(fileName: string);
     constructor(b: Buffer);
 
     constructor(a: any) {
-        if (typeof a == "InputStream") {
-            this.stream = a;
-            this.fileLen = this.bufLen = this.bufStart = this.bufPos = 0;
-            this.buf = new Array[Buffer.MIN_BUFFER_LENGTH];
-        } else if (typeof a == "string") {
+        // if (typeof a == "InputStream") {
+        //     this.stream = a;
+        //     this.fileLen = this.bufLen = this.bufStart = this.bufPos = 0;
+        //     this.buf = new Array[Buffer.MIN_BUFFER_LENGTH];
+        // } else
+        if (typeof a == "string") {
             try {
                 //this.file = new RandomAccessFile(a, "r");
-                let tmp_fd: number;
-                fs.open(a, "r", function (err, fd) {
-                    if (err) {
-                        return console.error(err);
-                    }
-                    tmp_fd = fd
-                });
-                this.file = tmp_fd
-                this.fileLen = this.file.length();
+
+                this.file = fs.openSync(a, "r");
+                this.fileLen = fs.statSync(a).size;
                 this.bufLen = Math.min(this.fileLen, Buffer.MAX_BUFFER_LENGTH);
                 this.buf = new Array[this.bufLen];
-                this.bufStart = Integer.MAX_VALUE; // nothing in buffer so far
+                this.bufStart = 65535; // nothing in buffer so far
                 if (this.fileLen > 0) this.setPos(0); // setup buffer to position 0 (start)
                 else this.bufPos = 0; // index 0 is already after the file, thus setPos(0) is invalid
                 if (this.bufLen == this.fileLen) this.Close();
@@ -99,7 +95,7 @@ export class Buffer {
             this.fileLen = a.fileLen;
             this.bufPos = a.bufPos;
             this.file = a.file;
-            this.stream = a.stream;
+            //this.stream = a.stream;
             // keep finalize from closing the file
             a.file = null;
         }
@@ -128,7 +124,7 @@ export class Buffer {
         } else if (this.getPos() < this.fileLen) {
             this.setPos(this.getPos());         // shift buffer start to pos
             return (this.buf)[this.bufPos++] & 0xff; // mask out sign bits
-        } else if (this.stream != null && this.ReadNextStreamChunk() > 0) {
+        } else if (this.ReadNextStreamChunk() > 0) {
             return (this.buf)[this.bufPos++] & 0xff;  // mask out sign bits
         } else {
             return Buffer.EOF;
@@ -160,7 +156,7 @@ export class Buffer {
     }
 
     public setPos(value: number) {
-        if (value >= this.fileLen && this.stream != null) {
+        if (value >= this.fileLen) {
             // Wanted position is after buffer and the stream
             // is not seek-able e.g. network or console,
             // thus we have to read the stream manually till
@@ -176,8 +172,9 @@ export class Buffer {
             this.bufPos = value - this.bufStart;
         } else if (this.file != null) { // must be swapped in
             try {
-                this.file.seek(value);
-                this.bufLen = this.file.read(this.buf);
+                // this.file.seek(value);
+                // this.bufLen = this.file.read(this.buf);
+                fs.readSync(this.file,this.buf,0,this.bufLen,value)
                 this.bufStart = value;
                 this.bufPos = 0;
             } catch (e) {
@@ -379,7 +376,7 @@ export class Scanner {
     })();
 
     constructor(fileName: string);
-    constructor(s: InputStream);
+    //constructor(s: InputStream);
     constructor(a: any) {
 
         this.buffer = new Buffer(a);
@@ -514,7 +511,7 @@ export class Scanner {
     CheckLiteral() {
         let val = this.t.val;
 
-        let kind = Scanner.literals.get(val);
+        let kind = Scanner.literals[val];
         if (kind != null) {
             this.t.kind = kind.intValue();
         }

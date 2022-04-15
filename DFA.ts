@@ -1,5 +1,7 @@
 import {BitSet, Errors, Node_, Parser, Sets, Symbol, Tab} from "./Tab";
 import {Trace} from "./Trace";
+import * as fs from "fs";
+import * as path from "path";
 
 
 //-----------------------------------------------------------------------------
@@ -278,8 +280,8 @@ export class CharSet {
 export class Generator {
     private static EOF = -1;
 
-    private fram: Reader;
-    private gen: PrintWriter;
+    private fram: number;   //file descriptor of the frame file
+    private gen: number;   //file descriptor of the generated file
     private tab: Tab;
     private frameFile: File;
 
@@ -287,16 +289,24 @@ export class Generator {
         this.tab = tab;
     }
 
-    public OpenFrame(frame: string): Reader {
-        if (this.tab.frameDir != null) this.frameFile = new File(this.tab.frameDir, frame);
-        if (this.frameFile == null || !this.frameFile.exists()) this.frameFile = new File(this.tab.srcDir, frame);
-        if (this.frameFile == null || !this.frameFile.exists()) throw new Error("Cannot find : " + frame);
+    public OpenFrame(frame: string): number {
+        if (this.tab.frameDir != null)
+            this.frameFile = path.join(this.tab.frameDir, frame);
+        if (this.frameFile == null || !fs.existsSync(this.frameFile))
+            this.frameFile = path.join(this.tab.srcDir, frame);
+        if (this.frameFile == null || !fs.existsSync(this.frameFile))
+            throw new Error("Cannot find : " + frame);
 
         try {
             this.fram = new BufferedReader(new FileReader(this.frameFile)); /* pdt */
+
         } catch (FileNotFoundException) {
             throw new Error("Cannot open frame file: " + this.frameFile.getPath());
         }
+
+        this.fram=fs.openSync()
+
+
         return this.fram;
     }
 
@@ -788,7 +798,7 @@ export class DFA {
                     this.trace.Write((this.tab.classes[action.sym]).name);
                 else this.trace.Write(this.Ch(action.sym.toString()), 3);
                 for (let targ = action.target; targ != null; targ = targ.next)
-                    this.trace.Write(targ.state.nr+"", 3);
+                    this.trace.Write(targ.state.nr + "", 3);
                 if (action.tc == Node_.contextTrans) this.trace.WriteLine(" context"); else this.trace.WriteLine();
             }
         }
@@ -1026,7 +1036,7 @@ export class DFA {
         }
     }
 
-     WriteStartTab() {
+    WriteStartTab() {
         for (let action = this.firstState.firstAction; action != null; action = action.next) {
             let targetState = action.target.state.nr;
             if (action.typ == Node_.chr) {
@@ -1079,7 +1089,8 @@ export class DFA {
         let comIdx = 0;
         while (com != null) {
             this.GenComment(com, comIdx);
-            com = com.next; comIdx++;
+            com = com.next;
+            comIdx++;
         }
         g.CopyFramePart("-->casing3");
         if (this.ignoreCase) {
@@ -1087,38 +1098,50 @@ export class DFA {
         }
         g.CopyFramePart("-->scan1");
         this.gen.print("\t\t\t");
-        if (this.tab.ignored.Elements() > 0) { this.PutRange(this.tab.ignored); } else { this.gen.print("false"); }
+        if (this.tab.ignored.Elements() > 0) {
+            this.PutRange(this.tab.ignored);
+        } else {
+            this.gen.print("false");
+        }
         g.CopyFramePart("-->scan2");
         if (this.firstComment != null) {
             this.gen.print("\t\tif (");
-            com = this.firstComment; comIdx = 0;
+            com = this.firstComment;
+            comIdx = 0;
             while (com != null) {
                 this.gen.print(this.ChCond(com.start.charAt(0)));
                 this.gen.print(" && Comment" + comIdx + "()");
                 if (com.next != null) this.gen.print(" ||");
-                com = com.next; comIdx++;
+                com = com.next;
+                comIdx++;
             }
             this.gen.print(") return NextToken();");
         }
-        if (this.hasCtxMoves) { this.gen.println(); this.gen.print("\t\tint apx = 0;"); } /* pdt */
+        if (this.hasCtxMoves) {
+            this.gen.println();
+            this.gen.print("\t\tint apx = 0;");
+        } /* pdt */
         g.CopyFramePart("-->scan3");
         for (let state = this.firstState.next; state != null; state = state.next)
-        this.WriteState(state);
+            this.WriteState(state);
         g.CopyFramePart(null);
         this.gen.close();
     }
 
-    constructor( parser:Parser) {
-    this.parser = parser;
+    constructor(parser: Parser) {
+        this.parser = parser;
         this.tab = parser.tab;
         this.errors = parser.errors;
         this.trace = parser.trace;
-        this.firstState = null; this.lastState = null; this.lastStateNr = -1;
+        this.firstState = null;
+        this.lastState = null;
+        this.lastStateNr = -1;
         this.firstState = this.NewState();
-        this.firstMelted = null; this.firstComment = null;
+        this.firstMelted = null;
+        this.firstComment = null;
         this.ignoreCase = false;
         this.dirtyDFA = false;
         this.hasCtxMoves = false;
-}
+    }
 }
 
