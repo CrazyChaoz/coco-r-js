@@ -299,42 +299,50 @@ export class Generator {
             throw new Error("Cannot find : " + frame);
 
         try {
-            this.fram = new BufferedReader(new FileReader(this.frameFile)); /* pdt */
-
+            // this.fram = new BufferedReader(new FileReader(this.frameFile)); /* pdt */
+            this.fram = fs.openSync(this.frameFile,"r")
         } catch (FileNotFoundException) {
-            throw new Error("Cannot open frame file: " + this.frameFile.getPath());
+            throw new Error("Cannot open frame file: " + this.frameFile);
         }
 
-        this.fram=fs.openSync()
+        this.fram = fs.openSync()
 
 
         return this.fram;
     }
 
-    public OpenGen(target: string): PrintWriter {
-        let f = new File(this.tab.outDir, target);
+    public OpenGen(target: string): number {
+        let f: string = path.join(this.tab.outDir, target);
         try {
-            if (f.exists()) {
-                let old = new File(f.getPath() + ".old");
-                old.delete();
-                f.renameTo(old);
+            if (fs.existsSync(f)) {
+                let old = f + ".old";
+                // old.delete(); --> unlink
+                fs.unlinkSync(old)
+                // f.renameTo(old);
+                fs.renameSync(f, old)
             }
-            this.gen = new PrintWriter(new BufferedWriter(new FileWriter(f, false))); /* pdt */
+            this.gen = fs.openSync(f, "w"); /* pdt */
         } catch (Exception) {
-            throw new Error("Cannot generate file: " + f.getPath());
+            throw new Error("Cannot generate file: " + f);
         }
+
+
         return this.gen;
     }
 
     public GenCopyright() {
-        let copyFr = null;
-        if (this.tab.frameDir != null) copyFr = new File(this.tab.frameDir, "Copyright.frame");
-        if (copyFr == null || !copyFr.exists()) copyFr = new File(this.tab.srcDir, "Copyright.frame");
-        if (copyFr == null || !copyFr.exists()) return;
+        let copyFr: string;
+        if (this.tab.frameDir != null)
+            copyFr = path.join(this.tab.frameDir, "Copyright.frame");
+        if (copyFr == null || !fs.existsSync(copyFr))
+            copyFr = path.join(this.tab.srcDir, "Copyright.frame");
+        if (copyFr == null || !fs.existsSync(copyFr))
+            return;
 
         try {
             let scannerFram = this.fram;
-            this.fram = new BufferedReader(new FileReader(copyFr));
+            // this.fram = new BufferedReader(new FileReader(copyFr));
+            this.fram = fs.openSync(copyFr, "r")
             this.CopyFramePart(null);
             this.fram = scannerFram;
         } catch (FileNotFoundException) {
@@ -366,21 +374,25 @@ export class Generator {
                     i++;
                 } while (ch == stop.charCodeAt(i));
                 // stop[0..i-1] found; continue with last read character
-                if (generateOutput) this.gen.print(stop.substring(0, i));
+                if (generateOutput)
+                    // this.gen.print(stop.substring(0, i));
+                    fs.writeSync(this.gen,stop.substring(0, i))
             } else {
-                if (generateOutput) this.gen.print(ch);
+                if (generateOutput)
+                    // this.gen.print(ch);
+                    fs.writeSync(this.gen,ch)
                 ch = this.framRead();
             }
         }
 
-        if (stop != null) throw new Error("Incomplete or corrupt frame file: " + this.frameFile.getPath());
+        if (stop != null) throw new Error("Incomplete or corrupt frame file: " + this.frameFile);
     }
 
     private framRead(): number {
         try {
-            return this.fram.read();
+            return fs.readSync(this.fram);
         } catch (IOException) {
-            throw new Error("Error reading frame file: " + this.frameFile.getPath());
+            throw new Error("Error reading frame file: " + this.frameFile);
         }
     }
 }
@@ -398,8 +410,8 @@ export class DFA {
     private firstState: State;
     private lastState: State;      // last allocated state
     private lastSimState: number;     // last non melted state
-    private fram: Reader;          // scanner frame input     /* pdt */
-    private gen: PrintWriter;      // generated scanner file  /* pdt */
+    private fram: number;          // scanner frame input     /* pdt */
+    private gen: number;      // generated scanner file  /* pdt */
     private curSy: Symbol;         // current token to be recognized (in FindTrans)
     private dirtyDFA: boolean;     // DFA may become nondeterministic in MatchLiteral
 
@@ -427,13 +439,18 @@ export class DFA {
     private PutRange(s: CharSet) {
         for (let r = s.head; r != null; r = r.next) {
             if (r.from == r.to) {
-                this.gen.print("ch == " + this.Ch(String.fromCharCode(r.from)));
+                // this.gen.print("ch == " + this.Ch(String.fromCharCode(r.from)));
+                fs.writeSync(this.gen,"ch == " + this.Ch(String.fromCharCode(r.from)))
             } else if (r.from == 0) {
-                this.gen.print("ch <= " + this.Ch(String.fromCharCode(r.to)));
+                // this.gen.print("ch <= " + this.Ch(String.fromCharCode(r.to)));
+                fs.writeSync(this.gen,"ch <= " + this.Ch(String.fromCharCode(r.to)))
             } else {
-                this.gen.print("ch >= " + this.Ch(String.fromCharCode(r.from)) + " && ch <= " + this.Ch(String.fromCharCode(r.to)));
+                // this.gen.print("ch >= " + this.Ch(String.fromCharCode(r.from)) + " && ch <= " + this.Ch(String.fromCharCode(r.to)));
+                fs.writeSync(this.gen,"ch >= " + this.Ch(String.fromCharCode(r.from)) + " && ch <= " + this.Ch(String.fromCharCode(r.to)))
             }
-            if (r.next != null) this.gen.print(" || ");
+            if (r.next != null)
+                // this.gen.print(" || ");
+                fs.writeSync(this.gen," || ")
         }
     }
 
@@ -911,59 +928,59 @@ export class DFA {
     //--------------------- scanner generation ------------------------
 
     GenComBody(com: Comment) {
-        this.gen.println("\t\t\tfor(;;) {");
-        this.gen.print("\t\t\t\tif (" + this.ChCond(com.stop.charAt(0)) + ") ");
-        this.gen.println("{");
+        fs.writeSync(this.gen,"\t\t\tfor(;;) {\n");
+        fs.writeSync(this.gen,"\t\t\t\tif (" + this.ChCond(com.stop.charAt(0)) + ") ");
+        fs.writeSync(this.gen,"{\n");
         if (com.stop.length == 1) {
-            this.gen.println("\t\t\t\t\tlevel--;");
-            this.gen.println("\t\t\t\t\tif (level == 0) { oldEols = line - line0; NextCh(); return true; }");
-            this.gen.println("\t\t\t\t\tNextCh();");
+            fs.writeSync(this.gen,"\t\t\t\t\tlevel--;\n");
+            fs.writeSync(this.gen,"\t\t\t\t\tif (level == 0) { oldEols = line - line0; NextCh(); return true; }\n");
+            fs.writeSync(this.gen,"\t\t\t\t\tNextCh();\n");
         } else {
-            this.gen.println("\t\t\t\t\tNextCh();");
-            this.gen.println("\t\t\t\t\tif (" + this.ChCond(com.stop.charAt(1)) + ") {");
-            this.gen.println("\t\t\t\t\t\tlevel--;");
-            this.gen.println("\t\t\t\t\t\tif (level == 0) { oldEols = line - line0; NextCh(); return true; }");
-            this.gen.println("\t\t\t\t\t\tNextCh();");
-            this.gen.println("\t\t\t\t\t}");
+            fs.writeSync(this.gen,"\t\t\t\t\tNextCh();\n");
+            fs.writeSync(this.gen,"\t\t\t\t\tif (" + this.ChCond(com.stop.charAt(1)) + ") {\n");
+            fs.writeSync(this.gen,"\t\t\t\t\t\tlevel--;\n");
+            fs.writeSync(this.gen,"\t\t\t\t\t\tif (level == 0) { oldEols = line - line0; NextCh(); return true; }\n");
+            fs.writeSync(this.gen,"\t\t\t\t\t\tNextCh();\n");
+            fs.writeSync(this.gen,"\t\t\t\t\t}\n");
         }
         if (com.nested) {
-            this.gen.print("\t\t\t\t}");
-            this.gen.println(" else if (" + this.ChCond(com.start.charAt(0)) + ") {");
+            fs.writeSync(this.gen,"\t\t\t\t}");
+            fs.writeSync(this.gen," else if (" + this.ChCond(com.start.charAt(0)) + ") {\n");
             if (com.start.length == 1)
-                this.gen.println("\t\t\t\t\tlevel++; NextCh();");
+                fs.writeSync(this.gen,"\t\t\t\t\tlevel++; NextCh();\n");
             else {
-                this.gen.println("\t\t\t\t\tNextCh();");
-                this.gen.print("\t\t\t\t\tif (" + this.ChCond(com.start.charAt(1)) + ") ");
-                this.gen.println("{");
-                this.gen.println("\t\t\t\t\t\tlevel++; NextCh();");
-                this.gen.println("\t\t\t\t\t}");
+                fs.writeSync(this.gen,"\t\t\t\t\tNextCh();\n");
+                fs.writeSync(this.gen,"\t\t\t\t\tif (" + this.ChCond(com.start.charAt(1)) + ") ");
+                fs.writeSync(this.gen,"{\n");
+                fs.writeSync(this.gen,"\t\t\t\t\t\tlevel++; NextCh();\n");
+                fs.writeSync(this.gen,"\t\t\t\t\t}\n");
             }
         }
-        this.gen.println("\t\t\t\t} else if (ch == Buffer.EOF) return false;");
-        this.gen.println("\t\t\t\telse NextCh();");
-        this.gen.println("\t\t\t}");
+        fs.writeSync(this.gen,"\t\t\t\t} else if (ch == Buffer.EOF) return false;\n");
+        fs.writeSync(this.gen,"\t\t\t\telse NextCh();\n");
+        fs.writeSync(this.gen,"\t\t\t}\n");
     }
 
     GenComment(com: Comment, i: number) {
-        this.gen.println();
-        this.gen.print("\tboolean Comment" + i + "() ");
-        this.gen.println("{");
-        this.gen.println("\t\tint level = 1, pos0 = pos, line0 = line, col0 = col, charPos0 = charPos;");
+        fs.writeSync(this.gen,"\n");
+        fs.writeSync(this.gen,"\tboolean Comment" + i + "() ");
+        fs.writeSync(this.gen,"{\n");
+        fs.writeSync(this.gen,"\t\tint level = 1, pos0 = pos, line0 = line, col0 = col, charPos0 = charPos;\n");
         if (com.start.length == 1) {
-            this.gen.println("\t\tNextCh();");
+            fs.writeSync(this.gen,"\t\tNextCh();\n");
             this.GenComBody(com);
         } else {
-            this.gen.println("\t\tNextCh();");
-            this.gen.print("\t\tif (" + this.ChCond(com.start.charAt(1)) + ") ");
-            this.gen.println("{");
-            this.gen.println("\t\t\tNextCh();");
+            fs.writeSync(this.gen,"\t\tNextCh();\n");
+            fs.writeSync(this.gen,"\t\tif (" + this.ChCond(com.start.charAt(1)) + ") ");
+            fs.writeSync(this.gen,"{\n");
+            fs.writeSync(this.gen,"\t\t\tNextCh();\n");
             this.GenComBody(com);
-            this.gen.println("\t\t} else {");
-            this.gen.println("\t\t\tbuffer.setPos(pos0); NextCh(); line = line0; col = col0; charPos = charPos0;");
-            this.gen.println("\t\t}");
-            this.gen.println("\t\treturn false;");
+            fs.writeSync(this.gen,"\t\t} else {\n");
+            fs.writeSync(this.gen,"\t\t\tbuffer.setPos(pos0); NextCh(); line = line0; col = col0; charPos = charPos0;\n");
+            fs.writeSync(this.gen,"\t\t}\n");
+            fs.writeSync(this.gen,"\t\treturn false;\n");
         }
-        this.gen.println("\t}");
+        fs.writeSync(this.gen,"\t}\n");
     }
 
     SymName(sym: Symbol): string {
@@ -986,7 +1003,7 @@ export class DFA {
                     let name = this.SymName(sym);
                     if (this.ignoreCase) name = name.toLowerCase();
                     // sym.name stores literals with quotes, e.g. "\"Literal\"",
-                    this.gen.println("\t\tliterals.put(" + name + ", new Integer(" + sym.n + "));");
+                    fs.writeSync(this.gen,"\t\tliterals.put(" + name + ", new Integer(" + sym.n + "));\n");
                 }
             })
 
@@ -996,43 +1013,43 @@ export class DFA {
 
     WriteState(state: State) {
         let endOf = state.endOf;
-        this.gen.println("\t\t\t\tcase " + state.nr + ":");
+        fs.writeSync(this.gen,"\t\t\t\tcase " + state.nr + ":\n");
         if (endOf != null && state.firstAction != null) {
-            this.gen.println("\t\t\t\t\trecEnd = pos; recKind = " + endOf.n + ";");
+            fs.writeSync(this.gen,"\t\t\t\t\trecEnd = pos; recKind = " + endOf.n + ";\n");
         }
         let ctxEnd = state.ctx;
         for (let action = state.firstAction; action != null; action = action.next) {
-            if (action == state.firstAction) this.gen.print("\t\t\t\t\tif (");
-            else this.gen.print("\t\t\t\t\telse if (");
-            if (action.typ == Node_.chr) this.gen.print(this.ChCond(action.sym.toString()));
+            if (action == state.firstAction) fs.writeSync(this.gen,"\t\t\t\t\tif (");
+            else fs.writeSync(this.gen,"\t\t\t\t\telse if (");
+            if (action.typ == Node_.chr) fs.writeSync(this.gen,this.ChCond(action.sym.toString()));
             else this.PutRange(this.tab.CharClassSet(action.sym));
-            this.gen.print(") {");
+            fs.writeSync(this.gen,") {");
             if (action.tc == Node_.contextTrans) {
-                this.gen.print("apx++; ");
+                fs.writeSync(this.gen,"apx++; ");
                 ctxEnd = false;
             } else if (state.ctx) {
-                this.gen.print("apx = 0; ");
+                fs.writeSync(this.gen,"apx = 0; ");
             }
-            this.gen.println("AddCh(); state = " + action.target.state.nr + "; break;}");
+            fs.writeSync(this.gen,"AddCh(); state = " + action.target.state.nr + "; break;}\n");
         }
         if (state.firstAction == null)
-            this.gen.print("\t\t\t\t\t{");
+            fs.writeSync(this.gen,"\t\t\t\t\t{");
         else
-            this.gen.print("\t\t\t\t\telse {");
+            fs.writeSync(this.gen,"\t\t\t\t\telse {");
         if (ctxEnd) { // final context state: cut appendix
-            this.gen.println();
-            this.gen.println("\t\t\t\t\ttlen -= apx;");
-            this.gen.println("\t\t\t\t\tSetScannerBehindT();");
-            this.gen.print("\t\t\t\t\t");
+            fs.writeSync(this.gen,"\n");
+            fs.writeSync(this.gen,"\t\t\t\t\ttlen -= apx;\n");
+            fs.writeSync(this.gen,"\t\t\t\t\tSetScannerBehindT();\n");
+            fs.writeSync(this.gen,"\t\t\t\t\t");
         }
         if (endOf == null) {
-            this.gen.println("state = 0; break;}");
+            fs.writeSync(this.gen,"state = 0; break;}\n");
         } else {
-            this.gen.print("t.kind = " + endOf.n + "; ");
+            fs.writeSync(this.gen,"t.kind = " + endOf.n + "; ");
             if (endOf.tokenKind == Symbol.classLitToken) {
-                this.gen.println("t.val = new String(tval, 0, tlen); CheckLiteral(); return t;}");
+                fs.writeSync(this.gen,"t.val = new String(tval, 0, tlen); CheckLiteral(); return t;}\n");
             } else {
-                this.gen.println("break loop;}");
+                fs.writeSync(this.gen,"break loop;}\n");
             }
         }
     }
@@ -1041,15 +1058,15 @@ export class DFA {
         for (let action = this.firstState.firstAction; action != null; action = action.next) {
             let targetState = action.target.state.nr;
             if (action.typ == Node_.chr) {
-                this.gen.println("\t\tstart.set(" + action.sym + ", " + targetState + "); ");
+                fs.writeSync(this.gen,"\t\tstart.set(" + action.sym + ", " + targetState + "); \n");
             } else {
                 let s = this.tab.CharClassSet(action.sym);
                 for (let r = s.head; r != null; r = r.next) {
-                    this.gen.println("\t\tfor (int i = " + r.from + "; i <= " + r.to + "; ++i) start.set(i, " + targetState + ");");
+                    fs.writeSync(this.gen,"\t\tfor (int i = " + r.from + "; i <= " + r.to + "; ++i) start.set(i, " + targetState + ");\n");
                 }
             }
         }
-        this.gen.println("\t\tstart.set(Buffer.EOF, -1);");
+        fs.writeSync(this.gen,"\t\tstart.set(Buffer.EOF, -1);\n");
     }
 
     public WriteScanner() {
@@ -1063,28 +1080,30 @@ export class DFA {
 
         /* add package name, if it exists */
         if (this.tab.nsName != null && this.tab.nsName.length > 0) {
-            this.gen.print("package ");
-            this.gen.print(this.tab.nsName);
-            this.gen.println(";");
+            fs.writeSync(this.gen,"package ");
+            fs.writeSync(this.gen,this.tab.nsName);
+            fs.writeSync(this.gen,";\n");
         }
         g.CopyFramePart("-->declarations");
-        this.gen.println("\tstatic final int maxT = " + (this.tab.terminals.length - 1) + ";");
-        this.gen.println("\tstatic final int noSym = " + this.tab.noSym.n + ";");
+        fs.writeSync(this.gen,"\tstatic final int maxT = " + (this.tab.terminals.length - 1) + ";\n");
+        fs.writeSync(this.gen,"\tstatic final int noSym = " + this.tab.noSym.n + ";\n");
         if (this.ignoreCase)
-            this.gen.print("\tchar valCh;       // current input character (for token.val)");
+            fs.writeSync(this.gen,"\tchar valCh;       // current input character (for token.val)");
         g.CopyFramePart("-->initialization");
         this.WriteStartTab();
         this.GenLiterals();
         g.CopyFramePart("-->casing");
         if (this.ignoreCase) {
-            this.gen.println("\t\tif (ch != Buffer.EOF) {");
-            this.gen.println("\t\t\tvalCh = (char) ch;");
-            this.gen.println("\t\t\tch = Character.toLowerCase(ch);");
-            this.gen.println("\t\t}");
+            fs.writeSync(this.gen,"\t\tif (ch != Buffer.EOF) {\n");
+            fs.writeSync(this.gen,"\t\t\tvalCh = (char) ch;\n");
+            fs.writeSync(this.gen,"\t\t\tch = Character.toLowerCase(ch);\n");
+            fs.writeSync(this.gen,"\t\t}");
         }
         g.CopyFramePart("-->casing2");
-        if (this.ignoreCase) this.gen.println("\t\t\ttval[tlen++] = valCh; ");
-        else this.gen.println("\t\t\ttval[tlen++] = (char)ch; ");
+        if (this.ignoreCase)
+            fs.writeSync(this.gen,"\t\t\ttval[tlen++] = valCh; \n");
+        else
+        fs.writeSync(this.gen,"\t\t\ttval[tlen++] = (char)ch; \n");
         g.CopyFramePart("-->comments");
         let com = this.firstComment;
         let comIdx = 0;
@@ -1095,38 +1114,38 @@ export class DFA {
         }
         g.CopyFramePart("-->casing3");
         if (this.ignoreCase) {
-            this.gen.println("\t\tval = val.toLowerCase();");
+            fs.writeSync(this.gen,"\t\tval = val.toLowerCase();\n");
         }
         g.CopyFramePart("-->scan1");
-        this.gen.print("\t\t\t");
+        fs.writeSync(this.gen,"\t\t\t");
         if (this.tab.ignored.Elements() > 0) {
             this.PutRange(this.tab.ignored);
         } else {
-            this.gen.print("false");
+            fs.writeSync(this.gen,"false");
         }
         g.CopyFramePart("-->scan2");
         if (this.firstComment != null) {
-            this.gen.print("\t\tif (");
+            fs.writeSync(this.gen,"\t\tif (");
             com = this.firstComment;
             comIdx = 0;
             while (com != null) {
-                this.gen.print(this.ChCond(com.start.charAt(0)));
-                this.gen.print(" && Comment" + comIdx + "()");
-                if (com.next != null) this.gen.print(" ||");
+                fs.writeSync(this.gen,this.ChCond(com.start.charAt(0)));
+                fs.writeSync(this.gen," && Comment" + comIdx + "()");
+                if (com.next != null) fs.writeSync(this.gen," ||");
                 com = com.next;
                 comIdx++;
             }
-            this.gen.print(") return NextToken();");
+            fs.writeSync(this.gen,") return NextToken();");
         }
         if (this.hasCtxMoves) {
-            this.gen.println();
-            this.gen.print("\t\tint apx = 0;");
+            fs.writeSync(this.gen,"\n");
+            fs.writeSync(this.gen,"\t\tint apx = 0;");
         } /* pdt */
         g.CopyFramePart("-->scan3");
         for (let state = this.firstState.next; state != null; state = state.next)
             this.WriteState(state);
         g.CopyFramePart(null);
-        this.gen.close();
+        fs.close(this.gen)
     }
 
     constructor(parser: Parser) {
