@@ -1,19 +1,22 @@
+import * as fs from "fs";
+import * as path from "path";
+
 export class Trace {
-    file: File;              /* pdt */
-    w: PrintWriter;
+    file: string;              /* pdt */
+    w: number;
 
     private CheckOpen() {
         if (this.w == null) {
             try {
-                this.w = new PrintWriter(new BufferedWriter(new FileWriter(this.file, false))); /* pdt */
+                this.w = fs.openSync(this.file) /* pdt */
             } catch (e) {
-                throw new Error("Could not open " + this.file.getPath());
+                throw new Error("Could not open " + this.file);
             }
         }
     }
 
     constructor(dir: string) {
-        this.file = new File(dir, "trace.txt"); /* pdt */
+        this.file = path.join(dir, "trace.txt"); /* pdt */
     }
 
 // returns a string with a minimum length of |w| characters
@@ -37,24 +40,25 @@ export class Trace {
             s = this.formatString(s, w)
         }
         this.CheckOpen();
-        this.w.print(s);
+        fs.writeSync(this.w, s);
     }
 
     public WriteLine(s?: string, w?: number) {
         this.CheckOpen();
         if (s == undefined) {
-            this.w.println();
+            fs.writeSync(this.w,"\n");
         } else {
             if (w != undefined)
                 s = this.formatString(s, w)
-            this.w.println(s);
+            fs.writeSync(this.w,s+"\n");
         }
     }
 
     public Close() { /* pdt */
         if (this.w != null) {
-            this.w.close();
-            console.log("trace output is in " + this.file.getPath());
+            // this.w.close();
+            fs.close(this.w)
+            console.log("trace output is in " + this.file);
         }
     }
 

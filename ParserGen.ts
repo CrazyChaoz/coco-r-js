@@ -33,6 +33,7 @@ import {Generator} from "./DFA";
 import {Errors, Parser} from "./Parser";
 import {Trace} from "./Trace";
 import {Buffer} from "./Scanner";
+import * as fs from "fs";
 
 export class ParserGen {
 
@@ -50,8 +51,8 @@ export class ParserGen {
 
     errorNr: number;       // highest parser error number
     curSy: Symbol;      // symbol whose production is currently generated
-    private fram: Reader;  // parser frame input     /* pdt */
-    protected gen: PrintWriter; // generated parser file  /* pdt */
+    private fram: number;  // parser frame input     /* pdt */
+    protected gen: number; // generated parser file  /* pdt */
     err: string;  // generated parser error messages
     srcName: string;    // name of attributed grammar file
     srcDir: string;     // directory of attributed grammar file
@@ -65,7 +66,7 @@ export class ParserGen {
     // --------------------------------------------------------------------------
 
     Indent(n: number) {
-        for (let i = 1; i <= n; i++) this.gen.print('\t');
+        for (let i = 1; i <= n; i++) fs.writeSync(this.gen,'\t');
     }
 
     Overlaps(s1: BitSet, s2: BitSet): boolean {
@@ -108,7 +109,7 @@ export class ParserGen {
             this.Indent(indent);
             done: while (this.buffer.getPos() <= pos.end) {
                 while (ch == ParserGen.CR || ch == ParserGen.LF) {  // eol is either CR or CRLF or LF
-                    this.gen.println();
+                    fs.writeSync(this.gen,"\n");
                     this.Indent(indent);
                     if (ch == ParserGen.CR) {
                         ch = this.buffer.Read();
@@ -122,10 +123,11 @@ export class ParserGen {
                     }
                     if (this.buffer.getPos() > pos.end) break done;
                 }
-                this.gen.print((ch));
+                fs.writeSync(this.gen,(ch));
                 ch = this.buffer.Read();
             }
-            if (indent > 0) this.gen.println();
+            if (indent > 0)
+                    fs.writeSync(this.gen,"\n");
         }
     }
 
@@ -158,25 +160,25 @@ export class ParserGen {
         if (p.typ == Node_.rslv) this.CopySourcePart(p.pos, 0);
         else {
             let n = Sets.Elements(s);
-            if (n == 0) this.gen.print("false"); // happens if an ANY set matches no symbol
+            if (n == 0) fs.writeSync(this.gen,"false"); // happens if an ANY set matches no symbol
             else if (n <= ParserGen.maxTerm) {
                 for (let i = 0; i < this.tab.terminals.length; i++) {
                     let sym = this.tab.terminals[i];
                     if (s.get(sym.n)) {
-                        this.gen.print("la.kind == " + sym.n);
+                        fs.writeSync(this.gen,"la.kind == " + sym.n);
                         --n;
-                        if (n > 0) this.gen.print(" || ");
+                        if (n > 0) fs.writeSync(this.gen," || ");
                     }
                 }
             } else
-                this.gen.print("StartOf(" + this.NewCondSet(s) + ")");
+                fs.writeSync(this.gen,"StartOf(" + this.NewCondSet(s) + ")");
         }
     }
 
     PutCaseLabels(s: BitSet) {
         for (let i = 0; i < this.tab.terminals.length; i++) {
             let sym = this.tab.terminals[i];
-            if (s.get(sym.n)) this.gen.print("case " + sym.n + ": ");
+            if (s.get(sym.n)) fs.writeSync(this.gen,"case " + sym.n + ": ");
         }
     }
 
@@ -187,8 +189,8 @@ export class ParserGen {
             switch (p.typ) {
                 case Node_.nt: {
                     this.Indent(indent);
-                    if (p.retVar != null) this.gen.print(p.retVar + " = ");
-                    this.gen.print(p.sym.name + "(");
+                    if (p.retVar != null) fs.writeSync(this.gen,p.retVar + " = ");
+                    fs.writeSync(this.gen,p.sym.name + "(");
                     this.CopySourcePart(p.pos, 0);
                     this.gen.println(");");
                     break;
@@ -216,7 +218,7 @@ export class ParserGen {
                     } else {
                         this.GenErrorMsg(ParserGen.altErr, this.curSy);
                         if (acc > 0) {
-                            this.gen.print("if (");
+                            fs.writeSync(this.gen,"if (");
                             this.GenCond(p.set, p);
                             this.gen.println(") Get(); else SynErr(" + this.errorNr + ");");
                         } else this.gen.println("SynErr(" + this.errorNr + "); // ANY node that matches no symbol");
@@ -235,10 +237,10 @@ export class ParserGen {
                     this.Indent(indent);
                     this.GenErrorMsg(ParserGen.syncErr, this.curSy);
                     s1 = p.set.clone();
-                    this.gen.print("while (!(");
+                    fs.writeSync(this.gen,"while (!(");
                     this.GenCond(s1, p);
-                    this.gen.print(")) {");
-                    this.gen.print("SynErr(" + this.errorNr + "); Get();");
+                    fs.writeSync(this.gen,")) {");
+                    fs.writeSync(this.gen,"SynErr(" + this.errorNr + "); Get();");
                     this.gen.println("}");
                     break;
                 }
@@ -258,13 +260,13 @@ export class ParserGen {
                             this.PutCaseLabels(s1);
                             this.gen.println("{");
                         } else if (p2 == p) {
-                            this.gen.print("if (");
+                            fs.writeSync(this.gen,"if (");
                             this.GenCond(s1, p2.sub);
                             this.gen.println(") {");
                         } else if (p2.down == null && equal) {
                             this.gen.println("} else {");
                         } else {
-                            this.gen.print("} else if (");
+                            fs.writeSync(this.gen,"} else if (");
                             this.GenCond(s1, p2.sub);
                             this.gen.println(") {");
                         }
@@ -287,7 +289,7 @@ export class ParserGen {
                             this.Indent(indent);
                             this.gen.println("}");
                         } else {
-                            this.gen.print("} ");
+                            fs.writeSync(this.gen,"} ");
                             this.gen.println("else SynErr(" + this.errorNr + ");");
                         }
                     }
@@ -296,11 +298,11 @@ export class ParserGen {
                 case Node_.iter: {
                     this.Indent(indent);
                     p2 = p.sub;
-                    this.gen.print("while (");
+                    fs.writeSync(this.gen,"while (");
                     if (p2.typ == Node_.wt) {
                         s1 = this.tab.Expected(p2.next, this.curSy);
                         s2 = this.tab.Expected(p.next, this.curSy);
-                        this.gen.print("WeakSeparator(" + p2.sym.n + "," + this.NewCondSet(s1) + ","
+                        fs.writeSync(this.gen,"WeakSeparator(" + p2.sym.n + "," + this.NewCondSet(s1) + ","
                             + this.NewCondSet(s2) + ") ");
                         s1 = new BitSet(this.tab.terminals.length);  // for inner structure
                         if (p2.up || p2.next == null) p2 = null; else p2 = p2.next;
@@ -317,7 +319,7 @@ export class ParserGen {
                 case Node_.opt:
                     s1 = this.tab.First(p.sub);
                     this.Indent(indent);
-                    this.gen.print("if (");
+                    fs.writeSync(this.gen,"if (");
                     this.GenCond(s1, p.sub);
                     this.gen.println(") {");
                     this.GenCode(p.sub, indent + 1, s1);
@@ -354,10 +356,11 @@ export class ParserGen {
         //foreach (Symbol sym in Symbol.pragmas) {
         for (let i = 0; i < this.tab.pragmas.length; i++) {
             let sym = this.tab.pragmas[i];
-            this.gen.println();
+
+                    fs.writeSync(this.gen,"\n");
             this.gen.println("\t\t\tif (la.kind == " + sym.n + ") {");
             this.CopySourcePart(sym.semPos, 4);
-            this.gen.print("\t\t\t}");
+            fs.writeSync(this.gen,"\t\t\t}");
         }
     }
 
@@ -365,9 +368,9 @@ export class ParserGen {
         for (let i = 0; i < this.tab.nonterminals.length; i++) {
             let sym = this.tab.nonterminals[i];
             this.curSy = sym;
-            this.gen.print("\t");
-            if (sym.retType == null) this.gen.print("void "); else this.gen.print(sym.retType + " ");
-            this.gen.print(sym.name + "(");
+            fs.writeSync(this.gen,"\t");
+            if (sym.retType == null) fs.writeSync(this.gen,"void "); else fs.writeSync(this.gen,sym.retType + " ");
+            fs.writeSync(this.gen,sym.name + "(");
             this.CopySourcePart(sym.attrPos, 0);
             this.gen.println(") {");
             if (sym.retVar != null) this.gen.println("\t\t" + sym.retType + " " + sym.retVar + ";");
@@ -375,21 +378,22 @@ export class ParserGen {
             this.GenCode(sym.graph, 2, new BitSet(this.tab.terminals.length));
             if (sym.retVar != null) this.gen.println("\t\treturn " + sym.retVar + ";");
             this.gen.println("\t}");
-            this.gen.println();
+
+                    fs.writeSync(this.gen,"\n");
         }
     }
 
     InitSets() {
         for (let i = 0; i < this.symSet.length; i++) {
             let s = this.symSet[i];
-            this.gen.print("\t\t{");
+            fs.writeSync(this.gen,"\t\t{");
             let j = 0;
             //foreach (Symbol sym in Symbol.terminals) {
             for (let k = 0; k < this.tab.terminals.length; k++) {
                 let sym = this.tab.terminals[k];
-                if (s.get(sym.n)) this.gen.print("_T,"); else this.gen.print("_x,");
+                if (s.get(sym.n)) fs.writeSync(this.gen,"_T,"); else fs.writeSync(this.gen,"_x,");
                 ++j;
-                if (j % 4 == 0) this.gen.print(" ");
+                if (j % 4 == 0) fs.writeSync(this.gen," ");
             }
             if (i == this.symSet.length - 1) this.gen.println("_x}"); else this.gen.println("_x},");
         }
@@ -414,13 +418,15 @@ export class ParserGen {
         g.SkipFramePart("-->begin");
 
         if (this.tab.nsName != null && this.tab.nsName.length > 0) {
-            this.gen.print("package ");
-            this.gen.print(this.tab.nsName);
-            this.gen.print(";");
+            fs.writeSync(this.gen,"package ");
+            fs.writeSync(this.gen,this.tab.nsName);
+            fs.writeSync(this.gen,";");
         }
         if (this.usingPos != null) {
-            this.gen.println();
-            this.gen.println();
+
+                    fs.writeSync(this.gen,"\n");
+
+                    fs.writeSync(this.gen,"\n");
             this.CopySourcePart(this.usingPos, 0);
         }
         g.CopyFramePart("-->constants");
@@ -439,9 +445,10 @@ export class ParserGen {
         g.CopyFramePart("-->initialization");
         this.InitSets();
         g.CopyFramePart("-->errors");
-        this.gen.print(this.err.toString());
+        fs.writeSync(this.gen,this.err.toString());
         g.CopyFramePart(null);
-        this.gen.close();
+        // this.gen.close();
+        fs.close(this.gen)
         this.buffer.setPos(oldPos);
     }
 
