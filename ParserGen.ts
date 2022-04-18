@@ -52,7 +52,7 @@ export class ParserGen {
     curSy: Symbol;      // symbol whose production is currently generated
     private fram: Reader;  // parser frame input     /* pdt */
     protected gen: PrintWriter; // generated parser file  /* pdt */
-    err: StringWriter;  // generated parser error messages
+    err: string;  // generated parser error messages
     srcName: string;    // name of attributed grammar file
     srcDir: string;     // directory of attributed grammar file
     symSet = [];
@@ -131,20 +131,20 @@ export class ParserGen {
 
     GenErrorMsg(errTyp: number, sym: Symbol) {
         this.errorNr++;
-        this.err.write(ParserGen.ls + "\t\t\tcase " + this.errorNr + ": s = \"");
+        this.err += ParserGen.ls + "\t\t\tcase " + this.errorNr + ": s = \"";
         switch (errTyp) {
             case ParserGen.tErr:
-                if (sym.name.charAt(0) == '"') this.err.write(this.tab.Escape(sym.name) + " expected");
-                else this.err.write(sym.name + " expected");
+                if (sym.name.charAt(0) == '"') this.err += this.tab.Escape(sym.name) + " expected";
+                else this.err += sym.name + " expected";
                 break;
             case ParserGen.altErr:
-                this.err.write("invalid " + sym.name);
+                this.err += "invalid " + sym.name;
                 break;
             case ParserGen.syncErr:
-                this.err.write("this symbol not expected in " + sym.name);
+                this.err += "this symbol not expected in " + sym.name;
                 break;
         }
-        this.err.write("\"; break;");
+        this.err += "\"; break;";
     }
 
     NewCondSet(s: BitSet): number {

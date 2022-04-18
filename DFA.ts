@@ -1,7 +1,8 @@
-import {BitSet, Errors, Node_, Parser, Sets, Symbol, Tab} from "./Tab";
+import {BitSet, Node_, Sets, Symbol, Tab} from "./Tab";
 import {Trace} from "./Trace";
 import * as fs from "fs";
 import * as path from "path";
+import {Errors, Parser} from "./Parser";
 
 
 //-----------------------------------------------------------------------------
