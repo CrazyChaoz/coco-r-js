@@ -48,6 +48,7 @@ import {Trace} from "./Trace";
 import {ParserGen} from "./ParserGen";
 import {Parser} from "./Parser";
 import {Scanner} from "./Scanner";
+import * as path from "path";
 
 
 function main() {
@@ -55,15 +56,16 @@ function main() {
     let srcName = null, nsName = null, frameDir = null, ddtString = null, outDir = null;
     let retVal = 1;
     for (let i = 0; i < process.argv.length; i++) {
-        if (process.argv[i].equals("-package") && i < process.argv.length - 1) nsName = process.argv[++i].trim();
-        else if (process.argv[i].equals("-frames") && i < process.argv.length - 1) frameDir = process.argv[++i].trim();
-        else if (process.argv[i].equals("-trace") && i < process.argv.length - 1) ddtString = process.argv[++i].trim();
-        else if (process.argv[i].equals("-o") && i < process.argv.length - 1) outDir = process.argv[++i].trim();
+        if (process.argv[i] == "-package" && i < process.argv.length - 1) nsName = process.argv[++i].trim();
+        else if (process.argv[i] == "-frames" && i < process.argv.length - 1) frameDir = process.argv[++i].trim();
+        else if (process.argv[i] == "-trace" && i < process.argv.length - 1) ddtString = process.argv[++i].trim();
+        else if (process.argv[i] == "-o" && i < process.argv.length - 1) outDir = process.argv[++i].trim();
         else srcName = process.argv[i];
     }
     if (process.argv.length > 0 && srcName != null) {
         try {
-            let srcDir = new File(srcName).getParent();
+            //new File(srcName).getParent();
+            let srcDir = path.basename(path.dirname(srcName));
 
             let scanner = new Scanner(srcName);
             let parser = new Parser(scanner);

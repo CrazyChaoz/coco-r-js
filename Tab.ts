@@ -1,6 +1,7 @@
 import {CharSet, State} from "./DFA";
 import {Trace} from "./Trace";
 import {Errors, Parser} from "./Parser";
+import BitSet from "bitset";
 
 
 export class Position {
@@ -138,7 +139,7 @@ export class Sets {
     public static Subtract(a: BitSet, b: BitSet) { // a = a - b
         let c = b.clone();
         //a.and(c.not());
-        c.flip(0, c.size());	// c.not
+        c.flip();	// c.not
         a.and(c);
     }
 }

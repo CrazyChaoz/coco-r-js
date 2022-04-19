@@ -35,6 +35,7 @@ import {Trace} from "./Trace";
 import {Buffer} from "./Scanner";
 import * as fs from "fs";
 import * as path from "path";
+import BitSet from "bitset";
 
 export class ParserGen {
 
@@ -71,7 +72,8 @@ export class ParserGen {
     }
 
     Overlaps(s1: BitSet, s2: BitSet): boolean {
-        let len = s1.length;
+        //todo: not convert to an array first
+        let len = s1.toArray().length;
         for (let i = 0; i < len; ++i) {
             if (s1.get(i) && s2.get(i)) {
                 return true;
@@ -329,7 +331,7 @@ export class ParserGen {
                     break;
             }
             if (p.typ != Node_.eps && p.typ != Node_.sem && p.typ != Node_.sync)
-                isChecked.set(0, isChecked.size(), false);  // = new BitArray(Symbol.terminals.Count);
+                isChecked.set(0, isChecked.toArray().length);  // = new BitArray(Symbol.terminals.Count);
             if (p.up) break;
             p = p.next;
         }

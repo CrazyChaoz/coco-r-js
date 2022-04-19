@@ -8,7 +8,7 @@ export class Trace {
     private CheckOpen() {
         if (this.w == null) {
             try {
-                this.w = fs.openSync(this.file) /* pdt */
+                this.w = fs.openSync(this.file,"w") /* pdt */
             } catch (e) {
                 throw new Error("Could not open " + this.file);
             }
