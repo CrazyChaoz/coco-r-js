@@ -59,7 +59,7 @@ export class Buffer {
     private fileLen: number;  // length of input stream (may change if stream is no file)
     private bufPos: number;      // current position in buffer
     private file: number; // input stream (seekable)
-    //private stream: InputStream; // growing input stream (e.g.: console, network)
+    private stream = null; // growing input stream (e.g.: console, network)
 
     //constructor(s: InputStream);
     constructor(fileName: string);
@@ -88,14 +88,14 @@ export class Buffer {
             }
             // don't use b after this call anymore
             // called in UTF8Buffer constructor
-        } else if (typeof a == Buffer) {
+        } else { //a is a Buffer
             this.buf = a.buf;
             this.bufStart = a.bufStart;
             this.bufLen = a.bufLen;
             this.fileLen = a.fileLen;
             this.bufPos = a.bufPos;
             this.file = a.file;
-            //this.stream = a.stream;
+            this.stream = a.stream;
             // keep finalize from closing the file
             a.file = null;
         }
@@ -124,7 +124,7 @@ export class Buffer {
         } else if (this.getPos() < this.fileLen) {
             this.setPos(this.getPos());         // shift buffer start to pos
             return (this.buf)[this.bufPos++] & 0xff; // mask out sign bits
-        } else if (this.ReadNextStreamChunk() > 0) {
+        } else if (this.stream != null && this.ReadNextStreamChunk() > 0) {
             return (this.buf)[this.bufPos++] & 0xff;  // mask out sign bits
         } else {
             return Buffer.EOF;
@@ -156,7 +156,7 @@ export class Buffer {
     }
 
     public setPos(value: number) {
-        if (value >= this.fileLen) {
+        if (value >= this.fileLen && this.stream != null) {
             // Wanted position is after buffer and the stream
             // is not seek-able e.g. network or console,
             // thus we have to read the stream manually till
@@ -174,7 +174,7 @@ export class Buffer {
             try {
                 // this.file.seek(value);
                 // this.bufLen = this.file.read(this.buf);
-                fs.readSync(this.file,this.buf,0,this.bufLen,value)
+                fs.readSync(this.file, this.buf, 0, this.bufLen, value)
                 this.bufStart = value;
                 this.bufPos = 0;
             } catch (e) {

@@ -3,63 +3,6 @@ import {Trace} from "./Trace";
 import {Errors, Parser} from "./Parser";
 
 
-//TODO:
-export class BitSet {
-    constructor(length: number) {
-
-    }
-
-
-    cardinality() {
-        return 0;
-    }
-
-    equals(b: BitSet) {
-        return false;
-    }
-
-    intersects(b: BitSet) {
-        return false;
-    }
-
-    clone(): BitSet {
-        return null
-    }
-
-    flip(number: number, size: number) {
-
-    }
-
-    size() {
-        return 0;
-    }
-
-    and(c: BitSet) {
-
-    }
-
-    get(n: number) {
-        return false;
-    }
-
-    set(n: number, b?: number)
-    set(n: number, b?: boolean)
-    set(n:number, a: any, b: any)
-    set(n:number, a?: any, b?: any) {
-        return false;
-    }
-
-    or(first0: any) {
-
-    }
-
-    clear(n) {
-
-    }
-}
-
-
-
 export class Position {
     public readonly beg: number;
     public readonly end: number;

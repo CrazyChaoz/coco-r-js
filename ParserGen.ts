@@ -28,12 +28,13 @@ Coco/R itself) does not fall under the GNU General Public License.
 ------------------------------------------------------------------------*/
 
 
-import {BitSet, Node_, Position, Sets, Symbol, Tab} from "./Tab";
+import {Node_, Position, Sets, Symbol, Tab} from "./Tab";
 import {Generator} from "./DFA";
 import {Errors, Parser} from "./Parser";
 import {Trace} from "./Trace";
 import {Buffer} from "./Scanner";
 import * as fs from "fs";
+import * as path from "path";
 
 export class ParserGen {
 
@@ -41,7 +42,7 @@ export class ParserGen {
     static CR = '\r';
     static LF = '\n';
     static EOF = -1;
-    static ls = System.getProperty("line.separator");
+    static ls = path.sep;
 
     static tErr = 0;      // error codes
     static altErr = 1;
@@ -192,21 +193,21 @@ export class ParserGen {
                     if (p.retVar != null) fs.writeSync(this.gen,p.retVar + " = ");
                     fs.writeSync(this.gen,p.sym.name + "(");
                     this.CopySourcePart(p.pos, 0);
-                    this.gen.println(");");
+                    fs.writeSync(this.gen,");\n");
                     break;
                 }
                 case Node_.t: {
                     this.Indent(indent);
                     // assert: if isChecked[p.sym.n] is true, then isChecked contains only p.sym.n
-                    if (isChecked.get(p.sym.n)) this.gen.println("Get();");
-                    else this.gen.println("Expect(" + p.sym.n + ");");
+                    if (isChecked.get(p.sym.n)) fs.writeSync(this.gen,"Get();\n");
+                    else fs.writeSync(this.gen,"Expect(" + p.sym.n + ");\n");
                     break;
                 }
                 case Node_.wt: {
                     this.Indent(indent);
                     s1 = this.tab.Expected(p.next, this.curSy);
                     s1.or(this.tab.allSyncSets);
-                    this.gen.println("ExpectWeak(" + p.sym.n + ", " + this.NewCondSet(s1) + ");");
+                    fs.writeSync(this.gen,"ExpectWeak(" + p.sym.n + ", " + this.NewCondSet(s1) + ");\n");
                     break;
                 }
                 case Node_.any: {
@@ -214,14 +215,14 @@ export class ParserGen {
                     let acc = Sets.Elements(p.set);
                     if (this.tab.terminals.length == (acc + 1) || (acc > 0 && Sets.Equals(p.set, isChecked))) {
                         // either this ANY accepts any terminal (the + 1 = end of file), or exactly what's allowed here
-                        this.gen.println("Get();");
+                        fs.writeSync(this.gen,"Get();\n");
                     } else {
                         this.GenErrorMsg(ParserGen.altErr, this.curSy);
                         if (acc > 0) {
                             fs.writeSync(this.gen,"if (");
                             this.GenCond(p.set, p);
-                            this.gen.println(") Get(); else SynErr(" + this.errorNr + ");");
-                        } else this.gen.println("SynErr(" + this.errorNr + "); // ANY node that matches no symbol");
+                            fs.writeSync(this.gen,") Get(); else SynErr(" + this.errorNr + ");\n");
+                        } else fs.writeSync(this.gen,"SynErr(" + this.errorNr + "); // ANY node that matches no symbol\n");
                     }
                     break;
                 }
@@ -241,7 +242,7 @@ export class ParserGen {
                     this.GenCond(s1, p);
                     fs.writeSync(this.gen,")) {");
                     fs.writeSync(this.gen,"SynErr(" + this.errorNr + "); Get();");
-                    this.gen.println("}");
+                    fs.writeSync(this.gen,"}\n");
                     break;
                 }
                 case Node_.alt: {
@@ -250,7 +251,7 @@ export class ParserGen {
                     let useSwitch = this.UseSwitch(p);
                     if (useSwitch) {
                         this.Indent(indent);
-                        this.gen.println("switch (la.kind) {");
+                        fs.writeSync(this.gen,"switch (la.kind) {\n");
                     }
                     p2 = p;
                     while (p2 != null) {
@@ -258,39 +259,39 @@ export class ParserGen {
                         this.Indent(indent);
                         if (useSwitch) {
                             this.PutCaseLabels(s1);
-                            this.gen.println("{");
+                            fs.writeSync(this.gen,"{\n");
                         } else if (p2 == p) {
                             fs.writeSync(this.gen,"if (");
                             this.GenCond(s1, p2.sub);
-                            this.gen.println(") {");
+                            fs.writeSync(this.gen,") {\n");
                         } else if (p2.down == null && equal) {
-                            this.gen.println("} else {");
+                            fs.writeSync(this.gen,"} else {\n");
                         } else {
                             fs.writeSync(this.gen,"} else if (");
                             this.GenCond(s1, p2.sub);
-                            this.gen.println(") {");
+                            fs.writeSync(this.gen,") {\n");
                         }
                         this.GenCode(p2.sub, indent + 1, s1);
                         if (useSwitch) {
                             this.Indent(indent);
-                            this.gen.println("\tbreak;");
+                            fs.writeSync(this.gen,"\tbreak;\n");
                             this.Indent(indent);
-                            this.gen.println("}");
+                            fs.writeSync(this.gen,"}\n");
                         }
                         p2 = p2.down;
                     }
                     this.Indent(indent);
                     if (equal) {
-                        this.gen.println("}");
+                        fs.writeSync(this.gen,"}\n");
                     } else {
                         this.GenErrorMsg(ParserGen.altErr, this.curSy);
                         if (useSwitch) {
-                            this.gen.println("default: SynErr(" + this.errorNr + "); break;");
+                            fs.writeSync(this.gen,"default: SynErr(" + this.errorNr + "); break;\n");
                             this.Indent(indent);
-                            this.gen.println("}");
+                            fs.writeSync(this.gen,"}\n");
                         } else {
                             fs.writeSync(this.gen,"} ");
-                            this.gen.println("else SynErr(" + this.errorNr + ");");
+                            fs.writeSync(this.gen,"else SynErr(" + this.errorNr + ");\n");
                         }
                     }
                     break;
@@ -310,10 +311,10 @@ export class ParserGen {
                         s1 = this.tab.First(p2);
                         this.GenCond(s1, p2);
                     }
-                    this.gen.println(") {");
+                    fs.writeSync(this.gen,") {\n");
                     this.GenCode(p2, indent + 1, s1);
                     this.Indent(indent);
-                    this.gen.println("}");
+                    fs.writeSync(this.gen,"}\n");
                     break;
                 }
                 case Node_.opt:
@@ -321,10 +322,10 @@ export class ParserGen {
                     this.Indent(indent);
                     fs.writeSync(this.gen,"if (");
                     this.GenCond(s1, p.sub);
-                    this.gen.println(") {");
+                    fs.writeSync(this.gen,") {\n");
                     this.GenCode(p.sub, indent + 1, s1);
                     this.Indent(indent);
-                    this.gen.println("}");
+                    fs.writeSync(this.gen,"}\n");
                     break;
             }
             if (p.typ != Node_.eps && p.typ != Node_.sem && p.typ != Node_.sync)
@@ -341,14 +342,14 @@ export class ParserGen {
             //in latin and other capitalizeable scripts the first part hits, in the non-ascii scripts the second part hits
             if (sym.name.charAt(0).toUpperCase() != sym.name.charAt(0).toLowerCase() || sym.name.charAt(0).codePointAt(0) > 127)
                 // if (Character.isLetter(sym.name.charAt(0)))
-                this.gen.println("\tpublic static final int _" + sym.name + " = " + sym.n + ";");
+                fs.writeSync(this.gen,"\tpublic static final int _" + sym.name + " = " + sym.n + ";\n");
         }
     }
 
     GenPragmas() {
         for (let i = 0; i < this.tab.pragmas.length; i++) {
             let sym = this.tab.pragmas[i];
-            this.gen.println("\tpublic static final int _" + sym.name + " = " + sym.n + ";");
+            fs.writeSync(this.gen,"\tpublic static final int _" + sym.name + " = " + sym.n + ";\n");
         }
     }
 
@@ -358,7 +359,7 @@ export class ParserGen {
             let sym = this.tab.pragmas[i];
 
                     fs.writeSync(this.gen,"\n");
-            this.gen.println("\t\t\tif (la.kind == " + sym.n + ") {");
+            fs.writeSync(this.gen,"\t\t\tif (la.kind == " + sym.n + ") {\n");
             this.CopySourcePart(sym.semPos, 4);
             fs.writeSync(this.gen,"\t\t\t}");
         }
@@ -372,12 +373,12 @@ export class ParserGen {
             if (sym.retType == null) fs.writeSync(this.gen,"void "); else fs.writeSync(this.gen,sym.retType + " ");
             fs.writeSync(this.gen,sym.name + "(");
             this.CopySourcePart(sym.attrPos, 0);
-            this.gen.println(") {");
-            if (sym.retVar != null) this.gen.println("\t\t" + sym.retType + " " + sym.retVar + ";");
+            fs.writeSync(this.gen,") {\n");
+            if (sym.retVar != null) fs.writeSync(this.gen,"\t\t" + sym.retType + " " + sym.retVar + ";\n");
             this.CopySourcePart(sym.semPos, 2);
             this.GenCode(sym.graph, 2, new BitSet(this.tab.terminals.length));
-            if (sym.retVar != null) this.gen.println("\t\treturn " + sym.retVar + ";");
-            this.gen.println("\t}");
+            if (sym.retVar != null) fs.writeSync(this.gen,"\t\treturn " + sym.retVar + ";\n");
+            fs.writeSync(this.gen,"\t}\n");
 
                     fs.writeSync(this.gen,"\n");
         }
@@ -391,11 +392,18 @@ export class ParserGen {
             //foreach (Symbol sym in Symbol.terminals) {
             for (let k = 0; k < this.tab.terminals.length; k++) {
                 let sym = this.tab.terminals[k];
-                if (s.get(sym.n)) fs.writeSync(this.gen,"_T,"); else fs.writeSync(this.gen,"_x,");
+                if (s.get(sym.n))
+                    fs.writeSync(this.gen,"_T,");
+                else
+                    fs.writeSync(this.gen,"_x,");
                 ++j;
-                if (j % 4 == 0) fs.writeSync(this.gen," ");
+                if (j % 4 == 0)
+                    fs.writeSync(this.gen," ");
             }
-            if (i == this.symSet.length - 1) this.gen.println("_x}"); else this.gen.println("_x},");
+            if (i == this.symSet.length - 1)
+                fs.writeSync(this.gen,"_x}\n");
+            else
+                fs.writeSync(this.gen,"_x},\n");
         }
     }
 
@@ -431,7 +439,7 @@ export class ParserGen {
         }
         g.CopyFramePart("-->constants");
         this.GenTokens();
-        this.gen.println("\tpublic static final int maxT = " + (this.tab.terminals.length - 1) + ";");
+        fs.writeSync(this.gen,"\tpublic static final int maxT = " + (this.tab.terminals.length - 1) + ";\n");
         this.GenPragmas();
         g.CopyFramePart("-->declarations");
         this.CopySourcePart(this.tab.semDeclPos, 0);
@@ -440,8 +448,8 @@ export class ParserGen {
         g.CopyFramePart("-->productions");
         this.GenProductions();
         g.CopyFramePart("-->parseRoot");
-        this.gen.println("\t\t" + this.tab.gramSy.name + "();");
-        if (this.tab.checkEOF) this.gen.println("\t\tExpect(0);");
+        fs.writeSync(this.gen,"\t\t" + this.tab.gramSy.name + "();\n");
+        if (this.tab.checkEOF) fs.writeSync(this.gen,"\t\tExpect(0);\n");
         g.CopyFramePart("-->initialization");
         this.InitSets();
         g.CopyFramePart("-->errors");
