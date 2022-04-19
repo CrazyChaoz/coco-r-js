@@ -387,7 +387,10 @@ export class Generator {
 
     private framRead(): number {
         try {
-            return fs.readSync(this.fram);
+            //todo: look over this
+            let buffer = Buffer.alloc(1)
+            fs.readSync(this.fram, buffer);
+            return buffer.toString().charCodeAt(0);
         } catch (IOException) {
             throw new Error("Error reading frame file: " + this.frameFile);
         }

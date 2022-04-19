@@ -53,7 +53,7 @@ export class Buffer {
     public static EOF = 65535 + 1;
     private static MIN_BUFFER_LENGTH = 1024; // 1KB
     private static MAX_BUFFER_LENGTH = Buffer.MIN_BUFFER_LENGTH * 64; // 64KB
-    private buf: [];   // input buffer
+    private buf: Float32Array;   // input buffer
     private bufStart: number; // position of first byte in buffer relative to input stream
     private bufLen: number;   // length of buffer
     private fileLen: number;  // length of input stream (may change if stream is no file)

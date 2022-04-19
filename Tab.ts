@@ -133,7 +133,8 @@ export class Sets {
     }
 
     public static Intersect(a: BitSet, b: BitSet): boolean {// a * b != {}
-        return a.intersects(b);
+        //TODO: fixme
+        return a.and(b).isEmpty();
     }
 
     public static Subtract(a: BitSet, b: BitSet) { // a = a - b
