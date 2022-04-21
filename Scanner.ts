@@ -283,7 +283,7 @@ class Elem {
 export class StartStates {
 
 
-    private tab = new Elem[128];
+    private tab:Elem[] = [];
 
     public set(key: number, val: number) {
         let e = new Elem(key, val);

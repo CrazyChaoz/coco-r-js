@@ -51,69 +51,69 @@ import {Scanner} from "./Scanner";
 import * as path from "path";
 
 
-function main() {
-    console.log("Coco/R (Apr 15, 2013)");
-    let srcName = null, nsName = null, frameDir = null, ddtString = null, outDir = null;
-    let retVal = 1;
-    for (let i = 0; i < process.argv.length; i++) {
-        if (process.argv[i] == "-package" && i < process.argv.length - 1) nsName = process.argv[++i].trim();
-        else if (process.argv[i] == "-frames" && i < process.argv.length - 1) frameDir = process.argv[++i].trim();
-        else if (process.argv[i] == "-trace" && i < process.argv.length - 1) ddtString = process.argv[++i].trim();
-        else if (process.argv[i] == "-o" && i < process.argv.length - 1) outDir = process.argv[++i].trim();
-        else srcName = process.argv[i];
-    }
-    if (process.argv.length > 0 && srcName != null) {
-        try {
-            //new File(srcName).getParent();
-            let srcDir = path.basename(path.dirname(srcName));
-
-            let scanner = new Scanner(srcName);
-            let parser = new Parser(scanner);
-
-            parser.trace = new Trace(srcDir);
-            parser.tab = new Tab(parser);
-            parser.dfa = new DFA(parser);
-            parser.pgen = new ParserGen(parser);
-
-            parser.tab.srcName = srcName;
-            parser.tab.srcDir = srcDir;
-            parser.tab.nsName = nsName;
-            parser.tab.frameDir = frameDir;
-            parser.tab.outDir = (outDir != null) ? outDir : srcDir;
-            if (ddtString != null) parser.tab.SetDDT(ddtString);
-
-            parser.Parse();
-
-            parser.trace.Close();
-            console.log(parser.errors.count + " errors detected");
-            if (parser.errors.count == 0) {
-                retVal = 0;
-            }
-        } catch (e) {
-            console.log(e.getMessage());
-        }
-    } else {
-        console.log(
-            "Usage: Coco Grammar.ATG {Option}\n" +
-            "Options:\n" +
-            "  -package <packageName>\n" +
-            "  -frames  <frameFilesDirectory>\n" +
-            "  -trace   <traceString>\n" +
-            "  -o       <outputDirectory>\n" +
-            "Valid characters in the trace string:\n" +
-            "  A  trace automaton\n" +
-            "  F  list first/follow sets\n" +
-            "  G  print syntax graph\n" +
-            "  I  trace computation of first sets\n" +
-            "  J  list ANY and SYNC sets\n" +
-            "  P  print statistics\n" +
-            "  S  list symbol table\n" +
-            "  X  list cross reference table\n" +
-            "Scanner.frame and Parser.frame files needed in ATG directory\n" +
-            "or in a directory specified in the -frames option.\n"
-        );
-    }
-    process.exit(retVal);
+console.log("Coco/R (Apr 20, 2022)");
+let srcName = null, nsName = null, frameDir = null, ddtString = null, outDir = null;
+let retVal = 1;
+for (let i = 2; i < process.argv.length; i++) {
+    if (process.argv[i] == "-package" && i < process.argv.length - 1) nsName = process.argv[++i].trim();
+    else if (process.argv[i] == "-frames" && i < process.argv.length - 1) frameDir = process.argv[++i].trim();
+    else if (process.argv[i] == "-trace" && i < process.argv.length - 1) ddtString = process.argv[++i].trim();
+    else if (process.argv[i] == "-o" && i < process.argv.length - 1) outDir = process.argv[++i].trim();
+    else srcName = process.argv[i];
 }
+if (process.argv.length > 2 && srcName != null) {
+    try {
+        //new File(srcName).getParent();
+        let srcDir = path.basename(path.dirname(srcName));
+
+        let scanner = new Scanner(srcName);
+        let parser = new Parser(scanner);
+
+        parser.trace = new Trace(srcDir);
+        parser.tab = new Tab(parser);
+        parser.dfa = new DFA(parser);
+        parser.pgen = new ParserGen(parser);
+
+        parser.tab.srcName = srcName;
+        parser.tab.srcDir = srcDir;
+        parser.tab.nsName = nsName;
+        parser.tab.frameDir = frameDir;
+        parser.tab.outDir = (outDir != null) ? outDir : srcDir;
+        if (ddtString != null) parser.tab.SetDDT(ddtString);
+
+        parser.Parse();
+
+        parser.trace.Close();
+        console.log(parser.errors.count + " errors detected");
+        if (parser.errors.count == 0) {
+            retVal = 0;
+        }
+    } catch (e) {
+        console.log(e);
+    }
+} else {
+    console.log(
+        "Usage: Coco Grammar.ATG {Option}\n" +
+        "Options:\n" +
+        "  -package <packageName>\n" +
+        "  -frames  <frameFilesDirectory>\n" +
+        "  -trace   <traceString>\n" +
+        "  -o       <outputDirectory>\n" +
+        "Valid characters in the trace string:\n" +
+        "  A  trace automaton\n" +
+        "  F  list first/follow sets\n" +
+        "  G  print syntax graph\n" +
+        "  I  trace computation of first sets\n" +
+        "  J  list ANY and SYNC sets\n" +
+        "  P  print statistics\n" +
+        "  S  list symbol table\n" +
+        "  X  list cross reference table\n" +
+        "Scanner.frame and Parser.frame files needed in ATG directory\n" +
+        "or in a directory specified in the -frames option.\n"
+    );
+    retVal = 0;
+}
+process.exit(retVal);
+
 
 // end Coco
