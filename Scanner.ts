@@ -78,12 +78,14 @@ export class Buffer {
                 this.file = fs.openSync(a, "r");
                 this.fileLen = fs.statSync(a).size;
                 this.bufLen = Math.min(this.fileLen, Buffer.MAX_BUFFER_LENGTH);
-                this.buf = new Array[this.bufLen];
+                this.buf = new Float32Array(this.bufLen);
                 this.bufStart = 65535; // nothing in buffer so far
                 if (this.fileLen > 0) this.setPos(0); // setup buffer to position 0 (start)
                 else this.bufPos = 0; // index 0 is already after the file, thus setPos(0) is invalid
                 if (this.bufLen == this.fileLen) this.Close();
             } catch (e) {
+                console.error(e)
+                //throw new Error(e)
                 throw new Error("Could not open file " + a);
             }
             // don't use b after this call anymore
@@ -107,13 +109,12 @@ export class Buffer {
     }
 
     protected Close() {
-        let file;
         if (this.file != null) {
             try {
-                fs.close(this.file)
-                file = null;
+                fs.close(this.file,function (){})
             } catch (e) {
-                throw new Error(e.getMessage());
+                console.error(e)
+                //throw new Error(e);
             }
         }
     }
@@ -178,7 +179,7 @@ export class Buffer {
                 this.bufStart = value;
                 this.bufPos = 0;
             } catch (e) {
-                throw new Error(e.getMessage());
+                throw new Error(e);
             }
         } else {
             // set the position to the end of the file, Pos will return fileLen.
@@ -208,7 +209,7 @@ export class Buffer {
         try {
             read = this.stream.read(this.buf, this.bufLen, free);
         } catch (ioex) {
-            throw new Error(ioex.getMessage());
+            throw new Error(ioex);
         }
 
         if (read > 0) {

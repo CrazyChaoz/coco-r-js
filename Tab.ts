@@ -174,7 +174,7 @@ export class CNode {	// node of list for finding circular productions
 export class Tab {
     public semDeclPos: Position;        // position of global semantic declarations
     public ignored: CharSet;            // characters ignored by the scanner
-    public ddt: boolean[];              // debug and test switches
+    public ddt: boolean[]=[];              // debug and test switches
     public gramSy: Symbol;              // root nonterminal; filled by ATG
     public eofSy: Symbol;               // end of file symbol
     public noSym: Symbol;               // used in case of an error
@@ -1403,7 +1403,8 @@ export class Tab {
         s = s.toUpperCase();
         for (let i = 0; i < s.length; i++) {
             let ch = s.charAt(i);
-            if ('0' <= ch && ch <= '9') this.ddt[ch.charCodeAt(0) - '0'.charCodeAt(0)] = true;
+            if ('0' <= ch && ch <= '9')
+                this.ddt[ch.charCodeAt(0) - '0'.charCodeAt(0)] = true;
             else switch (ch) {
                 case 'A' :
                     (this.ddt)[0] = true;

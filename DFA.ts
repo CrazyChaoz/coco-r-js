@@ -501,7 +501,8 @@ export class DFA {
     }
 
     DeleteRedundantStates() {
-        let newState = new State[this.lastStateNr + 1];
+        // let newState = new State[this.lastStateNr + 1];
+        let newState = [];
         let used = new BitSet(this.lastStateNr + 1);
         this.FindUsedStates(this.firstState, used);
         // combine equal final states

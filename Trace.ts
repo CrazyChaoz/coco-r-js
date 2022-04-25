@@ -57,7 +57,7 @@ export class Trace {
     public Close() { /* pdt */
         if (this.w != null) {
             // this.w.close();
-            fs.close(this.w)
+            fs.close(this.w,function () {})
             console.log("trace output is in " + this.file);
         }
     }
