@@ -1,0 +1,34 @@
+COMPILER Coco
+	static final int id = 0;
+	static final int str = 1;
+	public Trace trace;         // other Coco objects referenced by this ATG
+	public Tab tab;
+	public DFA dfa;
+	public ParserGen pgen;
+	boolean genScanner;
+	String tokenString;         // used in declarations of literal tokens
+	String noString = "-none-"; // used in declarations of literal tokens
+CHARACTERS
+  letter    = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_".
+  digit     = "0123456789".
+  cr        = '\r'.
+  lf        = '\n'.
+  tab       = '\t'.
+  stringCh  = ANY - '"' - '\\' - cr - lf.
+  charCh    = ANY - '\'' - '\\' - cr - lf.
+  printable = '\u0020' .. '\u007e'.
+  hex       = "0123456789abcdef".
+
+
+
+IGNORE cr + lf + tab
+
+/*-------------------------------------------------------------------------*/
+
+PRODUCTIONS
+
+Coco = Tel.
+
+Tel = {digit} "/" {digit}.
+
+END Coco.

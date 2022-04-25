@@ -104,7 +104,9 @@ export class Parser {
     }
 
     Expect(n: number) {
-        if (this.la.kind == n) this.Get(); else {
+        if (this.la.kind == n)
+            this.Get();
+        else {
             this.SynErr(n);
         }
     }
@@ -1021,15 +1023,15 @@ export class Errors {
         let b = "-- line {0} col {1}: {2}";
         let pos = b.indexOf("{0}");
         if (pos >= 0) {
-            b=b.replace("{0}",line+"")
+            b = b.replace("{0}", line + "")
         }
         pos = b.indexOf("{1}");
         if (pos >= 0) {
-            b=b.replace("{1}",line+"")
+            b = b.replace("{1}", line + "")
         }
         pos = b.indexOf("{2}");
         if (pos >= 0)
-            b=b.replace("{2}",msg)
+            b = b.replace("{2}", msg)
         console.error(b.toString());
     }
 
