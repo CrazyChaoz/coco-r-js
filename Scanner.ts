@@ -53,7 +53,7 @@ export class Buffer {
     public static EOF = 65535 + 1;
     private static MIN_BUFFER_LENGTH = 1024; // 1KB
     private static MAX_BUFFER_LENGTH = Buffer.MIN_BUFFER_LENGTH * 64; // 64KB
-    private buf: Float32Array;   // input buffer
+    private buf: Int8Array;   // input buffer
     private bufStart: number; // position of first byte in buffer relative to input stream
     private bufLen: number;   // length of buffer
     private fileLen: number;  // length of input stream (may change if stream is no file)
@@ -78,7 +78,7 @@ export class Buffer {
                 this.file = fs.openSync(a, "r");
                 this.fileLen = fs.statSync(a).size;
                 this.bufLen = Math.min(this.fileLen, Buffer.MAX_BUFFER_LENGTH);
-                this.buf = new Float32Array(this.bufLen);
+                this.buf = new Int8Array(this.bufLen);
                 this.bufStart = 65535; // nothing in buffer so far
                 if (this.fileLen > 0) this.setPos(0); // setup buffer to position 0 (start)
                 else this.bufPos = 0; // index 0 is already after the file, thus setPos(0) is invalid
@@ -98,8 +98,6 @@ export class Buffer {
             this.bufPos = a.bufPos;
             this.file = a.file;
             this.stream = a.stream;
-            // keep finalize from closing the file
-            a.file = null;
         }
     }
 
@@ -111,7 +109,8 @@ export class Buffer {
     protected Close() {
         if (this.file != null) {
             try {
-                fs.close(this.file,function (){})
+                fs.close(this.file, function () {
+                });
             } catch (e) {
                 console.error(e)
                 //throw new Error(e);
@@ -121,12 +120,13 @@ export class Buffer {
 
     public Read(): number {
         if (this.bufPos < this.bufLen) {
-            return (this.buf)[this.bufPos++] & 0xff;  // mask out sign bits
+            console.log(String.fromCharCode(this.buf[this.bufPos]))
+            return this.buf[this.bufPos++] //& 0xff;  // mask out sign bits
         } else if (this.getPos() < this.fileLen) {
             this.setPos(this.getPos());         // shift buffer start to pos
-            return (this.buf)[this.bufPos++] & 0xff; // mask out sign bits
+            return this.buf[this.bufPos++] //& 0xff; // mask out sign bits
         } else if (this.stream != null && this.ReadNextStreamChunk() > 0) {
-            return (this.buf)[this.bufPos++] & 0xff;  // mask out sign bits
+            return this.buf[this.bufPos++] //& 0xff;  // mask out sign bits
         } else {
             return Buffer.EOF;
         }
@@ -175,7 +175,10 @@ export class Buffer {
             try {
                 // this.file.seek(value);
                 // this.bufLen = this.file.read(this.buf);
-                fs.readSync(this.file, this.buf, 0, this.bufLen, value)
+                fs.readSync(this.file, this.buf, 0, this.bufLen, value);
+                // this.buf.forEach(function (value, index, array) {
+                //     console.log(String.fromCharCode(value))
+                // })
                 this.bufStart = value;
                 this.bufPos = 0;
             } catch (e) {
@@ -198,10 +201,7 @@ export class Buffer {
             // foresee the maximum length, thus we must adapt
             // the buffer size on demand.
 
-            //TODO: maybe remove length calculation at all, since arrays grow automatically in .js
-            // let newBuf = new Array[this.bufLen * 2];
-            // System.arraycopy(this.buf, 0, newBuf, 0, this.bufLen);
-            // this.buf = newBuf;
+            this.buf = new Int8Array(this.buf, 0, this.bufLen * 2);
             free = this.bufLen;
         }
 
@@ -284,7 +284,7 @@ class Elem {
 export class StartStates {
 
 
-    private tab:Elem[] = [];
+    private tab: Elem[] = [];
 
     public set(key: number, val: number) {
         let e = new Elem(key, val);
@@ -519,10 +519,10 @@ export class Scanner {
     }
 
     NextToken(): Token {
-        while (this.ch == ' '.charCodeAt(0) ||
-            this.ch >= 9 && this.ch <= 10 || this.ch == 13
-            ) this.NextCh();
-        if (this.ch == '/'.charCodeAt(0) && this.Comment0() || this.ch == '/'.charCodeAt(0) && this.Comment1()) return this.NextToken();
+        while (this.ch == ' '.charCodeAt(0) || this.ch >= 9 && this.ch <= 10 || this.ch == 13)
+            this.NextCh();
+        if (this.ch == '/'.charCodeAt(0) && this.Comment0() || this.ch == '/'.charCodeAt(0) && this.Comment1())
+            return this.NextToken();
         let recKind = Scanner.noSym;
         let recEnd = this.pos;
         this.t = new Token();

@@ -1,13 +1,5 @@
 COMPILER Coco
-	static final int id = 0;
-	static final int str = 1;
-	public Trace trace;         // other Coco objects referenced by this ATG
-	public Tab tab;
-	public DFA dfa;
-	public ParserGen pgen;
-	boolean genScanner;
-	String tokenString;         // used in declarations of literal tokens
-	String noString = "-none-"; // used in declarations of literal tokens
+
 CHARACTERS
   letter    = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_".
   digit     = "0123456789".
