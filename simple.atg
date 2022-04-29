@@ -21,6 +21,6 @@ PRODUCTIONS
 
 Coco = Tel.
 
-Tel = {digit} "/" {digit}.
+Tel = {"0"} "/" {"0"}.
 
 END Coco.

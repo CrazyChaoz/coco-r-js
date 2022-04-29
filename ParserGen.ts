@@ -458,7 +458,7 @@ export class ParserGen {
         fs.writeSync(this.gen,this.err.toString());
         g.CopyFramePart(null);
         // this.gen.close();
-        fs.close(this.gen)
+        fs.close(this.gen,function () {})
         this.buffer.setPos(oldPos);
     }
 

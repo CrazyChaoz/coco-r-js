@@ -189,7 +189,7 @@ export class Tab {
     public checkEOF = true;            // should coco generate a check for EOF at
                                        // the end of Parser.Parse():
 
-    visited: BitSet;                    // mark list for graph traversals
+    visited: BitSet=new BitSet();                    // mark list for graph traversals
     curSy: Symbol;                      // current symbol in computation of sets
 
     parser: Parser;                     // other Coco objects
@@ -735,12 +735,14 @@ export class Tab {
         // foreach (Symbol sym in Symbol.nonterminals) {
         for (const curSy of this.nonterminals) {
             // get direct successors of nonterminals
+            this.curSy=curSy;
             this.CompFollow(curSy.graph);
         }
 
         // foreach (Symbol sym in Symbol.nonterminals) {
         for (let curSy of this.nonterminals) {
             // add indirect successors to followers
+            this.curSy=curSy;
             visited = new BitSet(nNonterminals);
             this.Complete(curSy);
         }

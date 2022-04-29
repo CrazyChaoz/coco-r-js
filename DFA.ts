@@ -314,12 +314,16 @@ export class Generator {
             if (fs.existsSync(f)) {
                 let old = f + ".old";
                 // old.delete(); --> unlink
-                fs.unlinkSync(old)
+
+                if (fs.existsSync(old)) {
+                    fs.unlinkSync(old)
+                }
                 // f.renameTo(old);
                 fs.renameSync(f, old)
             }
             this.gen = fs.openSync(f, "w"); /* pdt */
-        } catch (Exception) {
+        } catch (e) {
+            console.error(e)
             throw new Error("Cannot generate file: " + f);
         }
 
@@ -377,7 +381,7 @@ export class Generator {
             } else {
                 if (generateOutput)
                     // this.gen.print(ch);
-                    fs.writeSync(this.gen, ch.toString())
+                    fs.writeSync(this.gen, String.fromCharCode(ch))
                 ch = this.framRead();
             }
         }
@@ -389,8 +393,12 @@ export class Generator {
         try {
             //todo: look over this
             let buffer = Buffer.alloc(1)
-            fs.readSync(this.fram, buffer);
-            return buffer.toString().charCodeAt(0);
+            let read_bits=fs.readSync(this.fram, buffer);
+            if(read_bits>0)
+                return buffer.toString().charCodeAt(0);
+            else
+                return Generator.EOF;
+
         } catch (IOException) {
             throw new Error("Error reading frame file: " + this.frameFile);
         }

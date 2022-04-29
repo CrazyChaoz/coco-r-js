@@ -120,7 +120,6 @@ export class Buffer {
 
     public Read(): number {
         if (this.bufPos < this.bufLen) {
-            console.log(String.fromCharCode(this.buf[this.bufPos]))
             return this.buf[this.bufPos++] //& 0xff;  // mask out sign bits
         } else if (this.getPos() < this.fileLen) {
             this.setPos(this.getPos());         // shift buffer start to pos
@@ -438,7 +437,6 @@ export class Scanner {
         // }
         if (this.ch != Buffer.EOF) {
             this.tval[this.tlen++] = this.ch;
-
             this.NextCh();
         }
 
@@ -511,10 +509,9 @@ export class Scanner {
 
     CheckLiteral() {
         let val = this.t.val;
-
         let kind = Scanner.literals[val];
         if (kind != null) {
-            this.t.kind = kind.intValue();
+            this.t.kind = kind;
         }
     }
 
@@ -530,6 +527,7 @@ export class Scanner {
         this.t.col = this.col;
         this.t.line = this.line;
         this.t.charPos = this.charPos;
+        this.tval=[]
         let state = Scanner.start.state(this.ch);
         this.tlen = 0;
         this.AddCh();
@@ -559,7 +557,9 @@ export class Scanner {
                         this.t.kind = 1;
                         //TODO:look over this
                         // this.t.val = new String(this.tval, 0, this.tlen);
-                        this.t.val = this.tval.join();
+                        this.t.val = this.tval.map(function (value, index, array) {
+                            return String.fromCharCode(value)
+                        }).join("");
                         this.CheckLiteral();
                         return this.t;
                     }
@@ -830,7 +830,10 @@ export class Scanner {
         }
         //TODO: look over this
         // this.t.val = new String(this.tval, 0, this.tlen);
-        this.t.val = this.tval.join();
+        this.t.val = this.tval.map(function (value,index,array) {
+            return String.fromCharCode(value)
+        }).join("")
+
         return this.t;
     }
 
@@ -848,15 +851,20 @@ export class Scanner {
     }
 
 // get the next token (possibly a token already seen during peeking)
-    public
+    public Scan(): Token {
+        let token:Token
 
-    Scan(): Token {
         if (this.tokens.next == null) {
-            return this.NextToken();
+            token = this.NextToken();
         } else {
             this.pt = this.tokens = this.tokens.next;
-            return this.tokens;
+            token = this.tokens;
         }
+
+        //console.log("Value: "+token.val)
+        //console.log("Kind: "+token.kind)
+
+        return token
     }
 
 // get the next token, ignore pragmas
