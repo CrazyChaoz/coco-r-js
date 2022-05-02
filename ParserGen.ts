@@ -330,8 +330,9 @@ export class ParserGen {
                     fs.writeSync(this.gen, "}\n");
                     break;
             }
-            if (p.typ != Node_.eps && p.typ != Node_.sem && p.typ != Node_.sync)
-                isChecked.set(0, isChecked.toArray().length);  // = new BitArray(Symbol.terminals.Count);
+            if (p.typ != Node_.eps && p.typ != Node_.sem && p.typ != Node_.sync) {
+                isChecked.setRange(0, isChecked.toArray().length);  // = new BitArray(Symbol.terminals.Count);
+            }
             if (p.up) break;
             p = p.next;
         }

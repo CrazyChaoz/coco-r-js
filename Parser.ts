@@ -250,6 +250,8 @@ export class Parser {
             this.tab.Finish(g);
 
             this.ExpectWeak(18, 4);
+
+
         }
         this.Expect(19);
         this.Expect(1);
@@ -266,6 +268,7 @@ export class Parser {
         this.tab.noSym = this.tab.NewSym(Node_.t, "???", 0); // noSym gets highest number
         this.tab.SetupAnys();
         this.tab.RenumberPragmas();
+
         if (this.tab.ddt[2]) this.tab.PrintNodes();
         if (this.errors.count == 0) {
             console.log("checking");
@@ -276,6 +279,7 @@ export class Parser {
                 this.pgen.WriteParser();
                 if (this.genScanner) {
                     console.log(" + scanner");
+
                     this.dfa.WriteScanner();
                     if (this.tab.ddt[0]) this.dfa.PrintStates();
                 }
@@ -622,6 +626,7 @@ export class Parser {
         if (g == null) // invalid start of Term
             g = new Graph(this.tab.NewNode(Node_.eps, null, 0));
 
+
         return g;
     }
 
@@ -642,11 +647,13 @@ export class Parser {
         let pos: Position;
         let weak = false;
         g = null;
+        let p: Node_;
+
         switch (this.la.kind) {
             case 1:
             case 3:
             case 5:
-            case 34: {
+            case 34:
                 if (this.la.kind == 34) {
                     this.Get();
                     weak = true;
@@ -673,7 +680,7 @@ export class Parser {
                 if (weak)
                     if (typ == Node_.t) typ = Node_.wt;
                     else this.SemErr("only terminals may be weak");
-                let p = this.tab.NewNode(typ, sym, this.t.line);
+                p = this.tab.NewNode(typ, sym, this.t.line);
                 g = new Graph(p);
 
                 // @ts-ignore
@@ -688,50 +695,47 @@ export class Parser {
                     || (p.retVar == null) != (sym.retVar == null))
                     this.SemErr("attribute mismatch between declaration and use of this symbol");
 
+
                 break;
-            }
-            case 35: {
+            case 35:
                 this.Get();
                 g = this.Expression();
                 this.Expect(36);
                 break;
-            }
-            case 31: {
+            case 31:
                 this.Get();
                 g = this.Expression();
                 this.Expect(32);
                 this.tab.MakeOption(g);
                 break;
-            }
-            case 37: {
+
+            case 37:
                 this.Get();
                 g = this.Expression();
                 this.Expect(38);
                 this.tab.MakeIteration(g);
                 break;
-            }
-            case 42: {
+
+            case 42:
                 pos = this.SemText();
-                let p = this.tab.NewNode(Node_.sem, null, 0);
+                p = this.tab.NewNode(Node_.sem, null, 0);
                 p.pos = pos;
                 g = new Graph(p);
 
                 break;
-            }
-            case 23: {
+
+            case 23:
                 this.Get();
-                let p = this.tab.NewNode(Node_.any, null, this.t.line);  // p.set is set in tab.SetupAnys
+                p = this.tab.NewNode(Node_.any, null, this.t.line);  // p.set is set in tab.SetupAnys
                 g = new Graph(p);
 
                 break;
-            }
-            case 39: {
-                this.Get();
-                let p = this.tab.NewNode(Node_.sync, null, 0);
-                g = new Graph(p);
 
+            case 39:
+                this.Get();
+                p = this.tab.NewNode(Node_.sync, null, 0);
+                g = new Graph(p);
                 break;
-            }
             default:
                 this.SynErr(56);
                 break;

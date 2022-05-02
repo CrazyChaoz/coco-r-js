@@ -855,7 +855,7 @@ export class Tab {
             let p = this.nodes[i];
             if (p.typ == Node_.any) {
                 p.set = new BitSet(this.terminals.length);
-                p.set.set(0, this.terminals.length);
+                p.set.setRange(0, this.terminals.length);
                 p.set.clear(this.eofSy.n);
             }
         }

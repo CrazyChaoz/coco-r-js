@@ -18,14 +18,18 @@ export class State {               // state of finite automaton
     public next: State;
 
     public AddAction(act: Action) {
-        let lasta = null, a = this.firstAction;
+        let lasta:Action = null;
+        let a = this.firstAction;
         while (a != null && act.typ >= a.typ) {
             lasta = a;
             a = a.next;
         }
         // collecting classes at the beginning gives better performance
         act.next = a;
-        if (a == this.firstAction) this.firstAction = act; else lasta.next = act;
+        if (a == this.firstAction) {
+            this.firstAction = act;
+        }else
+            lasta.next = act;
     }
 
     public DetachAction(act: Action) {
@@ -393,8 +397,8 @@ export class Generator {
         try {
             //todo: look over this
             let buffer = Buffer.alloc(1)
-            let read_bits=fs.readSync(this.fram, buffer);
-            if(read_bits>0)
+            let read_bits = fs.readSync(this.fram, buffer);
+            if (read_bits > 0)
                 return buffer.toString().charCodeAt(0);
             else
                 return Generator.EOF;
@@ -415,7 +419,7 @@ export class DFA {
 
     private maxStates: number;
     private lastStateNr: number;      // highest state number
-    private firstState: State;
+    public firstState: State;
     private lastState: State;      // last allocated state
     private lastSimState: number;     // last non melted state
     private fram: number;          // scanner frame input     /* pdt */
@@ -467,7 +471,10 @@ export class DFA {
     NewState(): State {
         let s = new State();
         s.nr = ++this.lastStateNr;
-        if (this.firstState == null) this.firstState = s; else this.lastState.next = s;
+        if (this.firstState == null)
+            this.firstState = s;
+        else
+            this.lastState.next = s;
         this.lastState = s;
         return s;
     }
@@ -477,6 +484,7 @@ export class DFA {
         let a = new Action(typ, sym, tc);
         a.target = t;
         from.AddAction(a);
+
         if (typ == Node_.clas) this.curSy.tokenKind = Symbol.classToken;
     }
 
@@ -502,16 +510,18 @@ export class DFA {
     }
 
     FindUsedStates(state: State, used: BitSet) {
-        if (used.get(state.nr)) return;
+        if (used.get(state.nr))
+            return;
         used.set(state.nr);
-        for (let a = state.firstAction; a != null; a = a.next)
+        for (let a = state.firstAction; a != null; a = a.next){
             this.FindUsedStates(a.target.state, used);
+        }
     }
 
     DeleteRedundantStates() {
         // let newState = new State[this.lastStateNr + 1];
-        let newState = [];
-        let used = new BitSet(this.lastStateNr + 1);
+        let newState:State[] = [];
+        let used = new BitSet();
         this.FindUsedStates(this.firstState, used);
         // combine equal final states
         for (let s1 = this.firstState.next; s1 != null; s1 = s1.next) // firstState cannot be final
@@ -520,7 +530,7 @@ export class DFA {
                     //TODO: look at this
                     // if (used.get(s2.nr) && s1.endOf == s2.endOf && s2.firstAction == null & !s2.ctx) { // ??????????
                     if (used.get(s2.nr) && s1.endOf == s2.endOf && s2.firstAction == null && !s2.ctx) {
-                        used.set(s2.nr, 0);
+                        used.set(s2.nr, 1);
                         newState[s2.nr] = s1;
                     }
         for (let state = this.firstState; state != null; state = state.next)
@@ -664,12 +674,14 @@ export class DFA {
 // match string against current automaton; store it either as a fixedToken or as a litToken
     public MatchLiteral(s: string, sym: Symbol) {
         s = this.tab.Unescape(s.substring(1, s.length - 1));
-        let i, len = s.length;
+        let i;
+        let len = s.length;
         let state = this.firstState;
         let a = null;
         for (i = 0; i < len; i++) { // try to match s against existing DFA
             a = this.FindAction(state, s.charAt(i));
-            if (a == null) break;
+            if (a == null)
+                break;
             state = a.target.state;
         }
         // if s was not totally consumed or leads to a non-final state => make new DFA from it
@@ -694,6 +706,7 @@ export class DFA {
             matchedSym.tokenKind = Symbol.classLitToken;
             sym.tokenKind = Symbol.litToken;
         }
+
     }
 
     SplitActions(state: State, a: Action, b: Action) {
@@ -767,7 +780,7 @@ export class DFA {
         for (let action = state.firstAction; action != null; action = action.next) {
             if (action.target.next != null) {
                 //action.GetTargetStates(out targets, out endOf, out ctx);
-                let param = new Object[2];
+                let param = [];
                 ctx = this.GetTargetStates(action, param);
                 targets = param[0];
                 endOf = param[1];
@@ -837,12 +850,15 @@ export class DFA {
     //------------------------ actions ------------------------------
 
     public FindAction(state: State, ch: string): Action {
-        for (let a = state.firstAction; a != null; a = a.next)
-            if (a.typ == Node_.chr && ch.charCodeAt(0) == a.sym) return a;
+        for (let a = state.firstAction; a != null; a = a.next){
+            if (a.typ == Node_.chr && ch.charCodeAt(0) == a.sym)
+                return a;
             else if (a.typ == Node_.clas) {
                 let s = this.tab.CharClassSet(a.sym);
-                if (s.Get(ch.charCodeAt(0))) return a;
+                if (s.Get(ch.charCodeAt(0)))
+                    return a;
             }
+        }
         return null;
     }
 
@@ -1079,10 +1095,12 @@ export class DFA {
     }
 
     public WriteScanner() {
+
         let g = new Generator(this.tab);
         this.fram = g.OpenFrame("Scanner.frame");
         this.gen = g.OpenGen("Scanner.java");
         if (this.dirtyDFA) this.MakeDeterministic();
+
 
         g.GenCopyright();
         g.SkipFramePart("-->begin");
@@ -1154,7 +1172,7 @@ export class DFA {
         for (let state = this.firstState.next; state != null; state = state.next)
             this.WriteState(state);
         g.CopyFramePart(null);
-        fs.close(this.gen)
+        fs.close(this.gen,function (){})
     }
 
     constructor(parser: Parser) {
