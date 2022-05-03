@@ -215,7 +215,6 @@ export class Parser {
         this.Expect(16);
         if (this.genScanner) this.dfa.MakeDeterministic();
         this.tab.DeleteNodes();
-        console.log("asdf")
         // @ts-ignore
         while (this.la.kind == 1) {
             this.Get();
@@ -249,7 +248,6 @@ export class Parser {
             sym.graph = g.l;
             this.tab.Finish(g);
             this.ExpectWeak(18, 4);
-
         }
         this.Expect(19);
         this.Expect(1);
@@ -497,6 +495,7 @@ export class Parser {
         let g2: Graph;
         g = this.Term();
         let first = true;
+
         while (this.WeakSeparator(33, 16, 17)) {
             g2 = this.Term();
             if (first) {
@@ -504,7 +503,6 @@ export class Parser {
                 first = false;
             }
             this.tab.MakeAlternative(g, g2);
-
         }
         return g;
     }
@@ -603,11 +601,13 @@ export class Parser {
     }
 
     Term(): Graph {
+
         let g: Graph;
         let g2: Graph;
         let rslv: Node_ = null;
         g = null;
         if (this.StartOf(18)) {
+
             if (this.la.kind == 40) {
                 rslv = this.tab.NewNode(Node_.rslv, null, this.la.line);
                 rslv.pos = this.Resolver();
@@ -616,14 +616,15 @@ export class Parser {
             g2 = this.Factor();
             if (rslv != null) this.tab.MakeSequence(g, g2);
             else g = g2;
-
             while (this.StartOf(19)) {
                 g2 = this.Factor();
                 this.tab.MakeSequence(g, g2);
             }
+
         } else if (this.StartOf(20)) {
             g = new Graph(this.tab.NewNode(Node_.eps, null, 0));
         } else this.SynErr(55);
+
         if (g == null) // invalid start of Term
             g = new Graph(this.tab.NewNode(Node_.eps, null, 0));
 
@@ -650,6 +651,7 @@ export class Parser {
         g = null;
         let p: Node_;
 
+        console.log("asdf")
         switch (this.la.kind) {
             case 1:
             case 3:
