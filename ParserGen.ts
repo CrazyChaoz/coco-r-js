@@ -87,7 +87,7 @@ export class ParserGen {
         let s1, s2: BitSet;
         if (p.typ != Node_.alt) return false;
         let nAlts = 0;
-        s1 = new BitSet(this.tab.terminals.length);
+        s1 = new BitSet();
         while (p != null) {
             s2 = this.tab.Expected0(p.sub, this.curSy);
             // must not optimize with switch statement, if there are ll1 warnings
@@ -126,7 +126,7 @@ export class ParserGen {
                     }
                     if (this.buffer.getPos() > pos.end) break done;
                 }
-                fs.writeSync(this.gen, (ch));
+                fs.writeSync(this.gen, String.fromCharCode(ch));
                 ch = this.buffer.Read();
             }
             if (indent > 0)
@@ -239,6 +239,7 @@ export class ParserGen {
                 case Node_.sync: {
                     this.Indent(indent);
                     this.GenErrorMsg(ParserGen.syncErr, this.curSy);
+                    console.log(p)
                     s1 = p.set.clone();
                     fs.writeSync(this.gen, "while (!(");
                     this.GenCond(s1, p);
@@ -307,7 +308,7 @@ export class ParserGen {
                         s2 = this.tab.Expected(p.next, this.curSy);
                         fs.writeSync(this.gen, "WeakSeparator(" + p2.sym.n + "," + this.NewCondSet(s1) + ","
                             + this.NewCondSet(s2) + ") ");
-                        s1 = new BitSet(this.tab.terminals.length);  // for inner structure
+                        s1 = new BitSet();  // for inner structure
                         if (p2.up || p2.next == null) p2 = null; else p2 = p2.next;
                     } else {
                         s1 = this.tab.First(p2);
@@ -379,7 +380,7 @@ export class ParserGen {
             fs.writeSync(this.gen, ") {\n");
             if (sym.retVar != null) fs.writeSync(this.gen, "\t\t" + sym.retType + " " + sym.retVar + ";\n");
             this.CopySourcePart(sym.semPos, 2);
-            this.GenCode(sym.graph, 2, new BitSet(this.tab.terminals.length));
+            this.GenCode(sym.graph, 2, new BitSet());
             if (sym.retVar != null) fs.writeSync(this.gen, "\t\treturn " + sym.retVar + ";\n");
             fs.writeSync(this.gen, "\t}\n");
 

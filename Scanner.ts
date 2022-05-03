@@ -378,7 +378,6 @@ export class Scanner {
     constructor(fileName: string);
     //constructor(s: InputStream);
     constructor(a: any) {
-
         this.buffer = new Buffer(a);
         this.Init();
     }
@@ -510,7 +509,8 @@ export class Scanner {
     CheckLiteral() {
         let val = this.t.val;
         let kind = Scanner.literals[val];
-        if (kind != null) {
+        //TODO: possibly has an error
+        if (kind != null && kind != 0) {
             this.t.kind = kind;
         }
     }
@@ -534,18 +534,18 @@ export class Scanner {
 
         loop: for (; ;) {
             switch (state) {
-                case -1: {
+                case -1:
                     this.t.kind = Scanner.eofSym;
                     break loop;
-                } // NextCh already done
-                case 0: {
+                    // NextCh already done
+                case 0:
                     if (recKind != Scanner.noSym) {
                         this.tlen = recEnd - this.t.pos;
                         this.SetScannerBehindT();
                     }
                     this.t.kind = recKind;
                     break loop;
-                } // NextCh already done
+                    // NextCh already done
                 case 1:
                     recEnd = this.pos;
                     recKind = 1;
@@ -833,6 +833,7 @@ export class Scanner {
         this.t.val = this.tval.map(function (value,index,array) {
             return String.fromCharCode(value)
         }).join("")
+
 
         return this.t;
     }
