@@ -215,7 +215,7 @@ export class Parser {
         this.Expect(16);
         if (this.genScanner) this.dfa.MakeDeterministic();
         this.tab.DeleteNodes();
-
+        console.log("asdf")
         // @ts-ignore
         while (this.la.kind == 1) {
             this.Get();
@@ -248,25 +248,26 @@ export class Parser {
             g = this.Expression();
             sym.graph = g.l;
             this.tab.Finish(g);
-
             this.ExpectWeak(18, 4);
-
 
         }
         this.Expect(19);
         this.Expect(1);
-        if (gramName != this.t.val)
+        if (gramName != this.t.val) {
             this.SemErr("name does not match grammar name");
+        }
         this.tab.gramSy = this.tab.FindSym(gramName);
         if (this.tab.gramSy == null)
             this.SemErr("missing production for grammar name");
         else {
             sym = this.tab.gramSy;
-            if (sym.attrPos != null)
+            if (sym.attrPos != null) {
                 this.SemErr("grammar symbol must not have attributes");
+            }
         }
         this.tab.noSym = this.tab.NewSym(Node_.t, "???", 0); // noSym gets highest number
         this.tab.SetupAnys();
+
         this.tab.RenumberPragmas();
 
         if (this.tab.ddt[2]) this.tab.PrintNodes();
@@ -1031,7 +1032,7 @@ export class Errors {
         }
         pos = b.indexOf("{1}");
         if (pos >= 0) {
-            b = b.replace("{1}", line + "")
+            b = b.replace("{1}", column + "")
         }
         pos = b.indexOf("{2}");
         if (pos >= 0)

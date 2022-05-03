@@ -5,8 +5,8 @@
   "main": "Coco.ts",
   "scripts": {
     "0arg": "tsc && node Coco.js",
-    "regenerate_coco": "tsc && node Coco.js Coco.atg",
     "simple": "tsc && node Coco.js simple.atg",
+    "regenerate_coco": "tsc && node Coco.js Coco.atg",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

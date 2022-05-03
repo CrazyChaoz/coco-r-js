@@ -929,7 +929,7 @@ export class DFA {
         let s = "";
         while (p != null) {
             if (p.typ == Node_.chr) {
-                s += p.val;
+                s += String.fromCharCode(p.val);
             } else if (p.typ == Node_.clas) {
                 let set = this.tab.CharClassSet(p.val);
                 if (set.Elements() != 1) this.parser.SemErr("character set contains more than 1 character");
