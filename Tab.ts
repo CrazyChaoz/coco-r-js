@@ -623,7 +623,8 @@ export class Tab {
 
 // Computes the first set for the graph rooted at p
     First0(p: Node_, mark: BitSet): BitSet {
-        let fs = new BitSet(this.terminals.length);
+        // let fs = new BitSet(this.terminals.length);
+        let fs = new BitSet();
         while (p != null && !mark.get(p.n)) {
             mark.set(p.n);
             switch (p.typ) {
@@ -659,7 +660,8 @@ export class Tab {
     }
 
     public First(p: Node_): BitSet {
-        let fs = this.First0(p, new BitSet(this.nodes.length));
+        // let fs = this.First0(p, new BitSet(this.nodes.length));
+        let fs = this.First0(p, new BitSet());
         if ((this.ddt)[3]) {
             this.trace.WriteLine();
             if (p != null) this.trace.WriteLine("First: node = " + p.n);
@@ -675,7 +677,8 @@ export class Tab {
         //foreach (Symbol sym in Symbol.nonterminals) {
         for (let i = 0; i < this.nonterminals.length; i++) {
             sym = this.nonterminals[i];
-            sym.first = new BitSet(this.terminals.length);
+            // sym.first = new BitSet(this.terminals.length);
+            sym.first = new BitSet();
             sym.firstReady = false;
         }
         //foreach (Symbol sym in Symbol.nonterminals) {
@@ -725,12 +728,15 @@ export class Tab {
 
         // foreach (Symbol sym in Symbol.nonterminals) {
         for (const sym of this.nonterminals) {
-            sym.follow = new BitSet(nTerminals);
-            sym.nts = new BitSet(nNonterminals);
+            // sym.follow = new BitSet(nTerminals);
+            // sym.nts = new BitSet(nNonterminals);
+            sym.follow = new BitSet();
+            sym.nts = new BitSet();
         }
 
         this.gramSy.follow.set(this.eofSy.n);
-        let visited = new BitSet(this.nodes.length);
+        // let visited = new BitSet(this.nodes.length);
+        let visited = new BitSet();
 
         // foreach (Symbol sym in Symbol.nonterminals) {
         for (const curSy of this.nonterminals) {
@@ -743,7 +749,8 @@ export class Tab {
         for (let curSy of this.nonterminals) {
             // add indirect successors to followers
             this.curSy=curSy;
-            visited = new BitSet(nNonterminals);
+            // visited = new BitSet(nNonterminals);
+            visited = new BitSet();
             this.Complete(curSy);
         }
     }
@@ -768,7 +775,8 @@ export class Tab {
                 a = this.LeadingAny(p.sub);
                 if (a != null) Sets.Subtract(a.set, this.First(p.next));
             } else if (p.typ == Node_.alt) {
-                let s1 = new BitSet(this.terminals.length);
+                // let s1 = new BitSet(this.terminals.length);
+                let s1 = new BitSet();
                 let q = p;
                 while (q != null) {
                     this.FindAS(q.sub);
@@ -817,7 +825,8 @@ export class Tab {
 
     // does not look behind resolvers; only called during LL(1) test and in CheckRes
     public Expected0(p: Node_, curSy: Symbol): BitSet {
-        if (p.typ == Node_.rslv) return new BitSet(this.terminals.length);
+        // if (p.typ == Node_.rslv) return new BitSet(this.terminals.length);
+        if (p.typ == Node_.rslv) return new BitSet();
         else return this.Expected(p, curSy);
     }
 
@@ -839,7 +848,8 @@ export class Tab {
     }
 
     CompSyncSets() {
-        this.allSyncSets = new BitSet(this.terminals.length);
+        // this.allSyncSets = new BitSet(this.terminals.length);
+        this.allSyncSets = new BitSet();
         this.allSyncSets.set(this.eofSy.n);
         this.visited = new BitSet(this.nodes.length);
         //foreach (Symbol sym in Symbol.nonterminals) {
@@ -854,7 +864,8 @@ export class Tab {
         for (let i = 0; i < this.nodes.length; i++) {
             let p = this.nodes[i];
             if (p.typ == Node_.any) {
-                p.set = new BitSet(this.terminals.length);
+                // p.set = new BitSet(this.terminals.length);
+                p.set = new BitSet();
                 p.set.setRange(0, this.terminals.length);
                 p.set.clear(this.eofSy.n);
             }
@@ -1165,7 +1176,10 @@ export class Tab {
     CheckOverlap(s1: BitSet, s2: BitSet, cond: number) {
         for (let i = 0; i < this.terminals.length; i++) {
             let sym = this.terminals[i];
-            if (s1.get(sym.n) && s2.get(sym.n)) this.LL1Error(cond, sym);
+            if (s1.get(sym.n) && s2.get(sym.n)) {
+                console.log("CheckOverlap")
+                this.LL1Error(cond, sym);
+            }
         }
     }
 
@@ -1174,7 +1188,8 @@ export class Tab {
         while (p != null) {
             if (p.typ == Node_.alt) {
                 let q = p;
-                s1 = new BitSet(this.terminals.length);
+                // s1 = new BitSet(this.terminals.length);
+                s1 = new BitSet();
                 while (q != null) { // for all alternatives
                     s2 = this.Expected0(q.sub, this.curSy);
                     this.CheckOverlap(s1, s2, 1);
@@ -1216,10 +1231,12 @@ export class Tab {
         while (p != null) {
             switch (p.typ) {
                 case Node_.alt:
-                    let expected = new BitSet(this.terminals.length);
+                    // let expected = new BitSet(this.terminals.length);
+                    let expected = new BitSet();
                     for (let q = p; q != null; q = q.down)
                         expected.or(this.Expected0(q.sub, this.curSy));
-                    let soFar = new BitSet(this.terminals.length);
+                    // let soFar = new BitSet(this.terminals.length);
+                    let soFar = new BitSet();
                     for (let q = p; q != null; q = q.down) {
                         if (q.sub.typ == Node_.rslv) {
                             let fs = this.Expected(q.sub.next, this.curSy);
@@ -1292,7 +1309,8 @@ export class Tab {
 
     public AllNtReached(): boolean {
         let ok = true;
-        this.visited = new BitSet(this.nonterminals.length);
+        // this.visited = new BitSet(this.nonterminals.length);
+        this.visited = new BitSet();
         this.visited.set(this.gramSy.n);
         this.MarkReachedNts(this.gramSy.graph);
         for (let i = 0; i < this.nonterminals.length; i++) {
@@ -1319,7 +1337,8 @@ export class Tab {
 
     public AllNtToTerm(): boolean {
         let changed, ok = true;
-        let mark = new BitSet(this.nonterminals.length);
+        // let mark = new BitSet(this.nonterminals.length);
+        let mark = new BitSet();
         // a nonterminal is marked if it can be derived to terminal symbols
         do {
             changed = false;
@@ -1403,34 +1422,36 @@ export class Tab {
 
     public SetDDT(s: string) {
         s = s.toUpperCase();
+        console.log("SetDDT")
+        console.log(s)
         for (let i = 0; i < s.length; i++) {
             let ch = s.charAt(i);
             if ('0' <= ch && ch <= '9')
                 this.ddt[ch.charCodeAt(0) - '0'.charCodeAt(0)] = true;
             else switch (ch) {
                 case 'A' :
-                    (this.ddt)[0] = true;
+                    this.ddt[0] = true;
                     break; // trace automaton
                 case 'F' :
-                    (this.ddt)[1] = true;
+                    this.ddt[1] = true;
                     break; // list first/follow sets
                 case 'G' :
                     this.ddt[2] = true;
                     break; // print syntax graph
                 case 'I' :
-                    (this.ddt)[3] = true;
+                    this.ddt[3] = true;
                     break; // trace computation of first sets
                 case 'J' :
-                    (this.ddt)[4] = true;
+                    this.ddt[4] = true;
                     break; // print ANY and SYNC sets
                 case 'P' :
-                    (this.ddt)[8] = true;
+                    this.ddt[8] = true;
                     break; // print statistics
                 case 'S' :
                     this.ddt[6] = true;
                     break; // list symbol table
                 case 'X' :
-                    (this.ddt)[7] = true;
+                    this.ddt[7] = true;
                     break; // list cross reference table
                 default :
                     break;

@@ -68,6 +68,19 @@ export class Parser {
 
     /*-------------------------------------------------------------------------*/
 
+    //TODO: REMOVE
+    public printNonterminals(){
+        // console.log("##########")
+        // this.tab.nonterminals.forEach(((value, index, array) => {
+        //     let p=value.graph
+        //     while (p!=null){
+        //         console.log("in Parser")
+        //         console.log(p.set)
+        //         p=p.next
+        //     }
+        // }))
+        // console.log("##########")
+    }
 
     constructor(scanner: Scanner) {
         this.scanner = scanner;
@@ -249,6 +262,9 @@ export class Parser {
             this.tab.Finish(g);
             this.ExpectWeak(18, 4);
         }
+
+        this.printNonterminals()
+
         this.Expect(19);
         this.Expect(1);
         if (gramName != this.t.val) {
@@ -268,6 +284,8 @@ export class Parser {
 
         this.tab.RenumberPragmas();
 
+        this.printNonterminals()
+
         if (this.tab.ddt[2]) this.tab.PrintNodes();
         if (this.errors.count == 0) {
             console.log("checking");
@@ -275,6 +293,7 @@ export class Parser {
             if (this.tab.ddt[7]) this.tab.XRef();
             if (this.tab.GrammarOk()) {
                 console.log("parser");
+                this.printNonterminals()
                 this.pgen.WriteParser();
                 if (this.genScanner) {
                     console.log(" + scanner");

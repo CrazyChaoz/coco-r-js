@@ -33,6 +33,8 @@ Coco/R itself) does not fall under the GNU General Public License.
 
 $package=Coco
 
+$S
+
 COMPILER Coco
 
 	static final int id = 0;

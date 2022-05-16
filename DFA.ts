@@ -579,7 +579,8 @@ export class DFA {
                 if (p.next != null && !stepped.get(p.next.n)) this.Step(from, p.next, stepped);
                 this.Step(from, p.sub, stepped);
                 if (p.state != from) {
-                    this.Step(p.state, p, new BitSet(this.tab.nodes.length));
+                    // this.Step(p.state, p, new BitSet(this.tab.nodes.length));
+                    this.Step(p.state, p, new BitSet());
                 }
                 break;
             }
@@ -633,7 +634,8 @@ export class DFA {
     FindTrans(p: Node_, start: boolean, marked: BitSet) {
         if (p == null || marked.get(p.n)) return;
         marked.set(p.n);
-        if (start) this.Step(p.state, p, new BitSet(this.tab.nodes.length)); // start of group of equally numbered nodes
+        // if (start) this.Step(p.state, p, new BitSet(this.tab.nodes.length)); // start of group of equally numbered nodes
+        if (start) this.Step(p.state, p, new BitSet()); // start of group of equally numbered nodes
         switch (p.typ) {
             case Node_.clas:
             case Node_.chr: {
@@ -665,9 +667,11 @@ export class DFA {
             return;
         }
         this.NumberNodes(p, this.firstState, true);
-        this.FindTrans(p, true, new BitSet(this.tab.nodes.length));
+        // this.FindTrans(p, true, new BitSet(this.tab.nodes.length));
+        this.FindTrans(p, true, new BitSet());
         if (p.typ == Node_.iter) {
-            this.Step(this.firstState, p, new BitSet(this.tab.nodes.length));
+            // this.Step(this.firstState, p, new BitSet(this.tab.nodes.length));
+            this.Step(this.firstState, p, new BitSet());
         }
     }
 
@@ -865,7 +869,8 @@ export class DFA {
 //public void GetTargetStates(out BitArray targets, out Symbol endOf, out bool ctx) {
     public GetTargetStates(a: Action, param: Object[]): boolean {
         // compute the set of target states
-        let targets = new BitSet(this.maxStates);
+        // let targets = new BitSet(this.maxStates);
+        let targets = new BitSet();
         let endOf = null;
         let ctx = false;
         for (let t = a.target; t != null; t = t.next) {
@@ -1023,7 +1028,6 @@ export class DFA {
         let ts = [this.tab.terminals, this.tab.pragmas];
         for (let i = 0; i < ts.length; ++i) {
             ts[i].forEach((sym, index, _) => {
-
                 if (sym.tokenKind == Symbol.litToken) {
                     let name = this.SymName(sym);
                     if (this.ignoreCase) name = name.toLowerCase();

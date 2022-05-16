@@ -189,6 +189,8 @@ export class ParserGen {
         let p2: Node_;
         let s1, s2: BitSet;
         while (p != null) {
+            console.log("while")
+            console.log(p.set)
             switch (p.typ) {
                 case Node_.nt: {
                     this.Indent(indent);
@@ -236,9 +238,10 @@ export class ParserGen {
                     this.CopySourcePart(p.pos, indent);
                     break;
                 }
-                case Node_.sync: {
+                case Node_.sync:
                     this.Indent(indent);
                     this.GenErrorMsg(ParserGen.syncErr, this.curSy);
+                    console.log("im .sync")
                     console.log(p)
                     s1 = p.set.clone();
                     fs.writeSync(this.gen, "while (!(");
@@ -247,7 +250,7 @@ export class ParserGen {
                     fs.writeSync(this.gen, "SynErr(" + this.errorNr + "); Get();");
                     fs.writeSync(this.gen, "}\n");
                     break;
-                }
+
                 case Node_.alt: {
                     s1 = this.tab.First(p);
                     let equal = Sets.Equals(s1, isChecked);
@@ -334,7 +337,8 @@ export class ParserGen {
             if (p.typ != Node_.eps && p.typ != Node_.sem && p.typ != Node_.sync) {
                 isChecked.setRange(0, isChecked.toArray().length);  // = new BitArray(Symbol.terminals.Count);
             }
-            if (p.up) break;
+            if (p.up)
+                break;
             p = p.next;
         }
     }
@@ -370,6 +374,21 @@ export class ParserGen {
     }
 
     GenProductions() {
+        // console.log("##########")
+        // console.log("##########")
+        // console.log("##########")
+        // console.log("##########")
+        // console.log("##########")
+        // this.tab.nonterminals.forEach(((value, index, array) => {
+        //     let p=value.graph
+        //     while (p!=null){
+        //         console.log("in gen prod")
+        //         console.log(p.set)
+        //         p=p.next
+        //     }
+        // }))
+        // console.log("##########")
+
         for (let i = 0; i < this.tab.nonterminals.length; i++) {
             let sym = this.tab.nonterminals[i];
             this.curSy = sym;
