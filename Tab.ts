@@ -133,7 +133,7 @@ export class Sets {
     }
 
     public static Intersect(a: BitSet, b: BitSet): boolean {// a * b != {}
-        //TODO: fixme
+        //TODO: fixme?
         return a.and(b).isEmpty();
     }
 
@@ -141,7 +141,7 @@ export class Sets {
         let c = b.clone();
         //a.and(c.not());
         c.flip();	// c.not
-        a.and(c);
+        return a.and(c);
     }
 }
 
@@ -189,7 +189,7 @@ export class Tab {
     public checkEOF = true;            // should coco generate a check for EOF at
                                        // the end of Parser.Parse():
 
-    visited: BitSet=new BitSet();                    // mark list for graph traversals
+    visited: BitSet;                    // mark list for graph traversals
     curSy: Symbol;                      // current symbol in computation of sets
 
     parser: Parser;                     // other Coco objects
@@ -308,8 +308,8 @@ export class Tab {
         //foreach (Symbol sym in Symbol.terminals) {
         for (let i = 0; i < this.terminals.length; i++) {
             let sym = this.terminals[i];
-            if (s[sym.n]) {
-                let len = sym.name.length();
+            if (s.get(sym.n)) {
+                let len = sym.name.length;
                 if (col + len >= 80) {
                     this.trace.WriteLine();
                     for (col = 1; col < indent; col++) this.trace.Write(" ");
@@ -629,8 +629,8 @@ export class Tab {
             mark.set(p.n);
             switch (p.typ) {
                 case Node_.nt: {
-                    if (p.sym.firstReady) fs.or(p.sym.first);
-                    else fs.or(this.First0(p.sym.graph, mark));
+                    if (p.sym.firstReady) fs=fs.or(p.sym.first);
+                    else fs=fs.or(this.First0(p.sym.graph, mark));
                     break;
                 }
                 case Node_.t:
@@ -639,17 +639,17 @@ export class Tab {
                     break;
                 }
                 case Node_.any: {
-                    fs.or(p.set);
+                    fs=fs.or(p.set);
                     break;
                 }
                 case Node_.alt: {
-                    fs.or(this.First0(p.sub, mark));
-                    fs.or(this.First0(p.down, mark));
+                    fs=fs.or(this.First0(p.sub, mark));
+                    fs=fs.or(this.First0(p.down, mark));
                     break;
                 }
                 case Node_.iter:
                 case Node_.opt: {
-                    fs.or(this.First0(p.sub, mark));
+                    fs=fs.or(this.First0(p.sub, mark));
                     break;
                 }
             }
@@ -694,7 +694,7 @@ export class Tab {
             this.visited.set(p.n);
             if (p.typ == Node_.nt) {
                 let s = this.First(p.next);
-                p.sym.follow.or(s);
+                p.sym.follow=p.sym.follow.or(s);
                 if (this.DelGraph(p.next))
                     p.sym.nts.set(this.curSy.n);
             } else if (p.typ == Node_.opt || p.typ == Node_.iter) {
@@ -715,7 +715,7 @@ export class Tab {
                 let s = this.nonterminals[i];
                 if (sym.nts.get(s.n)) {
                     this.Complete(s);
-                    sym.follow.or(s.follow);
+                    sym.follow=sym.follow.or(s.follow);
                     if (sym == this.curSy) sym.nts.clear(s.n);
                 }
             }
@@ -736,7 +736,7 @@ export class Tab {
 
         this.gramSy.follow.set(this.eofSy.n);
         // let visited = new BitSet(this.nodes.length);
-        let visited = new BitSet();
+        this.visited = new BitSet();
 
         // foreach (Symbol sym in Symbol.nonterminals) {
         for (const curSy of this.nonterminals) {
@@ -750,7 +750,7 @@ export class Tab {
             // add indirect successors to followers
             this.curSy=curSy;
             // visited = new BitSet(nNonterminals);
-            visited = new BitSet();
+            this.visited = new BitSet();
             this.Complete(curSy);
         }
     }
@@ -773,7 +773,7 @@ export class Tab {
             if (p.typ == Node_.opt || p.typ == Node_.iter) {
                 this.FindAS(p.sub);
                 a = this.LeadingAny(p.sub);
-                if (a != null) Sets.Subtract(a.set, this.First(p.next));
+                if (a != null) a.set=Sets.Subtract(a.set, this.First(p.next));
             } else if (p.typ == Node_.alt) {
                 // let s1 = new BitSet(this.terminals.length);
                 let s1 = new BitSet();
@@ -783,10 +783,10 @@ export class Tab {
                     a = this.LeadingAny(q.sub);
                     if (a != null) {
                         let h = this.First(q.down);
-                        h.or(s1);
-                        Sets.Subtract(a.set, h);
+                        h=h.or(s1);
+                        a.set=Sets.Subtract(a.set, h);
                     } else
-                        s1.or(this.First(q.sub));
+                        s1=s1.or(this.First(q.sub));
                     q = q.down;
                 }
             }
@@ -799,7 +799,7 @@ export class Tab {
                 a = this.LeadingAny(p.next);
                 if (a != null) {
                     let q = (p.typ == Node_.nt) ? p.sym.graph : p.sub;
-                    Sets.Subtract(a.set, this.First(q));
+                    a.set=Sets.Subtract(a.set, this.First(q));
                 }
             }
 
@@ -819,7 +819,7 @@ export class Tab {
 
     public Expected(p: Node_, curSy: Symbol): BitSet {
         let s = this.First(p);
-        if (this.DelGraph(p)) s.or(curSy.follow);
+        if (this.DelGraph(p)) s=s.or(curSy.follow);
         return s;
     }
 
@@ -836,7 +836,7 @@ export class Tab {
             if (p.typ == Node_.sync) {
                 let s = this.Expected(p.next, this.curSy);
                 s.set(this.eofSy.n);
-                this.allSyncSets.or(s);
+                this.allSyncSets=this.allSyncSets.or(s);
                 p.set = s;
             } else if (p.typ == Node_.alt) {
                 this.CompSync(p.sub);
@@ -851,7 +851,7 @@ export class Tab {
         // this.allSyncSets = new BitSet(this.terminals.length);
         this.allSyncSets = new BitSet();
         this.allSyncSets.set(this.eofSy.n);
-        this.visited = new BitSet(this.nodes.length);
+        this.visited = new BitSet();
         //foreach (Symbol sym in Symbol.nonterminals) {
         for (let i = 0; i < this.nonterminals.length; i++) {
             this.curSy = this.nonterminals[i];
@@ -1193,7 +1193,7 @@ export class Tab {
                 while (q != null) { // for all alternatives
                     s2 = this.Expected0(q.sub, this.curSy);
                     this.CheckOverlap(s1, s2, 1);
-                    s1.or(s2);
+                    s1=s1.or(s2);
                     this.CheckAlts(q.sub);
                     q = q.down;
                 }
@@ -1234,7 +1234,7 @@ export class Tab {
                     // let expected = new BitSet(this.terminals.length);
                     let expected = new BitSet();
                     for (let q = p; q != null; q = q.down)
-                        expected.or(this.Expected0(q.sub, this.curSy));
+                        expected=expected.or(this.Expected0(q.sub, this.curSy));
                     // let soFar = new BitSet(this.terminals.length);
                     let soFar = new BitSet();
                     for (let q = p; q != null; q = q.down) {
@@ -1245,7 +1245,7 @@ export class Tab {
                                     "Place it at previous conflicting alternative.");
                             if (!Sets.Intersect(fs, expected))
                                 this.ResErr(q.sub, "Warning: Misplaced resolver: no LL(1) conflict.");
-                        } else soFar.or(this.Expected(q.sub, this.curSy));
+                        } else soFar=soFar.or(this.Expected(q.sub, this.curSy));
                         this.CheckRes(q.sub, true);
                     }
                     break;
@@ -1422,8 +1422,6 @@ export class Tab {
 
     public SetDDT(s: string) {
         s = s.toUpperCase();
-        console.log("SetDDT")
-        console.log(s)
         for (let i = 0; i < s.length; i++) {
             let ch = s.charAt(i);
             if ('0' <= ch && ch <= '9')

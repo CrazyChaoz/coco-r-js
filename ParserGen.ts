@@ -189,8 +189,10 @@ export class ParserGen {
         let p2: Node_;
         let s1, s2: BitSet;
         while (p != null) {
-            console.log("while")
-            console.log(p.set)
+            if(p.set != undefined){
+                console.log("while")
+                console.log(p.set)
+            }
             switch (p.typ) {
                 case Node_.nt: {
                     this.Indent(indent);
@@ -243,6 +245,7 @@ export class ParserGen {
                     this.GenErrorMsg(ParserGen.syncErr, this.curSy);
                     console.log("im .sync")
                     console.log(p)
+                    console.log(this.curSy)
                     s1 = p.set.clone();
                     fs.writeSync(this.gen, "while (!(");
                     this.GenCond(s1, p);
@@ -393,16 +396,20 @@ export class ParserGen {
             let sym = this.tab.nonterminals[i];
             this.curSy = sym;
             fs.writeSync(this.gen, "\t");
-            if (sym.retType == null) fs.writeSync(this.gen, "void "); else fs.writeSync(this.gen, sym.retType + " ");
+            if (sym.retType == null)
+                fs.writeSync(this.gen, "void ");
+            else
+                fs.writeSync(this.gen, sym.retType + " ");
             fs.writeSync(this.gen, sym.name + "(");
             this.CopySourcePart(sym.attrPos, 0);
             fs.writeSync(this.gen, ") {\n");
-            if (sym.retVar != null) fs.writeSync(this.gen, "\t\t" + sym.retType + " " + sym.retVar + ";\n");
+            if (sym.retVar != null)
+                fs.writeSync(this.gen, "\t\t" + sym.retType + " " + sym.retVar + ";\n");
             this.CopySourcePart(sym.semPos, 2);
             this.GenCode(sym.graph, 2, new BitSet());
-            if (sym.retVar != null) fs.writeSync(this.gen, "\t\treturn " + sym.retVar + ";\n");
+            if (sym.retVar != null)
+                fs.writeSync(this.gen, "\t\treturn " + sym.retVar + ";\n");
             fs.writeSync(this.gen, "\t}\n");
-
             fs.writeSync(this.gen, "\n");
         }
     }

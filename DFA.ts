@@ -530,7 +530,7 @@ export class DFA {
                     //TODO: look at this
                     // if (used.get(s2.nr) && s1.endOf == s2.endOf && s2.firstAction == null & !s2.ctx) { // ??????????
                     if (used.get(s2.nr) && s1.endOf == s2.endOf && s2.firstAction == null && !s2.ctx) {
-                        used.set(s2.nr, 1);
+                        used.set(s2.nr);
                         newState[s2.nr] = s1;
                     }
         for (let state = this.firstState; state != null; state = state.next)
