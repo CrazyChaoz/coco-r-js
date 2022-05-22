@@ -1371,24 +1371,20 @@ export class Tab {
         //foreach (Symbol sym in Symbol.nonterminals) {
         for (let i = 0; i < this.nonterminals.length; i++) {
             let sym = this.nonterminals[i];
-            let list = xref.get(sym.name);
-            if (list == undefined) {
-                list = []
-                xref.set(sym, list);
+            if (!xref.has(sym)) {
+                xref.set(sym, []);
             }
-            list.push(-sym.line);
+            xref.get(sym).push(-sym.line);
         }
         // collect lines where symbols have been referenced
         //foreach (Node n in Node.nodes) {
         for (let i = 0; i < this.nodes.length; i++) {
             let n = this.nodes[i];
             if (n.typ == Node_.t || n.typ == Node_.wt || n.typ == Node_.nt) {
-                let list = xref.get(n.sym.name);
-                if (list == undefined) {
-                    list = []
-                    xref.set(n.sym, list);
+                if (!xref.has(n.sym)) {
+                    xref.set(n.sym, []);
                 }
-                list.push(n.line);
+                xref.get(n.sym).push(n.line);
             }
         }
         // print cross reference list
@@ -1397,14 +1393,16 @@ export class Tab {
         this.trace.WriteLine("--------------------");
         this.trace.WriteLine();
         //foreach (Symbol sym in xref.Keys) {
-        //Todo:sort
 
-        let iter=xref.entries()
-        let entry=iter.next();
-        while(!entry.done){
+        //reader, please forgive me, for i have sinned
+        //this is the only section that needed es2015/es6
+        //also possibly interesting: a[0].name.localeCompare(b[0].name)
+        let sorted_xref=new Map([...xref.entries()].sort((a, b) => a[0].name > b[0].name?1:-1));
+
+        for(let [key,value] of sorted_xref){
             this.trace.Write("  ");
-            this.trace.Write(this.Name(entry.value[0].name), -12);
-            let list = entry.value[1];
+            this.trace.Write(this.Name(key.name), -12);
+            let list:[] = value;
             let col = 14;
             //foreach (int line in list) {
             for (let j = 0; j < list.length; j++) {
@@ -1413,11 +1411,11 @@ export class Tab {
                     this.trace.WriteLine();
                     for (col = 1; col <= 14; col++) this.trace.Write(" ");
                 }
-                this.trace.Write(line.toString(), 5);
+                this.trace.Write(line+"", 5);
                 col += 5;
             }
+
             this.trace.WriteLine();
-            entry=iter.next();
         }
 
         this.trace.WriteLine();
