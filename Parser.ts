@@ -218,25 +218,25 @@ export class Parser {
         while (this.la.kind == 1) {
             this.Get();
             sym = this.tab.FindSym(this.t.val);
-            let undef = sym == null;
+            let undef = sym == undefined;
             if (undef) sym = this.tab.NewSym(Node_.nt, this.t.val, this.t.line);
             else {
                 if (sym.typ == Node_.nt) {
-                    if (sym.graph != null) this.SemErr("name declared twice");
+                    if (sym.graph != undefined) this.SemErr("name declared twice");
                 } else this.SemErr("this symbol kind not allowed on left side of production");
                 sym.line = this.t.line;
             }
-            let noAttrs = sym.attrPos == null;
-            sym.attrPos = null;
-            let noRet = sym.retVar == null;
-            sym.retVar = null;
+            let noAttrs = sym.attrPos == undefined;
+            sym.attrPos = undefined;
+            let noRet = sym.retVar == undefined;
+            sym.retVar = undefined;
 
             if (this.la.kind == 24 || this.la.kind == 29) {
                 this.AttrDecl(sym);
             }
             if (!undef)
-                if (noAttrs != (sym.attrPos == null)
-                    || noRet != (sym.retVar == null))
+                if (noAttrs != (sym.attrPos == undefined)
+                    || noRet != (sym.retVar == undefined))
                     this.SemErr("attribute mismatch between declaration and use of this symbol");
 
             if (this.la.kind == 42) {
@@ -255,11 +255,11 @@ export class Parser {
             this.SemErr("name does not match grammar name");
         }
         this.tab.gramSy = this.tab.FindSym(gramName);
-        if (this.tab.gramSy == null)
+        if (this.tab.gramSy == undefined)
             this.SemErr("missing production for grammar name");
         else {
             sym = this.tab.gramSy;
-            if (sym.attrPos != null) {
+            if (sym.attrPos != undefined) {
                 this.SemErr("grammar symbol must not have attributes");
             }
         }
@@ -298,7 +298,7 @@ export class Parser {
         this.Expect(1);
         let name = this.t.val;
         let c = this.tab.FindCharClass(name);
-        if (c != null) this.SemErr("name declared twice");
+        if (c != undefined) this.SemErr("name declared twice");
 
         this.Expect(17);
         s = this.Set();
@@ -314,12 +314,12 @@ export class Parser {
         let g: Graph;
         s = this.Sym();
         sym = this.tab.FindSym(s.name);
-        if (sym != null) this.SemErr("name declared twice");
+        if (sym != undefined) this.SemErr("name declared twice");
         else {
             sym = this.tab.NewSym(typ, s.name, this.t.line);
             sym.tokenKind = Symbol.fixedToken;
         }
-        this.tokenString = null;
+        this.tokenString = undefined;
 
         while (!(this.StartOf(5))) {
             this.SynErr(46);
@@ -331,10 +331,10 @@ export class Parser {
             this.Expect(18);
             if (s.kind == Parser.str) this.SemErr("a literal must not be declared with a structure");
             this.tab.Finish(g);
-            if (this.tokenString == null || this.tokenString === this.noString)
+            if (this.tokenString == undefined || this.tokenString === this.noString)
                 this.dfa.ConvertToStates(g.l, sym);
             else { // TokenExpr is a single string
-                if (this.tab.literals[this.tokenString] != null)
+                if (this.tab.literals[this.tokenString] != undefined)
                     this.SemErr("token string declared twice");
                 this.tab.literals[this.tokenString] = sym;
                 this.dfa.MatchLiteral(this.tokenString, sym);
@@ -516,7 +516,7 @@ export class Parser {
         if (this.la.kind == 1) {
             this.Get();
             let c = this.tab.FindCharClass(this.t.val);
-            if (c == null) this.SemErr("undefined name"); else s.Or(c.set);
+            if (c == undefined) this.SemErr("undefined name"); else s.Or(c.set);
 
         } else if (this.la.kind == 3) {
             this.Get();
@@ -606,17 +606,17 @@ export class Parser {
 
         let g: Graph;
         let g2: Graph;
-        let rslv: Node_ = null;
-        g = null;
+        let rslv: Node_ = undefined;
+        g = undefined;
         if (this.StartOf(18)) {
 
             if (this.la.kind == 40) {
-                rslv = this.tab.NewNode(Node_.rslv, null, this.la.line);
+                rslv = this.tab.NewNode(Node_.rslv, undefined, this.la.line);
                 rslv.pos = this.Resolver();
                 g = new Graph(rslv);
             }
             g2 = this.Factor();
-            if (rslv != null) this.tab.MakeSequence(g, g2);
+            if (rslv != undefined) this.tab.MakeSequence(g, g2);
             else g = g2;
             while (this.StartOf(19)) {
                 g2 = this.Factor();
@@ -624,11 +624,11 @@ export class Parser {
             }
 
         } else if (this.StartOf(20)) {
-            g = new Graph(this.tab.NewNode(Node_.eps, null, 0));
+            g = new Graph(this.tab.NewNode(Node_.eps, undefined, 0));
         } else this.SynErr(55);
 
-        if (g == null) // invalid start of Term
-            g = new Graph(this.tab.NewNode(Node_.eps, null, 0));
+        if (g == undefined) // invalid start of Term
+            g = new Graph(this.tab.NewNode(Node_.eps, undefined, 0));
 
 
         return g;
@@ -650,7 +650,7 @@ export class Parser {
         let s: SymInfo;
         let pos: Position;
         let weak = false;
-        g = null;
+        g = undefined;
         let p: Node_;
 
 
@@ -665,9 +665,9 @@ export class Parser {
                 }
                 s = this.Sym();
                 let sym = this.tab.FindSym(s.name);
-                if (sym == null && s.kind == Parser.str)
+                if (sym == undefined && s.kind == Parser.str)
                     sym = this.tab.literals[s.name];
-                let undef = sym == null;
+                let undef = sym == undefined;
                 if (undef) {
                     if (s.kind == Parser.id)
                         sym = this.tab.NewSym(Node_.nt, s.name, 0);  // forward nt
@@ -696,8 +696,8 @@ export class Parser {
                 if (undef) {
                     sym.attrPos = p.pos;  // dummy
                     sym.retVar = p.retVar;  // AH - dummy
-                } else if ((p.pos == null) != (sym.attrPos == null)
-                    || (p.retVar == null) != (sym.retVar == null))
+                } else if ((p.pos == undefined) != (sym.attrPos == undefined)
+                    || (p.retVar == undefined) != (sym.retVar == undefined))
                     this.SemErr("attribute mismatch between declaration and use of this symbol");
 
 
@@ -723,7 +723,7 @@ export class Parser {
 
             case 42:
                 pos = this.SemText();
-                p = this.tab.NewNode(Node_.sem, null, 0);
+                p = this.tab.NewNode(Node_.sem, undefined, 0);
                 p.pos = pos;
                 g = new Graph(p);
 
@@ -731,22 +731,22 @@ export class Parser {
 
             case 23:
                 this.Get();
-                p = this.tab.NewNode(Node_.any, null, this.t.line);  // p.set is set in tab.SetupAnys
+                p = this.tab.NewNode(Node_.any, undefined, this.t.line);  // p.set is set in tab.SetupAnys
                 g = new Graph(p);
 
                 break;
 
             case 39:
                 this.Get();
-                p = this.tab.NewNode(Node_.sync, null, 0);
+                p = this.tab.NewNode(Node_.sync, undefined, 0);
                 g = new Graph(p);
                 break;
             default:
                 this.SynErr(56);
                 break;
         }
-        if (g == null) // invalid start of Factor
-            g = new Graph(this.tab.NewNode(Node_.eps, null, 0));
+        if (g == undefined) // invalid start of Factor
+            g = new Graph(this.tab.NewNode(Node_.eps, undefined, 0));
 
         return g;
     }
@@ -911,22 +911,22 @@ export class Parser {
     TokenFactor(): Graph {
         let g: Graph;
         let s: SymInfo;
-        g = null;
+        g = undefined;
         if (this.la.kind == 1 || this.la.kind == 3 || this.la.kind == 5) {
             s = this.Sym();
             if (s.kind == Parser.id) {
                 let c = this.tab.FindCharClass(s.name);
-                if (c == null) {
+                if (c == undefined) {
                     this.SemErr("undefined name");
                     c = this.tab.NewCharClass(s.name, new CharSet());
                 }
-                let p = this.tab.NewNode(Node_.clas, null, 0);
+                let p = this.tab.NewNode(Node_.clas, undefined, 0);
                 p.val = c.n;
                 g = new Graph(p);
                 this.tokenString = this.noString;
             } else { // str
                 g = this.tab.StrToGraph(s.name);
-                if (this.tokenString == null) this.tokenString = s.name;
+                if (this.tokenString == undefined) this.tokenString = s.name;
                 else this.tokenString = this.noString;
             }
 
@@ -947,8 +947,8 @@ export class Parser {
             this.tab.MakeIteration(g);
             this.tokenString = this.noString;
         } else this.SynErr(62);
-        if (g == null) // invalid start of TokenFactor
-            g = new Graph(this.tab.NewNode(Node_.eps, null, 0));
+        if (g == undefined) // invalid start of TokenFactor
+            g = new Graph(this.tab.NewNode(Node_.eps, undefined, 0));
         return g;
     }
 

@@ -6,7 +6,7 @@ export class Trace {
     w: number;
 
     private CheckOpen() {
-        if (this.w == null) {
+        if (this.w == undefined) {
             try {
                 this.w = fs.openSync(this.file,"w") /* pdt */
             } catch (e) {
@@ -55,7 +55,7 @@ export class Trace {
     }
 
     public Close() { /* pdt */
-        if (this.w != null) {
+        if (this.w != undefined) {
             // this.w.close();
             fs.close(this.w,function () {})
             console.log("trace output is in " + this.file);

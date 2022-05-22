@@ -52,7 +52,7 @@ import * as path from "path";
 
 
 console.log("Coco/R (Apr 20, 2022)");
-let srcName = null, nsName = null, frameDir = null, ddtString = null, outDir = null;
+let srcName = undefined, nsName = undefined, frameDir = undefined, ddtString = undefined, outDir = undefined;
 let retVal = 1;
 for (let i = 2; i < process.argv.length; i++) {
     if (process.argv[i] == "-package" && i < process.argv.length - 1) nsName = process.argv[++i].trim();
@@ -61,7 +61,7 @@ for (let i = 2; i < process.argv.length; i++) {
     else if (process.argv[i] == "-o" && i < process.argv.length - 1) outDir = process.argv[++i].trim();
     else srcName = process.argv[i];
 }
-if (process.argv.length > 2 && srcName != null) {
+if (process.argv.length > 2 && srcName != undefined) {
     try {
         //new File(srcName).getParent();
         let srcDir = path.basename(path.dirname(srcName));
@@ -78,8 +78,8 @@ if (process.argv.length > 2 && srcName != null) {
         parser.tab.srcDir = srcDir;
         parser.tab.nsName = nsName;
         parser.tab.frameDir = frameDir;
-        parser.tab.outDir = (outDir != null) ? outDir : srcDir;
-        if (ddtString != null) parser.tab.SetDDT(ddtString);
+        parser.tab.outDir = (outDir != undefined) ? outDir : srcDir;
+        if (ddtString != undefined) parser.tab.SetDDT(ddtString);
 
         parser.Parse();
 

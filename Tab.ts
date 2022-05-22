@@ -38,11 +38,11 @@ export class Symbol {
     public follow: BitSet;      // nt: terminal followers
     public nts: BitSet;         // nt: nonterminals whose followers have to be added to this sym
     public line: number;        // source text line number of item in this node_
-    public attrPos: Position;     // nt: position of attributes in source text (or null)
-    public semPos: Position;      // pr: pos of semantic action in source text (or null)
-                                  // nt: pos of local declarations in source text (or null)
-    public retType: string;     // AH - nt: Type of output attribute (or null)
-    public retVar: string;      // AH - nt: Name of output attribute (or null)
+    public attrPos: Position;     // nt: position of attributes in source text (or undefined)
+    public semPos: Position;      // pr: pos of semantic action in source text (or undefined)
+                                  // nt: pos of local declarations in source text (or undefined)
+    public retType: string;     // AH - nt: Type of output attribute (or undefined)
+    public retVar: string;      // AH - nt: Name of output attribute (or undefined)
 
     constructor(typ: number, name: string, line: number) {
         this.typ = typ;
@@ -88,7 +88,7 @@ export class Node_ {
     public line: number;			// source text line number of item in this node_
     public state: State;		// DFA state corresponding to this node_
     // (only used in DFA.ConvertToStates)
-    public retVar: string;			// AH 20040206 - nt: name of output attribute (or null)
+    public retVar: string;			// AH 20040206 - nt: name of output attribute (or undefined)
 
     constructor(typ: number, sym: Symbol, line: number) {
         this.typ = typ;
@@ -215,7 +215,7 @@ export class Tab {
         this.trace = parser.trace;
         this.errors = parser.errors;
         this.eofSy = this.NewSym(Node_.t, "EOF", 0);
-        this.dummyNode = this.NewNode(Node_.eps, null, 0);
+        this.dummyNode = this.NewNode(Node_.eps, undefined, 0);
         this.literals = [];
     }
 
@@ -253,11 +253,11 @@ export class Tab {
             s = this.nonterminals[i];
             if (s.name === name) return s;
         }
-        return null;
+        return undefined;
     }
 
     Num(p: Node_): number {
-        if (p == null) return 0; else return p.n;
+        if (p == undefined) return 0; else return p.n;
     }
 
     PrintSym(sym: Symbol) {
@@ -266,7 +266,7 @@ export class Tab {
         this.trace.Write(this.Name(sym.name), -14);
         this.trace.Write(" ", -14);
         this.trace.Write((this.nTyp)[sym.typ], -14);
-        if (sym.attrPos == null) this.trace.Write(" false "); else this.trace.Write(" true  ");
+        if (sym.attrPos == undefined) this.trace.Write(" false "); else this.trace.Write(" true  ");
         if (sym.typ == Node_.nt) {
             this.trace.Write(this.Num(sym.graph).toString(), 5);
             if (sym.deletable) this.trace.Write(" true  "); else this.trace.Write(" false ");
@@ -338,14 +338,14 @@ export class Tab {
         let node: Node_;
 
         if (typeof arg2 === "number") {
-            node = this.NewNode(typ, null, arg3);
+            node = this.NewNode(typ, undefined, arg3);
             node.val = arg2;
         } else if (arg3 != undefined) {
             node = new Node_(typ, arg2, arg3);
             node.n = this.nodes.length;
             this.nodes.push(node);
         } else {
-            node = this.NewNode(typ, null, 0);
+            node = this.NewNode(typ, undefined, 0);
             node.sub = arg2;
         }
         return node;
@@ -366,10 +366,10 @@ export class Tab {
         g2.l.up = true;
         g2.r.up = true;
         let p = g1.l;
-        while (p.down != null) p = p.down;
+        while (p.down != undefined) p = p.down;
         p.down = g2.l;
         p = g1.r;
-        while (p.next != null) p = p.next;
+        while (p.next != undefined) p = p.next;
         // append alternative to g1 end list
         p.next = g2.l;
         // append g2 end list to g1 end list
@@ -380,7 +380,7 @@ export class Tab {
     public MakeSequence(g1: Graph, g2: Graph) {
         let p = g1.r.next;
         g1.r.next = g2.l; // link head node_
-        while (p != null) {  // link substructure
+        while (p != undefined) {  // link substructure
             let q = p.next;
             p.next = g2.l;
             p = q;
@@ -393,7 +393,7 @@ export class Tab {
         g.r.up = true;
         let p = g.r;
         g.r = g.l;
-        while (p != null) {
+        while (p != undefined) {
             let q = p.next;
             p.next = g.l;
             p = q;
@@ -409,16 +409,16 @@ export class Tab {
 
     public Finish(g: Graph) {
         let p = g.r;
-        while (p != null) {
+        while (p != undefined) {
             let q = p.next;
-            p.next = null;
+            p.next = undefined;
             p = q;
         }
     }
 
     public DeleteNodes() {
         this.nodes = [];
-        this.dummyNode = this.NewNode(Node_.eps, null, 0);
+        this.dummyNode = this.NewNode(Node_.eps, undefined, 0);
     }
 
     public StrToGraph(str: string): Graph {
@@ -432,12 +432,12 @@ export class Tab {
             g.r = p;
         }
         g.l = this.dummyNode.next;
-        this.dummyNode.next = null;
+        this.dummyNode.next = undefined;
         return g;
     }
 
     public SetContextTrans(p: Node_) { // set transition code in the graph rooted at p
-        while (p != null) {
+        while (p != undefined) {
             if (p.typ == Node_.chr || p.typ == Node_.clas) {
                 p.code = Node_.contextTrans;
             } else if (p.typ == Node_.opt || p.typ == Node_.iter) {
@@ -454,16 +454,16 @@ export class Tab {
     //---------------- graph deletability check ---------------------
 
     public DelGraph(p: Node_): boolean {
-        return p == null || this.DelNode(p) && this.DelGraph(p.next);
+        return p == undefined || this.DelNode(p) && this.DelGraph(p.next);
     }
 
     public DelSubGraph(p: Node_): boolean {
-        return p == null || this.DelNode(p) && (p.up || this.DelSubGraph(p.next));
+        return p == undefined || this.DelNode(p) && (p.up || this.DelSubGraph(p.next));
     }
 
     public DelNode(p: Node_): boolean {
         if (p.typ == Node_.nt) return p.sym.deletable;
-        else if (p.typ == Node_.alt) return this.DelSubGraph(p.sub) || p.down != null && this.DelSubGraph(p.down);
+        else if (p.typ == Node_.alt) return this.DelSubGraph(p.sub) || p.down != undefined && this.DelSubGraph(p.down);
         else return p.typ == Node_.iter || p.typ == Node_.opt || p.typ == Node_.sem
                 || p.typ == Node_.eps || p.typ == Node_.sync || p.typ == Node_.rslv;
     }
@@ -471,12 +471,12 @@ export class Tab {
     //-------------------- graph printing ------------------------
 
     Ptr(p: Node_, up: boolean): string {
-        let ptr = (p == null) ? "0" : p.n.toString();
+        let ptr = (p == undefined) ? "0" : p.n.toString();
         return (up) ? ("-" + ptr) : ptr;
     }
 
     Pos(pos: Position): string {
-        if (pos == null) return "     ";
+        if (pos == undefined) return "     ";
         else return this.trace.formatString(pos.beg.toString(), 5);
     }
 
@@ -497,7 +497,7 @@ export class Tab {
             let p = this.nodes[i];
             this.trace.Write(p.n.toString(), 4);
             this.trace.Write(" " + (this.nTyp)[p.typ] + " ");
-            if (p.sym != null) {
+            if (p.sym != undefined) {
                 this.trace.Write(this.Name(p.sym.name), 12);
                 this.trace.Write(" ");
             } else if (p.typ == Node_.clas) {
@@ -582,7 +582,7 @@ export class Tab {
             }
         }
 
-        return null;
+        return undefined;
     }
 
     public CharClassSet(i: number): CharSet {
@@ -597,7 +597,7 @@ export class Tab {
     }
 
     WriteCharSet(s: CharSet) {
-        for (let r = s.head; r != null; r = r.next) {
+        for (let r = s.head; r != undefined; r = r.next) {
             if (r.from < r.to) {
                 this.trace.Write(this.Ch(r.from) + ".." + this.Ch(r.to) + " ");
             } else {
@@ -625,7 +625,7 @@ export class Tab {
     First0(p: Node_, mark: BitSet): BitSet {
         // let fs = new BitSet(this.terminals.length);
         let fs = new BitSet();
-        while (p != null && !mark.get(p.n)) {
+        while (p != undefined && !mark.get(p.n)) {
             mark.set(p.n);
             switch (p.typ) {
                 case Node_.nt: {
@@ -664,8 +664,8 @@ export class Tab {
         let fs = this.First0(p, new BitSet());
         if ((this.ddt)[3]) {
             this.trace.WriteLine();
-            if (p != null) this.trace.WriteLine("First: node = " + p.n);
-            else this.trace.WriteLine("First: node = null");
+            if (p != undefined) this.trace.WriteLine("First: node = " + p.n);
+            else this.trace.WriteLine("First: node = undefined");
             this.PrintSet(fs, 0);
         }
         return fs;
@@ -690,7 +690,7 @@ export class Tab {
     }
 
     CompFollow(p: Node_) {
-        while (p != null && !this.visited.get(p.n)) {
+        while (p != undefined && !this.visited.get(p.n)) {
             this.visited.set(p.n);
             if (p.typ == Node_.nt) {
                 let s = this.First(p.next);
@@ -756,32 +756,32 @@ export class Tab {
     }
 
     LeadingAny(p: Node_): Node_ {
-        if (p == null) return null;
-        let a: Node_ = null;
+        if (p == undefined) return undefined;
+        let a: Node_ = undefined;
         if (p.typ == Node_.any) a = p;
         else if (p.typ == Node_.alt) {
             a = this.LeadingAny(p.sub);
-            if (a == null) a = this.LeadingAny(p.down);
+            if (a == undefined) a = this.LeadingAny(p.down);
         } else if (p.typ == Node_.opt || p.typ == Node_.iter) a = this.LeadingAny(p.sub);
-        if (a == null && this.DelNode(p) && !p.up) a = this.LeadingAny(p.next);
+        if (a == undefined && this.DelNode(p) && !p.up) a = this.LeadingAny(p.next);
         return a;
     }
 
     FindAS(p: Node_) { // find ANY sets
         let a: Node_;
-        while (p != null) {
+        while (p != undefined) {
             if (p.typ == Node_.opt || p.typ == Node_.iter) {
                 this.FindAS(p.sub);
                 a = this.LeadingAny(p.sub);
-                if (a != null) a.set=Sets.Subtract(a.set, this.First(p.next));
+                if (a != undefined) a.set=Sets.Subtract(a.set, this.First(p.next));
             } else if (p.typ == Node_.alt) {
                 // let s1 = new BitSet(this.terminals.length);
                 let s1 = new BitSet();
                 let q = p;
-                while (q != null) {
+                while (q != undefined) {
                     this.FindAS(q.sub);
                     a = this.LeadingAny(q.sub);
-                    if (a != null) {
+                    if (a != undefined) {
                         let h = this.First(q.down);
                         h=h.or(s1);
                         a.set=Sets.Subtract(a.set, h);
@@ -797,7 +797,7 @@ export class Tab {
             // A = [a]. A ANY
             if (this.DelNode(p)) {
                 a = this.LeadingAny(p.next);
-                if (a != null) {
+                if (a != undefined) {
                     let q = (p.typ == Node_.nt) ? p.sym.graph : p.sub;
                     a.set=Sets.Subtract(a.set, this.First(q));
                 }
@@ -831,7 +831,7 @@ export class Tab {
     }
 
     CompSync(p: Node_) {
-        while (p != null && !this.visited.get(p.n)) {
+        while (p != undefined && !this.visited.get(p.n)) {
             this.visited.set(p.n);
             if (p.typ == Node_.sync) {
                 let s = this.Expected(p.next, this.curSy);
@@ -880,7 +880,7 @@ export class Tab {
             //foreach (Symbol sym in Symbol.nonterminals)
             for (let i = 0; i < this.nonterminals.length; i++) {
                 sym = this.nonterminals[i];
-                if (!sym.deletable && sym.graph != null && this.DelGraph(sym.graph)) {
+                if (!sym.deletable && sym.graph != undefined && this.DelGraph(sym.graph)) {
                     sym.deletable = true;
                     changed = true;
                 }
@@ -1099,7 +1099,7 @@ export class Tab {
 
 
     GetSingles(p: Node_, singles: Symbol[]) {
-        if (p == null) return;  // end of graph
+        if (p == undefined) return;  // end of graph
         if (p.typ == Node_.nt) {
             if (p.up || this.DelGraph(p.next)) singles.push(p.sym);
         } else if (p.typ == Node_.alt || p.typ == Node_.iter || p.typ == Node_.opt) {
@@ -1155,7 +1155,7 @@ export class Tab {
 
     LL1Error(cond: number, sym: Symbol) {
         let s = "  LL1 warning in " + this.curSy.name + ": ";
-        if (sym != null) s += sym.name + " is ";
+        if (sym != undefined) s += sym.name + " is ";
         switch (cond) {
             case 1:
                 s += "start of several alternatives";
@@ -1185,12 +1185,12 @@ export class Tab {
 
     CheckAlts(p: Node_) {
         let s1, s2: BitSet;
-        while (p != null) {
+        while (p != undefined) {
             if (p.typ == Node_.alt) {
                 let q = p;
                 // s1 = new BitSet(this.terminals.length);
                 s1 = new BitSet();
-                while (q != null) { // for all alternatives
+                while (q != undefined) { // for all alternatives
                     s2 = this.Expected0(q.sub, this.curSy);
                     this.CheckOverlap(s1, s2, 1);
                     s1=s1.or(s2);
@@ -1198,7 +1198,7 @@ export class Tab {
                     q = q.down;
                 }
             } else if (p.typ == Node_.opt || p.typ == Node_.iter) {
-                if (this.DelSubGraph(p.sub)) this.LL1Error(4, null); // e.g. [[...]]
+                if (this.DelSubGraph(p.sub)) this.LL1Error(4, undefined); // e.g. [[...]]
                 else {
                     s1 = this.Expected0(p.sub, this.curSy);
                     s2 = this.Expected(p.next, this.curSy);
@@ -1206,7 +1206,7 @@ export class Tab {
                 }
                 this.CheckAlts(p.sub);
             } else if (p.typ == Node_.any) {
-                if (Sets.Elements(p.set) == 0) this.LL1Error(3, null);
+                if (Sets.Elements(p.set) == 0) this.LL1Error(3, undefined);
                 // e.g. {ANY} ANY or [ANY] ANY or ( ANY | ANY )
             }
             if (p.up) break;
@@ -1228,16 +1228,16 @@ export class Tab {
     }
 
     CheckRes(p: Node_, rslvAllowed: boolean) {
-        while (p != null) {
+        while (p != undefined) {
             switch (p.typ) {
                 case Node_.alt:
                     // let expected = new BitSet(this.terminals.length);
                     let expected = new BitSet();
-                    for (let q = p; q != null; q = q.down)
+                    for (let q = p; q != undefined; q = q.down)
                         expected=expected.or(this.Expected0(q.sub, this.curSy));
                     // let soFar = new BitSet(this.terminals.length);
                     let soFar = new BitSet();
-                    for (let q = p; q != null; q = q.down) {
+                    for (let q = p; q != undefined; q = q.down) {
                         if (q.sub.typ == Node_.rslv) {
                             let fs = this.Expected(q.sub.next, this.curSy);
                             if (Sets.Intersect(fs, soFar))
@@ -1284,7 +1284,7 @@ export class Tab {
         let complete = true;
         for (let i = 0; i < this.nonterminals.length; i++) {
             let sym = this.nonterminals[i];
-            if (sym.graph == null) {
+            if (sym.graph == undefined) {
                 complete = false;
                 this.errors.SemErr("  No production for " + sym.name);
             }
@@ -1294,7 +1294,7 @@ export class Tab {
 
     //-------------- check if every nts can be reached  -----------------
     MarkReachedNts(p: Node_) {
-        while (p != null) {
+        while (p != undefined) {
             if (p.typ == Node_.nt && !this.visited.get(p.sym.n)) { // new nt reached
                 this.visited.set(p.sym.n);
                 this.MarkReachedNts(p.sym.graph);
@@ -1325,10 +1325,10 @@ export class Tab {
 
 //--------- check if every nts can be derived to terminals  ------------
     IsTerm(p: Node_, mark: BitSet): boolean { // true if graph can be derived to terminals
-        while (p != null) {
+        while (p != undefined) {
             if (p.typ == Node_.nt && !mark.get(p.sym.n)) return false;
             if (p.typ == Node_.alt && !this.IsTerm(p.sub, mark)
-                && (p.down == null || !this.IsTerm(p.down, mark))) return false;
+                && (p.down == undefined || !this.IsTerm(p.down, mark))) return false;
             if (p.up) break;
             p = p.next;
         }
@@ -1366,15 +1366,15 @@ export class Tab {
     public XRef() {
 
         //Comperator: ((Symbol) x).name.compareTo(((Symbol) y).name)
-        let xref = [];
+        let xref = new Map();
         // collect lines where symbols have been defined
         //foreach (Symbol sym in Symbol.nonterminals) {
         for (let i = 0; i < this.nonterminals.length; i++) {
             let sym = this.nonterminals[i];
-            let list = xref[sym.name];
-            if (list == null) {
-                list = [];
-                xref[sym.name] += list;
+            let list = xref.get(sym.name);
+            if (list == undefined) {
+                list = []
+                xref.set(sym, list);
             }
             list.push(-sym.line);
         }
@@ -1383,10 +1383,10 @@ export class Tab {
         for (let i = 0; i < this.nodes.length; i++) {
             let n = this.nodes[i];
             if (n.typ == Node_.t || n.typ == Node_.wt || n.typ == Node_.nt) {
-                let list = xref[n.sym.name];
-                if (list == null) {
-                    list = [];
-                    xref[n.sym.name]+=list;
+                let list = xref.get(n.sym.name);
+                if (list == undefined) {
+                    list = []
+                    xref.set(n.sym, list);
                 }
                 list.push(n.line);
             }
@@ -1398,14 +1398,17 @@ export class Tab {
         this.trace.WriteLine();
         //foreach (Symbol sym in xref.Keys) {
         //Todo:sort
-        for (let xrefKey of xref) {
+
+        let iter=xref.entries()
+        let entry=iter.next();
+        while(!entry.done){
             this.trace.Write("  ");
-            this.trace.Write(this.Name(xrefKey.name), -12);
-            let list = xref[xrefKey];
+            this.trace.Write(this.Name(entry.value[0].name), -12);
+            let list = entry.value[1];
             let col = 14;
             //foreach (int line in list) {
             for (let j = 0; j < list.length; j++) {
-                let line = list.get(j);
+                let line = list[j];
                 if (col + 5 > 80) {
                     this.trace.WriteLine();
                     for (col = 1; col <= 14; col++) this.trace.Write(" ");
@@ -1414,6 +1417,7 @@ export class Tab {
                 col += 5;
             }
             this.trace.WriteLine();
+            entry=iter.next();
         }
 
         this.trace.WriteLine();
@@ -1461,7 +1465,7 @@ export class Tab {
         let option = s.split("=", 2);
         let name = option[0], value = option[1];
         if ("$package" === name) {
-            if (this.nsName == null) this.nsName = value;
+            if (this.nsName == undefined) this.nsName = value;
         } else if ("$checkEOF" === name) {
             this.checkEOF = "true" === value;
         }

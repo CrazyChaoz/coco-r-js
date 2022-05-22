@@ -59,7 +59,7 @@ export class Buffer {
     private fileLen: number;  // length of input stream (may change if stream is no file)
     private bufPos: number;      // current position in buffer
     private file: number; // input stream (seekable)
-    private stream = null; // growing input stream (e.g.: console, network)
+    private stream = undefined; // growing input stream (e.g.: console, network)
 
     //constructor(s: InputStream);
     constructor(fileName: string);
@@ -107,7 +107,7 @@ export class Buffer {
     }
 
     protected Close() {
-        if (this.file != null) {
+        if (this.file != undefined) {
             try {
                 fs.close(this.file, function () {
                 });
@@ -124,7 +124,7 @@ export class Buffer {
         } else if (this.getPos() < this.fileLen) {
             this.setPos(this.getPos());         // shift buffer start to pos
             return this.buf[this.bufPos++] //& 0xff; // mask out sign bits
-        } else if (this.stream != null && this.ReadNextStreamChunk() > 0) {
+        } else if (this.stream != undefined && this.ReadNextStreamChunk() > 0) {
             return this.buf[this.bufPos++] //& 0xff;  // mask out sign bits
         } else {
             return Buffer.EOF;
@@ -156,7 +156,7 @@ export class Buffer {
     }
 
     public setPos(value: number) {
-        if (value >= this.fileLen && this.stream != null) {
+        if (value >= this.fileLen && this.stream != undefined) {
             // Wanted position is after buffer and the stream
             // is not seek-able e.g. network or console,
             // thus we have to read the stream manually till
@@ -170,7 +170,7 @@ export class Buffer {
 
         if (value >= this.bufStart && value < this.bufStart + this.bufLen) { // already in buffer
             this.bufPos = value - this.bufStart;
-        } else if (this.file != null) { // must be swapped in
+        } else if (this.file != undefined) { // must be swapped in
             try {
                 // this.file.seek(value);
                 // this.bufLen = this.file.read(this.buf);
@@ -294,8 +294,8 @@ export class StartStates {
 
     public state(key: number): number {
         let e = (this.tab)[key % 128];
-        while (e != null && e.key != key) e = e.next;
-        return e == null ? 0 : e.val;
+        while (e != undefined && e.key != key) e = e.next;
+        return e == undefined ? 0 : e.val;
     }
 }
 
@@ -510,7 +510,7 @@ export class Scanner {
         let val = this.t.val;
         let kind = Scanner.literals[val];
         //TODO: possibly has an error
-        if (kind != null && kind != 0) {
+        if (kind != undefined && kind != 0) {
             this.t.kind = kind;
         }
     }
@@ -855,7 +855,7 @@ export class Scanner {
     public Scan(): Token {
         let token:Token
 
-        if (this.tokens.next == null) {
+        if (this.tokens.next == undefined) {
             token = this.NextToken();
         } else {
             this.pt = this.tokens = this.tokens.next;
@@ -871,7 +871,7 @@ export class Scanner {
 // get the next token, ignore pragmas
     public Peek(): Token {
         do {
-            if (this.pt.next == null) {
+            if (this.pt.next == undefined) {
                 this.pt.next = this.NextToken();
             }
             this.pt = this.pt.next;

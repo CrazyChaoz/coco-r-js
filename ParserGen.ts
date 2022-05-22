@@ -88,7 +88,7 @@ export class ParserGen {
         if (p.typ != Node_.alt) return false;
         let nAlts = 0;
         s1 = new BitSet();
-        while (p != null) {
+        while (p != undefined) {
             s2 = this.tab.Expected0(p.sub, this.curSy);
             // must not optimize with switch statement, if there are ll1 warnings
             if (this.Overlaps(s1, s2)) {
@@ -106,7 +106,7 @@ export class ParserGen {
     CopySourcePart(pos: Position, indent: number) {
         // Copy text described by pos from atg to gen
         let ch, i: number;
-        if (pos != null) {
+        if (pos != undefined) {
             this.buffer.setPos(pos.beg);
             ch = this.buffer.Read();
             this.Indent(indent);
@@ -188,15 +188,11 @@ export class ParserGen {
     GenCode(p: Node_, indent: number, isChecked: BitSet) {
         let p2: Node_;
         let s1, s2: BitSet;
-        while (p != null) {
-            if(p.set != undefined){
-                console.log("while")
-                console.log(p.set)
-            }
+        while (p != undefined) {
             switch (p.typ) {
                 case Node_.nt: {
                     this.Indent(indent);
-                    if (p.retVar != null) fs.writeSync(this.gen, p.retVar + " = ");
+                    if (p.retVar != undefined) fs.writeSync(this.gen, p.retVar + " = ");
                     fs.writeSync(this.gen, p.sym.name + "(");
                     this.CopySourcePart(p.pos, 0);
                     fs.writeSync(this.gen, ");\n");
@@ -243,9 +239,6 @@ export class ParserGen {
                 case Node_.sync:
                     this.Indent(indent);
                     this.GenErrorMsg(ParserGen.syncErr, this.curSy);
-                    console.log("im .sync")
-                    console.log(p)
-                    console.log(this.curSy)
                     s1 = p.set.clone();
                     fs.writeSync(this.gen, "while (!(");
                     this.GenCond(s1, p);
@@ -263,7 +256,7 @@ export class ParserGen {
                         fs.writeSync(this.gen, "switch (la.kind) {\n");
                     }
                     p2 = p;
-                    while (p2 != null) {
+                    while (p2 != undefined) {
                         s1 = this.tab.Expected(p2.sub, this.curSy);
                         this.Indent(indent);
                         if (useSwitch) {
@@ -273,7 +266,7 @@ export class ParserGen {
                             fs.writeSync(this.gen, "if (");
                             this.GenCond(s1, p2.sub);
                             fs.writeSync(this.gen, ") {\n");
-                        } else if (p2.down == null && equal) {
+                        } else if (p2.down == undefined && equal) {
                             fs.writeSync(this.gen, "} else {\n");
                         } else {
                             fs.writeSync(this.gen, "} else if (");
@@ -315,7 +308,7 @@ export class ParserGen {
                         fs.writeSync(this.gen, "WeakSeparator(" + p2.sym.n + "," + this.NewCondSet(s1) + ","
                             + this.NewCondSet(s2) + ") ");
                         s1 = new BitSet();  // for inner structure
-                        if (p2.up || p2.next == null) p2 = null; else p2 = p2.next;
+                        if (p2.up || p2.next == undefined) p2 = undefined; else p2 = p2.next;
                     } else {
                         s1 = this.tab.First(p2);
                         this.GenCond(s1, p2);
@@ -384,7 +377,7 @@ export class ParserGen {
         // console.log("##########")
         // this.tab.nonterminals.forEach(((value, index, array) => {
         //     let p=value.graph
-        //     while (p!=null){
+        //     while (p!=undefined){
         //         console.log("in gen prod")
         //         console.log(p.set)
         //         p=p.next
@@ -396,18 +389,18 @@ export class ParserGen {
             let sym = this.tab.nonterminals[i];
             this.curSy = sym;
             fs.writeSync(this.gen, "\t");
-            if (sym.retType == null)
+            if (sym.retType == undefined)
                 fs.writeSync(this.gen, "void ");
             else
                 fs.writeSync(this.gen, sym.retType + " ");
             fs.writeSync(this.gen, sym.name + "(");
             this.CopySourcePart(sym.attrPos, 0);
             fs.writeSync(this.gen, ") {\n");
-            if (sym.retVar != null)
+            if (sym.retVar != undefined)
                 fs.writeSync(this.gen, "\t\t" + sym.retType + " " + sym.retVar + ";\n");
             this.CopySourcePart(sym.semPos, 2);
             this.GenCode(sym.graph, 2, new BitSet());
-            if (sym.retVar != null)
+            if (sym.retVar != undefined)
                 fs.writeSync(this.gen, "\t\treturn " + sym.retVar + ";\n");
             fs.writeSync(this.gen, "\t}\n");
             fs.writeSync(this.gen, "\n");
@@ -455,12 +448,12 @@ export class ParserGen {
         g.GenCopyright();
         g.SkipFramePart("-->begin");
 
-        if (this.tab.nsName != null && this.tab.nsName.length > 0) {
+        if (this.tab.nsName != undefined && this.tab.nsName.length > 0) {
             fs.writeSync(this.gen, "package ");
             fs.writeSync(this.gen, this.tab.nsName);
             fs.writeSync(this.gen, ";");
         }
-        if (this.usingPos != null) {
+        if (this.usingPos != undefined) {
 
             fs.writeSync(this.gen, "\n");
 
@@ -484,7 +477,7 @@ export class ParserGen {
         this.InitSets();
         g.CopyFramePart("-->errors");
         fs.writeSync(this.gen, this.err.toString());
-        g.CopyFramePart(null);
+        g.CopyFramePart(undefined);
         // this.gen.close();
         fs.close(this.gen, function () {
         })
@@ -513,7 +506,7 @@ export class ParserGen {
         this.trace = parser.trace;
         this.buffer = parser.scanner.buffer;
         this.errorNr = -1;
-        this.usingPos = null;
+        this.usingPos = undefined;
     }
 
 }

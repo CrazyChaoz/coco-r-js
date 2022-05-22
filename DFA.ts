@@ -18,9 +18,9 @@ export class State {               // state of finite automaton
     public next: State;
 
     public AddAction(act: Action) {
-        let lasta:Action = null;
+        let lasta:Action = undefined;
         let a = this.firstAction;
-        while (a != null && act.typ >= a.typ) {
+        while (a != undefined && act.typ >= a.typ) {
             lasta = a;
             a = a.next;
         }
@@ -33,17 +33,17 @@ export class State {               // state of finite automaton
     }
 
     public DetachAction(act: Action) {
-        let lasta = null, a = this.firstAction;
-        while (a != null && a != act) {
+        let lasta = undefined, a = this.firstAction;
+        while (a != undefined && a != act) {
             lasta = a;
             a = a.next;
         }
-        if (a != null)
+        if (a != undefined)
             if (a == this.firstAction) this.firstAction = a.next; else lasta.next = a.next;
     }
 
     public MeltWith(s: State) { // copy actions of s to state
-        for (let action = s.firstAction; action != null; action = action.next) {
+        for (let action = s.firstAction; action != undefined; action = action.next) {
             let a = new Action(action.typ, action.sym, action.tc);
             a.AddTargets(action);
             this.AddAction(a);
@@ -70,9 +70,9 @@ export class Action {      // action of finite automaton
     }
 
     public AddTarget(t: Target) { // add t to the action.targets
-        let last: Target = null;
+        let last: Target = undefined;
         let p = this.target;
-        while (p != null && t.state.nr >= p.state.nr) {
+        while (p != undefined && t.state.nr >= p.state.nr) {
             if (t.state == p.state) return;
             last = p;
             p = p.next;
@@ -82,7 +82,7 @@ export class Action {      // action of finite automaton
     }
 
     public AddTargets(a: Action) { // add copy of a.targets to action.targets
-        for (let p = a.target; p != null; p = p.next) {
+        for (let p = a.target; p != undefined; p = p.next) {
             let t = new Target(p.state);
             this.AddTarget(t);
         }
@@ -106,7 +106,7 @@ export class Action {      // action of finite automaton
             this.sym = s.First();
         } else {
             let c = tab.FindCharClass(s);
-            if (c == null) c = tab.NewCharClass("#", s); // class with dummy name
+            if (c == undefined) c = tab.NewCharClass("#", s); // class with dummy name
             this.typ = Node_.clas;
             this.sym = c.n;
         }
@@ -176,21 +176,21 @@ export class CharSet {
     public head: Range;
 
     public Get(i: number): boolean {
-        for (let p = this.head; p != null; p = p.next)
+        for (let p = this.head; p != undefined; p = p.next)
             if (i < p.from) return false;
             else if (i <= p.to) return true; // p.from <= i <= p.to
         return false;
     }
 
     public Set(i: number) {
-        let cur = this.head, prev = null;
-        while (cur != null && i >= cur.from - 1) {
+        let cur = this.head, prev = undefined;
+        while (cur != undefined && i >= cur.from - 1) {
             if (i <= cur.to + 1) { // (cur.from-1) <= i <= (cur.to+1)
                 if (i == cur.from - 1) cur.from--;
                 else if (i == cur.to + 1) {
                     cur.to++;
                     let next = cur.next;
-                    if (next != null && cur.to == next.from - 1) {
+                    if (next != undefined && cur.to == next.from - 1) {
                         cur.to = next.to;
                         cur.next = next.next;
                     }
@@ -203,15 +203,15 @@ export class CharSet {
         }
         let n = new Range(i, i);
         n.next = cur;
-        if (prev == null) this.head = n; else prev.next = n;
+        if (prev == undefined) this.head = n; else prev.next = n;
     }
 
     public Clone(): CharSet {
         let s = new CharSet();
-        let prev = null;
-        for (let cur = this.head; cur != null; cur = cur.next) {
+        let prev = undefined;
+        for (let cur = this.head; cur != undefined; cur = cur.next) {
             let r = new Range(cur.from, cur.to);
-            if (prev == null) s.head = r; else prev.next = r;
+            if (prev == undefined) s.head = r; else prev.next = r;
             prev = r;
         }
         return s;
@@ -219,7 +219,7 @@ export class CharSet {
 
     public Equals(s: CharSet): boolean {
         let p = this.head, q = s.head;
-        while (p != null && q != null) {
+        while (p != undefined && q != undefined) {
             if (p.from != q.from || p.to != q.to) return false;
             p = p.next;
             q = q.next;
@@ -229,23 +229,23 @@ export class CharSet {
 
     public Elements(): number {
         let n = 0;
-        for (let p = this.head; p != null; p = p.next) n += p.to - p.from + 1;
+        for (let p = this.head; p != undefined; p = p.next) n += p.to - p.from + 1;
         return n;
     }
 
     public First(): number {
-        if (this.head != null) return this.head.from;
+        if (this.head != undefined) return this.head.from;
         return -1;
     }
 
     public Or(s: CharSet) {
-        for (let p = s.head; p != null; p = p.next)
+        for (let p = s.head; p != undefined; p = p.next)
             for (let i = p.from; i <= p.to; i++) this.Set(i);
     }
 
     public And(s: CharSet) {
         let x = new CharSet();
-        for (let p = this.head; p != null; p = p.next)
+        for (let p = this.head; p != undefined; p = p.next)
             for (let i = p.from; i <= p.to; i++)
                 if (s.Get(i)) x.Set(i);
         this.head = x.head;
@@ -253,21 +253,21 @@ export class CharSet {
 
     public Subtract(s: CharSet) {
         let x = new CharSet();
-        for (let p = this.head; p != null; p = p.next)
+        for (let p = this.head; p != undefined; p = p.next)
             for (let i = p.from; i <= p.to; i++)
                 if (!s.Get(i)) x.Set(i);
         this.head = x.head;
     }
 
     public Includes(s: CharSet): boolean {
-        for (let p = s.head; p != null; p = p.next)
+        for (let p = s.head; p != undefined; p = p.next)
             for (let i = p.from; i <= p.to; i++)
                 if (!this.Get(i)) return false;
         return true;
     }
 
     public Intersects(s: CharSet): boolean {
-        for (let p = s.head; p != null; p = p.next)
+        for (let p = s.head; p != undefined; p = p.next)
             for (let i = p.from; i <= p.to; i++)
                 if (this.Get(i)) return true;
         return false;
@@ -296,11 +296,11 @@ export class Generator {
     }
 
     public OpenFrame(frame: string): number {
-        if (this.tab.frameDir != null)
+        if (this.tab.frameDir != undefined)
             this.frameFile = path.join(this.tab.frameDir, frame);
-        if (this.frameFile == null || !fs.existsSync(this.frameFile))
+        if (this.frameFile == undefined || !fs.existsSync(this.frameFile))
             this.frameFile = path.join(this.tab.srcDir, frame);
-        if (this.frameFile == null || !fs.existsSync(this.frameFile))
+        if (this.frameFile == undefined || !fs.existsSync(this.frameFile))
             throw new Error("Cannot find : " + frame);
 
         try {
@@ -337,18 +337,18 @@ export class Generator {
 
     public GenCopyright() {
         let copyFr: string;
-        if (this.tab.frameDir != null)
+        if (this.tab.frameDir != undefined)
             copyFr = path.join(this.tab.frameDir, "Copyright.frame");
-        if (copyFr == null || !fs.existsSync(copyFr))
+        if (copyFr == undefined || !fs.existsSync(copyFr))
             copyFr = path.join(this.tab.srcDir, "Copyright.frame");
-        if (copyFr == null || !fs.existsSync(copyFr))
+        if (copyFr == undefined || !fs.existsSync(copyFr))
             return;
 
         try {
             let scannerFram = this.fram;
             // this.fram = new BufferedReader(new FileReader(copyFr));
             this.fram = fs.openSync(copyFr, "r")
-            this.CopyFramePart(null);
+            this.CopyFramePart(undefined);
             this.fram = scannerFram;
         } catch (FileNotFoundException) {
             throw new Error("Cannot open Copyright.frame");
@@ -359,19 +359,19 @@ export class Generator {
         this.CopyFramePart(stop, false);
     }
 
-// if stop == null, copies until end of file
+// if stop == undefined, copies until end of file
     CopyFramePart(stop: string, generateOutput: boolean = true) {
         let startCh = 0;
         let endOfStopString = 0;
 
-        if (stop != null) {
+        if (stop != undefined) {
             startCh = stop.charCodeAt(0);
             endOfStopString = stop.length - 1;
         }
 
         let ch = this.framRead();
         while (ch != Generator.EOF) {
-            if (stop != null && ch == startCh) {
+            if (stop != undefined && ch == startCh) {
                 let i = 0;
                 do {
                     if (i == endOfStopString) return; // stop[0..i] found
@@ -390,7 +390,7 @@ export class Generator {
             }
         }
 
-        if (stop != null) throw new Error("Incomplete or corrupt frame file: " + this.frameFile);
+        if (stop != undefined) throw new Error("Incomplete or corrupt frame file: " + this.frameFile);
     }
 
     private framRead(): number {
@@ -449,7 +449,7 @@ export class DFA {
     }
 
     private PutRange(s: CharSet) {
-        for (let r = s.head; r != null; r = r.next) {
+        for (let r = s.head; r != undefined; r = r.next) {
             if (r.from == r.to) {
                 // this.gen.print("ch == " + this.Ch(String.fromCharCode(r.from)));
                 fs.writeSync(this.gen, "ch == " + this.Ch(String.fromCharCode(r.from)))
@@ -460,7 +460,7 @@ export class DFA {
                 // this.gen.print("ch >= " + this.Ch(String.fromCharCode(r.from)) + " && ch <= " + this.Ch(String.fromCharCode(r.to)));
                 fs.writeSync(this.gen, "ch >= " + this.Ch(String.fromCharCode(r.from)) + " && ch <= " + this.Ch(String.fromCharCode(r.to)))
             }
-            if (r.next != null)
+            if (r.next != undefined)
                 // this.gen.print(" || ");
                 fs.writeSync(this.gen, " || ")
         }
@@ -471,7 +471,7 @@ export class DFA {
     NewState(): State {
         let s = new State();
         s.nr = ++this.lastStateNr;
-        if (this.firstState == null)
+        if (this.firstState == undefined)
             this.firstState = s;
         else
             this.lastState.next = s;
@@ -492,10 +492,10 @@ export class DFA {
         let state: State;
         let a, b, c: Action;
         let seta, setb: CharSet;
-        for (state = this.firstState; state != null; state = state.next) {
-            for (a = state.firstAction; a != null; a = a.next) {
+        for (state = this.firstState; state != undefined; state = state.next) {
+            for (a = state.firstAction; a != undefined; a = a.next) {
                 b = a.next;
-                while (b != null)
+                while (b != undefined)
                     if (a.target.state == b.target.state && a.tc == b.tc) {
                         seta = a.Symbols(this.tab);
                         setb = b.Symbols(this.tab);
@@ -513,7 +513,7 @@ export class DFA {
         if (used.get(state.nr))
             return;
         used.set(state.nr);
-        for (let a = state.firstAction; a != null; a = a.next){
+        for (let a = state.firstAction; a != undefined; a = a.next){
             this.FindUsedStates(a.target.state, used);
         }
     }
@@ -524,24 +524,24 @@ export class DFA {
         let used = new BitSet();
         this.FindUsedStates(this.firstState, used);
         // combine equal final states
-        for (let s1 = this.firstState.next; s1 != null; s1 = s1.next) // firstState cannot be final
-            if (used.get(s1.nr) && s1.endOf != null && s1.firstAction == null && !s1.ctx)
-                for (let s2 = s1.next; s2 != null; s2 = s2.next)
+        for (let s1 = this.firstState.next; s1 != undefined; s1 = s1.next) // firstState cannot be final
+            if (used.get(s1.nr) && s1.endOf != undefined && s1.firstAction == undefined && !s1.ctx)
+                for (let s2 = s1.next; s2 != undefined; s2 = s2.next)
                     //TODO: look at this
-                    // if (used.get(s2.nr) && s1.endOf == s2.endOf && s2.firstAction == null & !s2.ctx) { // ??????????
-                    if (used.get(s2.nr) && s1.endOf == s2.endOf && s2.firstAction == null && !s2.ctx) {
+                    // if (used.get(s2.nr) && s1.endOf == s2.endOf && s2.firstAction == undefined & !s2.ctx) { // ??????????
+                    if (used.get(s2.nr) && s1.endOf == s2.endOf && s2.firstAction == undefined && !s2.ctx) {
                         used.set(s2.nr);
                         newState[s2.nr] = s1;
                     }
-        for (let state = this.firstState; state != null; state = state.next)
+        for (let state = this.firstState; state != undefined; state = state.next)
             if (used.get(state.nr))
-                for (let a = state.firstAction; a != null; a = a.next)
+                for (let a = state.firstAction; a != undefined; a = a.next)
                     if (!used.get(a.target.state.nr))
                         a.target.state = newState[a.target.state.nr];
         // delete unused states
         this.lastState = this.firstState;
         this.lastStateNr = 0; // firstState has number 0
-        for (let state = this.firstState.next; state != null; state = state.next)
+        for (let state = this.firstState.next; state != undefined; state = state.next)
             if (used.get(state.nr)) {
                 state.nr = ++this.lastStateNr;
                 this.lastState = state;
@@ -550,7 +550,7 @@ export class DFA {
 
     TheState(p: Node_): State {
         let state: State;
-        if (p == null) {
+        if (p == undefined) {
             state = this.NewState();
             state.endOf = this.curSy;
             return state;
@@ -558,7 +558,7 @@ export class DFA {
     }
 
     Step(from: State, p: Node_, stepped: BitSet) {
-        if (p == null) return;
+        if (p == undefined) return;
         stepped.set(p.n);
         switch (p.typ) {
             case Node_.clas:
@@ -576,7 +576,7 @@ export class DFA {
                     this.parser.SemErr("contents of {...} must not be deletable");
                     return;
                 }
-                if (p.next != null && !stepped.get(p.next.n)) this.Step(from, p.next, stepped);
+                if (p.next != undefined && !stepped.get(p.next.n)) this.Step(from, p.next, stepped);
                 this.Step(from, p.sub, stepped);
                 if (p.state != from) {
                     // this.Step(p.state, p, new BitSet(this.tab.nodes.length));
@@ -585,7 +585,7 @@ export class DFA {
                 break;
             }
             case Node_.opt: {
-                if (p.next != null && !stepped.get(p.next.n)) this.Step(from, p.next, stepped);
+                if (p.next != undefined && !stepped.get(p.next.n)) this.Step(from, p.next, stepped);
                 this.Step(from, p.sub, stepped);
                 break;
             }
@@ -601,19 +601,19 @@ export class DFA {
 //  - if a nested structure starts with an iteration the iter node must get a new number
 //  - if an iteration follows an iteration, it must get a new number
     NumberNodes(p: Node_, state: State, renumIter: boolean) {
-        if (p == null) return;
-        if (p.state != null) return; // already visited;
-        if (state == null || (p.typ == Node_.iter && renumIter)) state = this.NewState();
+        if (p == undefined) return;
+        if (p.state != undefined) return; // already visited;
+        if (state == undefined || (p.typ == Node_.iter && renumIter)) state = this.NewState();
         p.state = state;
         if (this.tab.DelGraph(p)) state.endOf = this.curSy;
         switch (p.typ) {
             case Node_.clas:
             case Node_.chr: {
-                this.NumberNodes(p.next, null, false);
+                this.NumberNodes(p.next, undefined, false);
                 break;
             }
             case Node_.opt: {
-                this.NumberNodes(p.next, null, false);
+                this.NumberNodes(p.next, undefined, false);
                 this.NumberNodes(p.sub, state, true);
                 break;
             }
@@ -623,7 +623,7 @@ export class DFA {
                 break;
             }
             case Node_.alt: {
-                this.NumberNodes(p.next, null, false);
+                this.NumberNodes(p.next, undefined, false);
                 this.NumberNodes(p.sub, state, true);
                 this.NumberNodes(p.down, state, renumIter);
                 break;
@@ -632,7 +632,7 @@ export class DFA {
     }
 
     FindTrans(p: Node_, start: boolean, marked: BitSet) {
-        if (p == null || marked.get(p.n)) return;
+        if (p == undefined || marked.get(p.n)) return;
         marked.set(p.n);
         // if (start) this.Step(p.state, p, new BitSet(this.tab.nodes.length)); // start of group of equally numbered nodes
         if (start) this.Step(p.state, p, new BitSet()); // start of group of equally numbered nodes
@@ -681,18 +681,18 @@ export class DFA {
         let i;
         let len = s.length;
         let state = this.firstState;
-        let a = null;
+        let a = undefined;
         for (i = 0; i < len; i++) { // try to match s against existing DFA
             a = this.FindAction(state, s.charAt(i));
-            if (a == null)
+            if (a == undefined)
                 break;
             state = a.target.state;
         }
         // if s was not totally consumed or leads to a non-final state => make new DFA from it
-        if (i != len || state.endOf == null) {
+        if (i != len || state.endOf == undefined) {
             state = this.firstState;
             i = 0;
-            a = null;
+            a = undefined;
             this.dirtyDFA = true;
         }
         for (; i < len; i++) { // make new DFA for s[i..len-1]
@@ -701,9 +701,9 @@ export class DFA {
             state = to;
         }
         let matchedSym = state.endOf;
-        if (state.endOf == null) {
+        if (state.endOf == undefined) {
             state.endOf = sym;
-        } else if (matchedSym.tokenKind == Symbol.fixedToken || (a != null && a.tc == Node_.contextTrans)) {
+        } else if (matchedSym.tokenKind == Symbol.fixedToken || (a != undefined && a.tc == Node_.contextTrans)) {
             // s matched a token with a fixed definition or a token with an appendix that will be cut off
             this.parser.SemErr("tokens " + sym.name + " and " + matchedSym.name + " cannot be distinguished");
         } else { // matchedSym == classToken || classLitToken
@@ -768,8 +768,8 @@ export class DFA {
         let changed: boolean;
         do {
             changed = false;
-            for (let a = state.firstAction; a != null; a = a.next)
-                for (let b = a.next; b != null; b = b.next)
+            for (let a = state.firstAction; a != undefined; a = a.next)
+                for (let b = a.next; b != undefined; b = b.next)
                     if (this.Overlap(a, b)) {
                         this.SplitActions(state, a, b);
                         changed = true;
@@ -781,8 +781,8 @@ export class DFA {
         let ctx: boolean;
         let targets: BitSet;
         let endOf: Symbol;
-        for (let action = state.firstAction; action != null; action = action.next) {
-            if (action.target.next != null) {
+        for (let action = state.firstAction; action != undefined; action = action.next) {
+            if (action.target.next != undefined) {
                 //action.GetTargetStates(out targets, out endOf, out ctx);
                 let param = [];
                 ctx = this.GetTargetStates(action, param);
@@ -790,24 +790,24 @@ export class DFA {
                 endOf = param[1];
                 //
                 let melt = this.StateWithSet(targets);
-                if (melt == null) {
+                if (melt == undefined) {
                     let s = this.NewState();
                     s.endOf = endOf;
                     s.ctx = ctx;
-                    for (let targ = action.target; targ != null; targ = targ.next)
+                    for (let targ = action.target; targ != undefined; targ = targ.next)
                         s.MeltWith(targ.state);
                     this.MakeUnique(s);
                     melt = this.NewMelted(targets, s);
                 }
-                action.target.next = null;
+                action.target.next = undefined;
                 action.target.state = melt.state;
             }
         }
     }
 
     FindCtxStates() {
-        for (let state = this.firstState; state != null; state = state.next)
-            for (let a = state.firstAction; a != null; a = a.next)
+        for (let state = this.firstState; state != undefined; state = state.next)
+            for (let a = state.firstAction; a != undefined; a = a.next)
                 if (a.tc == Node_.contextTrans) a.target.state.ctx = true;
     }
 
@@ -816,9 +816,9 @@ export class DFA {
         this.lastSimState = this.lastState.nr;
         this.maxStates = 2 * this.lastSimState; // heuristic for set size in Melted.set
         this.FindCtxStates();
-        for (state = this.firstState; state != null; state = state.next)
+        for (state = this.firstState; state != undefined; state = state.next)
             this.MakeUnique(state);
-        for (state = this.firstState; state != null; state = state.next)
+        for (state = this.firstState; state != undefined; state = state.next)
             this.MeltStates(state);
         this.DeleteRedundantStates();
         this.CombineShifts();
@@ -827,13 +827,13 @@ export class DFA {
     public PrintStates() {
         this.trace.WriteLine();
         this.trace.WriteLine("---------- states ----------");
-        for (let state = this.firstState; state != null; state = state.next) {
+        for (let state = this.firstState; state != undefined; state = state.next) {
             let first = true;
-            if (state.endOf == null) this.trace.Write("               ");
+            if (state.endOf == undefined) this.trace.Write("               ");
             else this.trace.Write("E(" + this.tab.Name(state.endOf.name) + ")", 12);
             this.trace.Write(state.nr + ":", 3);
-            if (state.firstAction == null) this.trace.WriteLine();
-            for (let action = state.firstAction; action != null; action = action.next) {
+            if (state.firstAction == undefined) this.trace.WriteLine();
+            for (let action = state.firstAction; action != undefined; action = action.next) {
                 if (first) {
                     this.trace.Write(" ");
                     first = false;
@@ -841,7 +841,7 @@ export class DFA {
                 if (action.typ == Node_.clas)
                     this.trace.Write((this.tab.classes[action.sym]).name);
                 else this.trace.Write(this.Ch(action.sym.toString()), 3);
-                for (let targ = action.target; targ != null; targ = targ.next)
+                for (let targ = action.target; targ != undefined; targ = targ.next)
                     this.trace.Write(targ.state.nr + "", 3);
                 if (action.tc == Node_.contextTrans) this.trace.WriteLine(" context"); else this.trace.WriteLine();
             }
@@ -854,7 +854,7 @@ export class DFA {
     //------------------------ actions ------------------------------
 
     public FindAction(state: State, ch: string): Action {
-        for (let a = state.firstAction; a != null; a = a.next){
+        for (let a = state.firstAction; a != undefined; a = a.next){
             if (a.typ == Node_.chr && ch.charCodeAt(0) == a.sym)
                 return a;
             else if (a.typ == Node_.clas) {
@@ -863,7 +863,7 @@ export class DFA {
                     return a;
             }
         }
-        return null;
+        return undefined;
     }
 
 //public void GetTargetStates(out BitArray targets, out Symbol endOf, out bool ctx) {
@@ -871,14 +871,14 @@ export class DFA {
         // compute the set of target states
         // let targets = new BitSet(this.maxStates);
         let targets = new BitSet();
-        let endOf = null;
+        let endOf = undefined;
         let ctx = false;
-        for (let t = a.target; t != null; t = t.next) {
+        for (let t = a.target; t != undefined; t = t.next) {
             let stateNr = t.state.nr;
             if (stateNr <= this.lastSimState) targets.set(stateNr);
             else targets.or(this.MeltedSet(stateNr));
-            if (t.state.endOf != null)
-                if (endOf == null || endOf == t.state.endOf)
+            if (t.state.endOf != undefined)
+                if (endOf == undefined || endOf == t.state.endOf)
                     endOf = t.state.endOf;
                 else {
                     this.errors.SemErr("Tokens " + endOf.name + " and " + t.state.endOf.name +
@@ -891,7 +891,7 @@ export class DFA {
                 //   s1 = "a" "b" "c".
                 //   s2 = "a" CONTEXT("b").
                 // But this is ok.
-                // if (t.state.endOf != null) {
+                // if (t.state.endOf != undefined) {
                 //   Console.WriteLine("Ambiguous context clause");
                 //   Errors.count++;
                 // }
@@ -915,16 +915,16 @@ export class DFA {
 
     MeltedSet(nr: number): BitSet {
         let m = this.firstMelted;
-        while (m != null) {
+        while (m != undefined) {
             if (m.state.nr == nr) return m.set; else m = m.next;
         }
         throw new Error("Compiler error in Melted.Set");
     }
 
     StateWithSet(s: BitSet): Melted {
-        for (let m = this.firstMelted; m != null; m = m.next)
+        for (let m = this.firstMelted; m != undefined; m = m.next)
             if (Sets.Equals(s, m.set)) return m;
-        return null;
+        return undefined;
     }
 
     //------------------------- comments ----------------------------
@@ -932,7 +932,7 @@ export class DFA {
 
     CommentStr(p: Node_): string {
         let s = "";
-        while (p != null) {
+        while (p != undefined) {
             if (p.typ == Node_.chr) {
                 s += String.fromCharCode(p.val);
             } else if (p.typ == Node_.clas) {
@@ -1043,11 +1043,11 @@ export class DFA {
     WriteState(state: State) {
         let endOf = state.endOf;
         fs.writeSync(this.gen, "\t\t\t\tcase " + state.nr + ":\n");
-        if (endOf != null && state.firstAction != null) {
+        if (endOf != undefined && state.firstAction != undefined) {
             fs.writeSync(this.gen, "\t\t\t\t\trecEnd = pos; recKind = " + endOf.n + ";\n");
         }
         let ctxEnd = state.ctx;
-        for (let action = state.firstAction; action != null; action = action.next) {
+        for (let action = state.firstAction; action != undefined; action = action.next) {
             if (action == state.firstAction) fs.writeSync(this.gen, "\t\t\t\t\tif (");
             else fs.writeSync(this.gen, "\t\t\t\t\telse if (");
             if (action.typ == Node_.chr) fs.writeSync(this.gen, this.ChCond(action.sym.toString()));
@@ -1061,7 +1061,7 @@ export class DFA {
             }
             fs.writeSync(this.gen, "AddCh(); state = " + action.target.state.nr + "; break;}\n");
         }
-        if (state.firstAction == null)
+        if (state.firstAction == undefined)
             fs.writeSync(this.gen, "\t\t\t\t\t{");
         else
             fs.writeSync(this.gen, "\t\t\t\t\telse {");
@@ -1071,7 +1071,7 @@ export class DFA {
             fs.writeSync(this.gen, "\t\t\t\t\tSetScannerBehindT();\n");
             fs.writeSync(this.gen, "\t\t\t\t\t");
         }
-        if (endOf == null) {
+        if (endOf == undefined) {
             fs.writeSync(this.gen, "state = 0; break;}\n");
         } else {
             fs.writeSync(this.gen, "t.kind = " + endOf.n + "; ");
@@ -1084,13 +1084,13 @@ export class DFA {
     }
 
     WriteStartTab() {
-        for (let action = this.firstState.firstAction; action != null; action = action.next) {
+        for (let action = this.firstState.firstAction; action != undefined; action = action.next) {
             let targetState = action.target.state.nr;
             if (action.typ == Node_.chr) {
                 fs.writeSync(this.gen, "\t\tstart.set(" + action.sym + ", " + targetState + "); \n");
             } else {
                 let s = this.tab.CharClassSet(action.sym);
-                for (let r = s.head; r != null; r = r.next) {
+                for (let r = s.head; r != undefined; r = r.next) {
                     fs.writeSync(this.gen, "\t\tfor (int i = " + r.from + "; i <= " + r.to + "; ++i) start.set(i, " + targetState + ");\n");
                 }
             }
@@ -1110,7 +1110,7 @@ export class DFA {
         g.SkipFramePart("-->begin");
 
         /* add package name, if it exists */
-        if (this.tab.nsName != null && this.tab.nsName.length > 0) {
+        if (this.tab.nsName != undefined && this.tab.nsName.length > 0) {
             fs.writeSync(this.gen, "package ");
             fs.writeSync(this.gen, this.tab.nsName);
             fs.writeSync(this.gen, ";\n");
@@ -1138,7 +1138,7 @@ export class DFA {
         g.CopyFramePart("-->comments");
         let com = this.firstComment;
         let comIdx = 0;
-        while (com != null) {
+        while (com != undefined) {
             this.GenComment(com, comIdx);
             com = com.next;
             comIdx++;
@@ -1155,14 +1155,14 @@ export class DFA {
             fs.writeSync(this.gen, "false");
         }
         g.CopyFramePart("-->scan2");
-        if (this.firstComment != null) {
+        if (this.firstComment != undefined) {
             fs.writeSync(this.gen, "\t\tif (");
             com = this.firstComment;
             comIdx = 0;
-            while (com != null) {
+            while (com != undefined) {
                 fs.writeSync(this.gen, this.ChCond(com.start.charAt(0)));
                 fs.writeSync(this.gen, " && Comment" + comIdx + "()");
-                if (com.next != null) fs.writeSync(this.gen, " ||");
+                if (com.next != undefined) fs.writeSync(this.gen, " ||");
                 com = com.next;
                 comIdx++;
             }
@@ -1173,9 +1173,9 @@ export class DFA {
             fs.writeSync(this.gen, "\t\tint apx = 0;");
         } /* pdt */
         g.CopyFramePart("-->scan3");
-        for (let state = this.firstState.next; state != null; state = state.next)
+        for (let state = this.firstState.next; state != undefined; state = state.next)
             this.WriteState(state);
-        g.CopyFramePart(null);
+        g.CopyFramePart(undefined);
         fs.close(this.gen,function (){})
     }
 
@@ -1184,12 +1184,12 @@ export class DFA {
         this.tab = parser.tab;
         this.errors = parser.errors;
         this.trace = parser.trace;
-        this.firstState = null;
-        this.lastState = null;
+        this.firstState = undefined;
+        this.lastState = undefined;
         this.lastStateNr = -1;
         this.firstState = this.NewState();
-        this.firstMelted = null;
-        this.firstComment = null;
+        this.firstMelted = undefined;
+        this.firstComment = undefined;
         this.ignoreCase = false;
         this.dirtyDFA = false;
         this.hasCtxMoves = false;
