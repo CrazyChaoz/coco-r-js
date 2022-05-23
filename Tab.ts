@@ -31,7 +31,8 @@ export class Symbol {
     public typ: number;         // t, nt, pr, unknown, rslv /* ML 29_11_2002 slv added */ /* AW slv --> rslv */
     public name: string;        // symbol name
     public graph: Node_;       // nt: to first node_ of syntax graph
-    public tokenKind: number;   // t:  token kind (fixedToken, classToken, ...)
+    //in java this is not there because this works because uninitialized int is 0, but in js it is undefined
+    public tokenKind: number=Symbol.fixedToken;   // t:  token kind (fixedToken, classToken, ...)
     public deletable: boolean;   // nt: true if nonterminal is deletable
     public firstReady: boolean;  // nt: true if terminal start symbols have already been computed
     public first: BitSet;       // nt: terminal start symbols
@@ -261,11 +262,11 @@ export class Tab {
     }
 
     PrintSym(sym: Symbol) {
-        this.trace.Write(sym.n.toString(), -14);
-        this.trace.Write(" ", -14);
+        this.trace.Write(sym.n.toString(), 3);
+        this.trace.Write(" ");
         this.trace.Write(this.Name(sym.name), -14);
-        this.trace.Write(" ", -14);
-        this.trace.Write((this.nTyp)[sym.typ], -14);
+        this.trace.Write(" ");
+        this.trace.Write((this.nTyp)[sym.typ],2);
         if (sym.attrPos == undefined) this.trace.Write(" false "); else this.trace.Write(" true  ");
         if (sym.typ == Node_.nt) {
             this.trace.Write(this.Num(sym.graph).toString(), 5);
@@ -273,7 +274,7 @@ export class Tab {
         } else
             this.trace.Write("            ");
         this.trace.Write(sym.line.toString(), 5);
-        this.trace.WriteLine(" " + (this.tKind)[sym.tokenKind]);
+        this.trace.WriteLine(" " + this.tKind[sym.tokenKind]);
     }
 
     public PrintSymbolTable(s?: string) {

@@ -314,11 +314,12 @@ export class Parser {
         let g: Graph;
         s = this.Sym();
         sym = this.tab.FindSym(s.name);
-        if (sym != undefined) this.SemErr("name declared twice");
-        else {
-            sym = this.tab.NewSym(typ, s.name, this.t.line);
-            sym.tokenKind = Symbol.fixedToken;
-        }
+        if (sym != undefined)
+            this.SemErr("name declared twice");
+
+        sym = this.tab.NewSym(typ, s.name, this.t.line);
+        sym.tokenKind = Symbol.fixedToken;
+
         this.tokenString = undefined;
 
         while (!(this.StartOf(5))) {
