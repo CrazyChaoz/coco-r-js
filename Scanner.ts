@@ -111,6 +111,7 @@ export class Buffer {
             try {
                 fs.close(this.file, function () {
                 });
+                this.file=undefined;
             } catch (e) {
                 console.error(e)
                 //throw new Error(e);
