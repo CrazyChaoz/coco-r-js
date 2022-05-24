@@ -18,7 +18,7 @@ export class State {               // state of finite automaton
     public next: State;
 
     public AddAction(act: Action) {
-        let lasta:Action = undefined;
+        let lasta: Action = undefined;
         let a = this.firstAction;
         while (a != undefined && act.typ >= a.typ) {
             lasta = a;
@@ -28,7 +28,7 @@ export class State {               // state of finite automaton
         act.next = a;
         if (a == this.firstAction) {
             this.firstAction = act;
-        }else
+        } else
             lasta.next = act;
     }
 
@@ -513,14 +513,14 @@ export class DFA {
         if (used.get(state.nr))
             return;
         used.set(state.nr);
-        for (let a = state.firstAction; a != undefined; a = a.next){
+        for (let a = state.firstAction; a != undefined; a = a.next) {
             this.FindUsedStates(a.target.state, used);
         }
     }
 
     DeleteRedundantStates() {
         // let newState = new State[this.lastStateNr + 1];
-        let newState:State[] = [];
+        let newState: State[] = [];
         let used = new BitSet();
         this.FindUsedStates(this.firstState, used);
         // combine equal final states
@@ -530,7 +530,7 @@ export class DFA {
                     //TODO: look at this
                     // if (used.get(s2.nr) && s1.endOf == s2.endOf && s2.firstAction == undefined & !s2.ctx) { // ??????????
                     if (used.get(s2.nr) && s1.endOf == s2.endOf && s2.firstAction == undefined && !s2.ctx) {
-                        used.set(s2.nr);
+                        used.set(s2.nr,0);
                         newState[s2.nr] = s1;
                     }
         for (let state = this.firstState; state != undefined; state = state.next)
@@ -829,10 +829,13 @@ export class DFA {
         this.trace.WriteLine("---------- states ----------");
         for (let state = this.firstState; state != undefined; state = state.next) {
             let first = true;
-            if (state.endOf == undefined) this.trace.Write("               ");
-            else this.trace.Write("E(" + this.tab.Name(state.endOf.name) + ")", 12);
+            if (state.endOf == undefined)
+                this.trace.Write("               ");
+            else
+                this.trace.Write("E(" + this.tab.Name(state.endOf.name) + ")", 12);
             this.trace.Write(state.nr + ":", 3);
-            if (state.firstAction == undefined) this.trace.WriteLine();
+            if (state.firstAction == undefined)
+                this.trace.WriteLine();
             for (let action = state.firstAction; action != undefined; action = action.next) {
                 if (first) {
                     this.trace.Write(" ");
@@ -840,7 +843,8 @@ export class DFA {
                 } else this.trace.Write("                   ");
                 if (action.typ == Node_.clas)
                     this.trace.Write((this.tab.classes[action.sym]).name);
-                else this.trace.Write(this.Ch(action.sym.toString()), 3);
+                else
+                    this.trace.Write(this.Ch(String.fromCharCode(action.sym)), 3);
                 for (let targ = action.target; targ != undefined; targ = targ.next)
                     this.trace.Write(targ.state.nr + "", 3);
                 if (action.tc == Node_.contextTrans) this.trace.WriteLine(" context"); else this.trace.WriteLine();
@@ -854,7 +858,7 @@ export class DFA {
     //------------------------ actions ------------------------------
 
     public FindAction(state: State, ch: string): Action {
-        for (let a = state.firstAction; a != undefined; a = a.next){
+        for (let a = state.firstAction; a != undefined; a = a.next) {
             if (a.typ == Node_.chr && ch.charCodeAt(0) == a.sym)
                 return a;
             else if (a.typ == Node_.clas) {
@@ -1176,7 +1180,8 @@ export class DFA {
         for (let state = this.firstState.next; state != undefined; state = state.next)
             this.WriteState(state);
         g.CopyFramePart(undefined);
-        fs.close(this.gen,function (){})
+        fs.close(this.gen, function () {
+        })
     }
 
     constructor(parser: Parser) {
