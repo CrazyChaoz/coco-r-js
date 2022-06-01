@@ -383,12 +383,14 @@ export class Parser {
         return s;
     }
 
-    AttrDecl(sym: Symbol) {
+    AttrDecl(sym) {
         let beg, col: number;
+        //@ts-ignore
         if (this.la.kind == 24) {
             this.Get();
-            // @ts-ignore
+            //@ts-ignore
             if (this.la.kind == 25 || this.la.kind == 26) {
+                //@ts-ignore
                 if (this.la.kind == 25) {
                     this.Get();
                 } else {
@@ -397,38 +399,44 @@ export class Parser {
                 beg = this.la.pos;
                 this.TypeName();
                 sym.retType = this.scanner.buffer.GetString(beg, this.la.pos);
-                this.Expect(1);
+                this.Get();
                 sym.retVar = this.t.val;
+                //@ts-ignore
                 if (this.la.kind == 27) {
                     this.Get();
+                    //@ts-ignore
                 } else if (this.la.kind == 28) {
                     this.Get();
                     beg = this.la.pos;
                     col = this.la.col;
+                    //@ts-ignore
                     while (this.StartOf(9)) {
                         this.Get();
                     }
                     this.Expect(27);
-                    if (this.t.pos > beg)
-                        sym.attrPos = new Position(beg, this.t.pos, col);
+                    if (this.t.pos > beg) sym.attrPos = new Position(beg, this.t.pos, col);
                 } else this.SynErr(48);
+                //@ts-ignore
             } else if (this.StartOf(10)) {
                 beg = this.la.pos;
                 col = this.la.col;
+                //@ts-ignore
                 if (this.StartOf(11)) {
                     this.Get();
+                    //@ts-ignore
                     while (this.StartOf(9)) {
                         this.Get();
                     }
                 }
-                this.Expect(27);
-                if (this.t.pos > beg)
-                    sym.attrPos = new Position(beg, this.t.pos, col);
+                this.Get();
+                if (this.t.pos > beg) sym.attrPos = new Position(beg, this.t.pos, col);
             } else this.SynErr(49);
+            //@ts-ignore
         } else if (this.la.kind == 29) {
             this.Get();
-            // @ts-ignore
+            //@ts-ignore
             if (this.la.kind == 25 || this.la.kind == 26) {
+                //@ts-ignore
                 if (this.la.kind == 25) {
                     this.Get();
                 } else {
@@ -437,33 +445,37 @@ export class Parser {
                 beg = this.la.pos;
                 this.TypeName();
                 sym.retType = this.scanner.buffer.GetString(beg, this.la.pos);
-                this.Expect(1);
+                this.Get();
                 sym.retVar = this.t.val;
+                //@ts-ignore
                 if (this.la.kind == 30) {
                     this.Get();
+                    //@ts-ignore
                 } else if (this.la.kind == 28) {
                     this.Get();
                     beg = this.la.pos;
                     col = this.la.col;
+                    //@ts-ignore
                     while (this.StartOf(12)) {
                         this.Get();
                     }
                     this.Expect(30);
-                    if (this.t.pos > beg)
-                        sym.attrPos = new Position(beg, this.t.pos, col);
+                    if (this.t.pos > beg) sym.attrPos = new Position(beg, this.t.pos, col);
                 } else this.SynErr(50);
+                //@ts-ignore
             } else if (this.StartOf(10)) {
                 beg = this.la.pos;
                 col = this.la.col;
+                //@ts-ignore
                 if (this.StartOf(13)) {
                     this.Get();
+                    //@ts-ignore
                     while (this.StartOf(12)) {
                         this.Get();
                     }
                 }
-                this.Expect(30);
-                if (this.t.pos > beg)
-                    sym.attrPos = new Position(beg, this.t.pos, col);
+                this.Get();
+                if (this.t.pos > beg) sym.attrPos = new Position(beg, this.t.pos, col);
             } else this.SynErr(51);
         } else this.SynErr(52);
     }

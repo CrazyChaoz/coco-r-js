@@ -228,7 +228,7 @@ SimSet<out CharSet s>           (. let n1, n2: number;.)
 
 /*--------------------------------------------------------------------------------------*/
 
-Char<out int n>
+Char<out number n>
 =
   char                          (. let name = this.t.val;
                                    n = 0;
@@ -241,7 +241,7 @@ Char<out int n>
 
 /*------------------------------------------------------------------------------------*/
 
-TokenDecl<int typ>              (. let s: SymInfo;
+TokenDecl<typ: number>              (. let s: SymInfo;
                                    let sym: Symbol;
                                    let g: Graph; .)
 =
@@ -276,7 +276,7 @@ TokenDecl<int typ>              (. let s: SymInfo;
 
 /*------------------------------------------------------------------------------------*/
 
-AttrDecl<Symbol sym>            (. let beg, col: number; .)
+AttrDecl<sym: Symbol>            (. let beg, col: number; .)
 =
   '<'                           // attributes denoted by < ... >
   ( ('^' | "out")               (. beg = this.la.pos; .)
@@ -498,7 +498,7 @@ Sym<out SymInfo s>
 
 /*------------------------------------------------------------------------------------*/
 
-Attribs<Node n>                 (. let beg, col: number; .)
+Attribs<n: Node_>                 (. let beg, col: number; .)
 =
   '<'                           // attributes denoted by < ... >
   ( ('^' | "out")               (. beg = this.la.pos; .)

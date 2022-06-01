@@ -222,6 +222,7 @@ export class ParserGen {
                     } else {
                         this.GenErrorMsg(ParserGen.altErr, this.curSy);
                         if (acc > 0) {
+                            fs.writeSync(this.gen, "//@ts-ignore\n");
                             fs.writeSync(this.gen, "if (");
                             this.GenCond(p.set, p);
                             fs.writeSync(this.gen, ") this.Get(); else this.SynErr(" + this.errorNr + ");\n");
@@ -241,6 +242,7 @@ export class ParserGen {
                     this.Indent(indent);
                     this.GenErrorMsg(ParserGen.syncErr, this.curSy);
                     s1 = p.set.clone();
+                    fs.writeSync(this.gen, "//@ts-ignore\n");
                     fs.writeSync(this.gen, "while (!(");
                     this.GenCond(s1, p);
                     fs.writeSync(this.gen, ")) {");
@@ -264,12 +266,14 @@ export class ParserGen {
                             this.PutCaseLabels(s1);
                             fs.writeSync(this.gen, "{\n");
                         } else if (p2 == p) {
+                            fs.writeSync(this.gen, "//@ts-ignore\n");
                             fs.writeSync(this.gen, "if (");
                             this.GenCond(s1, p2.sub);
                             fs.writeSync(this.gen, ") {\n");
                         } else if (p2.down == undefined && equal) {
                             fs.writeSync(this.gen, "} else {\n");
                         } else {
+                            fs.writeSync(this.gen, "//@ts-ignore\n");
                             fs.writeSync(this.gen, "} else if (");
                             this.GenCond(s1, p2.sub);
                             fs.writeSync(this.gen, ") {\n");
@@ -302,6 +306,7 @@ export class ParserGen {
                 case Node_.iter: {
                     this.Indent(indent);
                     p2 = p.sub;
+                    fs.writeSync(this.gen, "//@ts-ignore\n");
                     fs.writeSync(this.gen, "while (");
                     if (p2.typ == Node_.wt) {
                         s1 = this.tab.Expected(p2.next, this.curSy);
@@ -323,6 +328,7 @@ export class ParserGen {
                 case Node_.opt:
                     s1 = this.tab.First(p.sub);
                     this.Indent(indent);
+                    fs.writeSync(this.gen, "//@ts-ignore\n");
                     fs.writeSync(this.gen, "if (");
                     this.GenCond(s1, p.sub);
                     fs.writeSync(this.gen, ") {\n");
@@ -363,7 +369,7 @@ export class ParserGen {
         for (let i = 0; i < this.tab.pragmas.length; i++) {
             let sym = this.tab.pragmas[i];
 
-            fs.writeSync(this.gen, "\n");
+            fs.writeSync(this.gen, "\n //@ts-ignore \n");
             fs.writeSync(this.gen, "\t\t\tif (this.la.kind == " + sym.n + ") {\n");
             this.CopySourcePart(sym.semPos, 4);
             fs.writeSync(this.gen, "\t\t\t}");
@@ -376,7 +382,9 @@ export class ParserGen {
             this.curSy = sym;
             fs.writeSync(this.gen, "\t");
             fs.writeSync(this.gen, sym.name + "(");
-            this.CopySourcePart(sym.attrPos, 0);
+            if(sym.attrPos != undefined){
+                this.CopySourcePart(sym.attrPos, 0);
+            }
             fs.writeSync(this.gen, ")");
             if (sym.retType != undefined)
                 fs.writeSync(this.gen, ":" + sym.retType);
@@ -457,7 +465,7 @@ export class ParserGen {
         g.CopyFramePart("-->productions");
         this.GenProductions();
         g.CopyFramePart("-->parseRoot");
-        fs.writeSync(this.gen, "\t\t" + this.tab.gramSy.name + "();\n");
+        fs.writeSync(this.gen, "\t\tthis." + this.tab.gramSy.name + "();\n");
         if (this.tab.checkEOF) fs.writeSync(this.gen, "\t\tthis.Expect(0);\n");
         g.CopyFramePart("-->initialization");
         this.InitSets();
