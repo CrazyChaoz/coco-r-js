@@ -437,6 +437,7 @@ export class Scanner {
         // }
         if (this.ch != Buffer.EOF) {
             this.tval[this.tlen++] = this.ch;
+
             this.NextCh();
         }
 
@@ -509,6 +510,7 @@ export class Scanner {
 
     CheckLiteral() {
         let val = this.t.val;
+
         let kind = Scanner.literals[val];
         if (kind != undefined && kind != 0) {
             this.t.kind = kind;
