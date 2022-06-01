@@ -68,11 +68,11 @@ TOKENS
   char      = '\'' ( charCh | '\\' printable { hex } ) '\''.
 
 PRAGMAS
-  ddtSym    = '$' { digit | letter }.    (. tab.SetDDT(la.val); .)
+  ddtSym    = '$' { digit | letter }.    (. this.tab.SetDDT(this.la.val); .)
   optionSym = '$' letter { letter } '='
               { digit | letter
               | '-' | '.' | ':'
-              }.                         (. tab.SetOption(la.val); .)
+              }.                         (. this.tab.SetOption(this.la.val); .)
 
 COMMENTS FROM "/*" TO "*/" NESTED
 COMMENTS FROM "//" TO lf

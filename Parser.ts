@@ -977,7 +977,7 @@ export class Parser {
         this.Expect(0);
     }
 
-    static set:boolean[][] = [
+    static set: boolean[][] = [
         [Parser._T, Parser._T, Parser._x, Parser._T, Parser._x, Parser._T, Parser._x, Parser._x, Parser._x, Parser._x, Parser._T, Parser._T, Parser._x, Parser._x, Parser._x, Parser._T, Parser._T, Parser._T, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._T, Parser._x, Parser._x, Parser._x],
         [Parser._x, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._x, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._x],
         [Parser._x, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._T, Parser._T, Parser._T, Parser._x, Parser._x, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._x],
