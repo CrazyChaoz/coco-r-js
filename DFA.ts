@@ -445,23 +445,21 @@ export class DFA {
     }
 
     private ChCond(ch: string): string {
-        return ("ch == " + this.Ch(ch));
+        return ("this.ch == " + this.Ch(ch)+".charCodeAt(0)");
     }
 
     private PutRange(s: CharSet) {
         for (let r = s.head; r != undefined; r = r.next) {
+            console.log("charcode_from: "+String.fromCharCode(r.from))
+            console.log("charcode_to: "+String.fromCharCode(r.to))
             if (r.from == r.to) {
-                // this.gen.print("ch == " + this.Ch(String.fromCharCode(r.from)));
-                fs.writeSync(this.gen, "ch == " + this.Ch(String.fromCharCode(r.from)))
+                fs.writeSync(this.gen, "this.ch == " + this.Ch(String.fromCharCode(r.from)))
             } else if (r.from == 0) {
-                // this.gen.print("ch <= " + this.Ch(String.fromCharCode(r.to)));
-                fs.writeSync(this.gen, "ch <= " + this.Ch(String.fromCharCode(r.to)))
+                fs.writeSync(this.gen, "this.ch <= " + this.Ch(String.fromCharCode(r.to)))
             } else {
-                // this.gen.print("ch >= " + this.Ch(String.fromCharCode(r.from)) + " && ch <= " + this.Ch(String.fromCharCode(r.to)));
-                fs.writeSync(this.gen, "ch >= " + this.Ch(String.fromCharCode(r.from)) + " && ch <= " + this.Ch(String.fromCharCode(r.to)))
+                fs.writeSync(this.gen, "this.ch >= " + this.Ch(String.fromCharCode(r.from)) + " && this.ch <= " + this.Ch(String.fromCharCode(r.to)))
             }
             if (r.next != undefined)
-                // this.gen.print(" || ");
                 fs.writeSync(this.gen, " || ")
         }
     }
@@ -527,8 +525,6 @@ export class DFA {
         for (let s1 = this.firstState.next; s1 != undefined; s1 = s1.next) // firstState cannot be final
             if (used.get(s1.nr) && s1.endOf != undefined && s1.firstAction == undefined && !s1.ctx)
                 for (let s2 = s1.next; s2 != undefined; s2 = s2.next)
-                    //TODO: look at this
-                    // if (used.get(s2.nr) && s1.endOf == s2.endOf && s2.firstAction == undefined & !s2.ctx) { // ??????????
                     if (used.get(s2.nr) && s1.endOf == s2.endOf && s2.firstAction == undefined && !s2.ctx) {
                         used.set(s2.nr,0);
                         newState[s2.nr] = s1;
@@ -967,50 +963,56 @@ export class DFA {
         fs.writeSync(this.gen, "{\n");
         if (com.stop.length == 1) {
             fs.writeSync(this.gen, "\t\t\t\t\tlevel--;\n");
-            fs.writeSync(this.gen, "\t\t\t\t\tif (level == 0) { oldEols = line - line0; NextCh(); return true; }\n");
-            fs.writeSync(this.gen, "\t\t\t\t\tNextCh();\n");
+            fs.writeSync(this.gen, "\t\t\t\t\tif (level == 0) { oldEols = line - line0; this.NextCh(); return true; }\n");
+            fs.writeSync(this.gen, "\t\t\t\t\tthis.NextCh();\n");
         } else {
-            fs.writeSync(this.gen, "\t\t\t\t\tNextCh();\n");
+            fs.writeSync(this.gen, "\t\t\t\t\tthis.NextCh();\n");
             fs.writeSync(this.gen, "\t\t\t\t\tif (" + this.ChCond(com.stop.charAt(1)) + ") {\n");
             fs.writeSync(this.gen, "\t\t\t\t\t\tlevel--;\n");
-            fs.writeSync(this.gen, "\t\t\t\t\t\tif (level == 0) { oldEols = line - line0; NextCh(); return true; }\n");
-            fs.writeSync(this.gen, "\t\t\t\t\t\tNextCh();\n");
+            fs.writeSync(this.gen, "\t\t\t\t\t\tif (level == 0) { this.oldEols = this.line - line0;\n");
+            fs.writeSync(this.gen, "\t\t\t\t\t\t\tthis.NextCh();\n");
+            fs.writeSync(this.gen, "\t\t\t\t\t\t\treturn true; }\n");
+            fs.writeSync(this.gen, "\t\t\t\t\t\tthis.NextCh();\n");
             fs.writeSync(this.gen, "\t\t\t\t\t}\n");
         }
         if (com.nested) {
             fs.writeSync(this.gen, "\t\t\t\t}");
             fs.writeSync(this.gen, " else if (" + this.ChCond(com.start.charAt(0)) + ") {\n");
             if (com.start.length == 1)
-                fs.writeSync(this.gen, "\t\t\t\t\tlevel++; NextCh();\n");
+                fs.writeSync(this.gen, "\t\t\t\t\tlevel++; this.NextCh();\n");
             else {
-                fs.writeSync(this.gen, "\t\t\t\t\tNextCh();\n");
+                fs.writeSync(this.gen, "\t\t\t\t\tthis.NextCh();\n");
                 fs.writeSync(this.gen, "\t\t\t\t\tif (" + this.ChCond(com.start.charAt(1)) + ") ");
                 fs.writeSync(this.gen, "{\n");
-                fs.writeSync(this.gen, "\t\t\t\t\t\tlevel++; NextCh();\n");
+                fs.writeSync(this.gen, "\t\t\t\t\t\tlevel++; this.NextCh();\n");
                 fs.writeSync(this.gen, "\t\t\t\t\t}\n");
             }
         }
-        fs.writeSync(this.gen, "\t\t\t\t} else if (ch == Buffer.EOF) return false;\n");
-        fs.writeSync(this.gen, "\t\t\t\telse NextCh();\n");
+        fs.writeSync(this.gen, "\t\t\t\t} else if (this.ch == Buffer.EOF) return false;\n");
+        fs.writeSync(this.gen, "\t\t\t\telse this.NextCh();\n");
         fs.writeSync(this.gen, "\t\t\t}\n");
     }
 
     GenComment(com: Comment, i: number) {
         fs.writeSync(this.gen, "\n");
-        fs.writeSync(this.gen, "\tboolean Comment" + i + "() ");
+        fs.writeSync(this.gen, "\tComment" + i + "():boolean ");
         fs.writeSync(this.gen, "{\n");
-        fs.writeSync(this.gen, "\t\tint level = 1, pos0 = pos, line0 = line, col0 = col, charPos0 = charPos;\n");
+        fs.writeSync(this.gen, "\t\tlet level = 1, pos0 = this.pos, line0 = this.line, col0 = this.col, charPos0 = this.charPos;\n");
         if (com.start.length == 1) {
-            fs.writeSync(this.gen, "\t\tNextCh();\n");
+            fs.writeSync(this.gen, "\t\tthis.NextCh();\n");
             this.GenComBody(com);
         } else {
-            fs.writeSync(this.gen, "\t\tNextCh();\n");
+            fs.writeSync(this.gen, "\t\tthis.NextCh();\n");
             fs.writeSync(this.gen, "\t\tif (" + this.ChCond(com.start.charAt(1)) + ") ");
             fs.writeSync(this.gen, "{\n");
-            fs.writeSync(this.gen, "\t\t\tNextCh();\n");
+            fs.writeSync(this.gen, "\t\t\tthis.NextCh();\n");
             this.GenComBody(com);
             fs.writeSync(this.gen, "\t\t} else {\n");
-            fs.writeSync(this.gen, "\t\t\tbuffer.setPos(pos0); NextCh(); line = line0; col = col0; charPos = charPos0;\n");
+            fs.writeSync(this.gen, "\t\t\tthis.buffer.setPos(pos0);\n");
+            fs.writeSync(this.gen, "\t\t\tthis.NextCh();\n");
+            fs.writeSync(this.gen, "\t\t\tthis.line = line0;\n");
+            fs.writeSync(this.gen, "\t\t\tthis.col = col0;\n");
+            fs.writeSync(this.gen, "\t\t\tthis.charPos = charPos0;\n");
             fs.writeSync(this.gen, "\t\t}\n");
             fs.writeSync(this.gen, "\t\treturn false;\n");
         }
@@ -1036,7 +1038,7 @@ export class DFA {
                     let name = this.SymName(sym);
                     if (this.ignoreCase) name = name.toLowerCase();
                     // sym.name stores literals with quotes, e.g. "\"Literal\"",
-                    fs.writeSync(this.gen, "\t\tliterals.put(" + name + ", new Integer(" + sym.n + "));\n");
+                    fs.writeSync(this.gen, "\t\tScanner.literals[" + name + "]=" + sym.n + ";\n");
                 }
             })
 
@@ -1091,22 +1093,22 @@ export class DFA {
         for (let action = this.firstState.firstAction; action != undefined; action = action.next) {
             let targetState = action.target.state.nr;
             if (action.typ == Node_.chr) {
-                fs.writeSync(this.gen, "\t\tstart.set(" + action.sym + ", " + targetState + "); \n");
+                fs.writeSync(this.gen, "\t\tScanner.start.set(" + action.sym + ", " + targetState + "); \n");
             } else {
                 let s = this.tab.CharClassSet(action.sym);
                 for (let r = s.head; r != undefined; r = r.next) {
-                    fs.writeSync(this.gen, "\t\tfor (int i = " + r.from + "; i <= " + r.to + "; ++i) start.set(i, " + targetState + ");\n");
+                    fs.writeSync(this.gen, "\t\tfor (let i = " + r.from + "; i <= " + r.to + "; ++i) Scanner.start.set(i, " + targetState + ");\n");
                 }
             }
         }
-        fs.writeSync(this.gen, "\t\tstart.set(Buffer.EOF, -1);\n");
+        fs.writeSync(this.gen, "\t\tScanner.start.set(Buffer.EOF, -1);\n");
     }
 
     public WriteScanner() {
 
         let g = new Generator(this.tab);
         this.fram = g.OpenFrame("Scanner.frame");
-        this.gen = g.OpenGen("Scanner.java");
+        this.gen = g.OpenGen("Scanner.generated.ts");
         if (this.dirtyDFA) this.MakeDeterministic();
 
 
@@ -1120,8 +1122,8 @@ export class DFA {
             fs.writeSync(this.gen, ";\n");
         }
         g.CopyFramePart("-->declarations");
-        fs.writeSync(this.gen, "\tstatic final int maxT = " + (this.tab.terminals.length - 1) + ";\n");
-        fs.writeSync(this.gen, "\tstatic final int noSym = " + this.tab.noSym.n + ";\n");
+        fs.writeSync(this.gen, "\tstatic maxT = " + (this.tab.terminals.length - 1) + ";\n");
+        fs.writeSync(this.gen, "\tstatic noSym = " + this.tab.noSym.n + ";\n");
         if (this.ignoreCase)
             fs.writeSync(this.gen, "\tchar valCh;       // current input character (for token.val)");
         g.CopyFramePart("-->initialization");
@@ -1130,15 +1132,15 @@ export class DFA {
         g.CopyFramePart("-->casing");
         if (this.ignoreCase) {
             fs.writeSync(this.gen, "\t\tif (ch != Buffer.EOF) {\n");
-            fs.writeSync(this.gen, "\t\t\tvalCh = (char) ch;\n");
+            fs.writeSync(this.gen, "\t\t\tvalCh = ch;\n");
             fs.writeSync(this.gen, "\t\t\tch = Character.toLowerCase(ch);\n");
             fs.writeSync(this.gen, "\t\t}");
         }
         g.CopyFramePart("-->casing2");
         if (this.ignoreCase)
-            fs.writeSync(this.gen, "\t\t\ttval[tlen++] = valCh; \n");
+            fs.writeSync(this.gen, "\t\t\tthis.tval[this.tlen++] = valCh; \n");
         else
-            fs.writeSync(this.gen, "\t\t\ttval[tlen++] = (char)ch; \n");
+            fs.writeSync(this.gen, "\t\t\tthis.tval[this.tlen++] = this.ch; \n");
         g.CopyFramePart("-->comments");
         let com = this.firstComment;
         let comIdx = 0;
@@ -1165,16 +1167,16 @@ export class DFA {
             comIdx = 0;
             while (com != undefined) {
                 fs.writeSync(this.gen, this.ChCond(com.start.charAt(0)));
-                fs.writeSync(this.gen, " && Comment" + comIdx + "()");
+                fs.writeSync(this.gen, " && this.Comment" + comIdx + "()");
                 if (com.next != undefined) fs.writeSync(this.gen, " ||");
                 com = com.next;
                 comIdx++;
             }
-            fs.writeSync(this.gen, ") return NextToken();");
+            fs.writeSync(this.gen, ") return this.NextToken();");
         }
         if (this.hasCtxMoves) {
             fs.writeSync(this.gen, "\n");
-            fs.writeSync(this.gen, "\t\tint apx = 0;");
+            fs.writeSync(this.gen, "\t\tlet apx = 0;");
         } /* pdt */
         g.CopyFramePart("-->scan3");
         for (let state = this.firstState.next; state != undefined; state = state.next)

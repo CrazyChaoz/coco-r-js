@@ -389,13 +389,11 @@ export class ParserGen {
             let sym = this.tab.nonterminals[i];
             this.curSy = sym;
             fs.writeSync(this.gen, "\t");
-            if (sym.retType == undefined)
-                fs.writeSync(this.gen, "void ");
-            else
-                fs.writeSync(this.gen, sym.retType + " ");
             fs.writeSync(this.gen, sym.name + "(");
             this.CopySourcePart(sym.attrPos, 0);
-            fs.writeSync(this.gen, ") {\n");
+            fs.writeSync(this.gen, ")");
+            if (sym.retType != undefined)
+                fs.writeSync(this.gen, ":"+sym.retType + " {\n");
             if (sym.retVar != undefined)
                 fs.writeSync(this.gen, "\t\t" + sym.retType + " " + sym.retVar + ";\n");
             this.CopySourcePart(sym.semPos, 2);
@@ -436,7 +434,7 @@ export class ParserGen {
         this.symSet.push(this.tab.allSyncSets);
 
         this.fram = g.OpenFrame("Parser.frame");
-        this.gen = g.OpenGen("Parser.java");
+        this.gen = g.OpenGen("Parser.generated.ts");
         //foreach (Symbol sym in Symbol.terminals)
         for (let i = 0; i < this.tab.terminals.length; i++) {
             let sym = this.tab.terminals[i];
@@ -462,7 +460,7 @@ export class ParserGen {
         }
         g.CopyFramePart("-->constants");
         this.GenTokens();
-        fs.writeSync(this.gen, "\tpublic static final int maxT = " + (this.tab.terminals.length - 1) + ";\n");
+        fs.writeSync(this.gen, "\tpublic static maxT:number = " + (this.tab.terminals.length - 1) + ";\n");
         this.GenPragmas();
         g.CopyFramePart("-->declarations");
         this.CopySourcePart(this.tab.semDeclPos, 0);
@@ -472,7 +470,7 @@ export class ParserGen {
         this.GenProductions();
         g.CopyFramePart("-->parseRoot");
         fs.writeSync(this.gen, "\t\t" + this.tab.gramSy.name + "();\n");
-        if (this.tab.checkEOF) fs.writeSync(this.gen, "\t\tExpect(0);\n");
+        if (this.tab.checkEOF) fs.writeSync(this.gen, "\t\tthis.Expect(0);\n");
         g.CopyFramePart("-->initialization");
         this.InitSets();
         g.CopyFramePart("-->errors");

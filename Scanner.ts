@@ -111,7 +111,7 @@ export class Buffer {
             try {
                 fs.close(this.file, function () {
                 });
-                this.file=undefined;
+                this.file = undefined;
             } catch (e) {
                 console.error(e)
                 //throw new Error(e);
@@ -328,8 +328,8 @@ export class Scanner {
     tval = []; // token text used in NextToken(), dynamically enlarged
     tlen: number;          // length of current token
 
-    //TODO: does this even work?
-    private static _initialize = (() => {
+    //this is dark magic which mimics a static { } block in a class
+    private static _static_initialize = (() => {
         Scanner.start = new StartStates();
         Scanner.literals = [];
         for (let i = 65; i <= 90; ++i) Scanner.start.set(i, 1);
@@ -421,7 +421,7 @@ export class Scanner {
             // eol handling uniform across Windows, Unix and Mac
             if (this.ch == '\r'.charCodeAt(0) && this.buffer.Peek() != '\n'.charCodeAt(0)) this.ch = Scanner.EOL.charCodeAt(0);
             if (this.ch == Scanner.EOL.charCodeAt(0)) {
-                this.line++;
+                this.line += 1;
                 this.col = 0;
             }
         }
@@ -510,7 +510,6 @@ export class Scanner {
     CheckLiteral() {
         let val = this.t.val;
         let kind = Scanner.literals[val];
-        //TODO: possibly has an error
         if (kind != undefined && kind != 0) {
             this.t.kind = kind;
         }
@@ -528,7 +527,7 @@ export class Scanner {
         this.t.col = this.col;
         this.t.line = this.line;
         this.t.charPos = this.charPos;
-        this.tval=[]
+        this.tval = []
         let state = Scanner.start.state(this.ch);
         this.tlen = 0;
         this.AddCh();
@@ -538,7 +537,7 @@ export class Scanner {
                 case -1:
                     this.t.kind = Scanner.eofSym;
                     break loop;
-                    // NextCh already done
+                // NextCh already done
                 case 0:
                     if (recKind != Scanner.noSym) {
                         this.tlen = recEnd - this.t.pos;
@@ -546,7 +545,7 @@ export class Scanner {
                     }
                     this.t.kind = recKind;
                     break loop;
-                    // NextCh already done
+                // NextCh already done
                 case 1:
                     recEnd = this.pos;
                     recKind = 1;
@@ -556,8 +555,6 @@ export class Scanner {
                         break;
                     } else {
                         this.t.kind = 1;
-                        //TODO:look over this
-                        // this.t.val = new String(this.tval, 0, this.tlen);
                         this.t.val = this.tval.map(function (value, index, array) {
                             return String.fromCharCode(value)
                         }).join("");
@@ -829,9 +826,7 @@ export class Scanner {
 
             }
         }
-        //TODO: look over this
-        // this.t.val = new String(this.tval, 0, this.tlen);
-        this.t.val = this.tval.map(function (value,index,array) {
+        this.t.val = this.tval.map(function (value, index, array) {
             return String.fromCharCode(value)
         }).join("")
 
@@ -854,7 +849,7 @@ export class Scanner {
 
 // get the next token (possibly a token already seen during peeking)
     public Scan(): Token {
-        let token:Token
+        let token: Token
 
         if (this.tokens.next == undefined) {
             token = this.NextToken();

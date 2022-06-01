@@ -27,140 +27,160 @@ Coco/R itself) does not fall under the GNU General Public License.
 ------------------------------------------------------------------------*/
 -->begin
 
-public class Parser {
+import {Trace} from "./Trace";
+import {Graph, Node_, Position, Symbol, SymInfo, Tab} from "./Tab";
+import {ParserGen} from "./ParserGen";
+import {CharSet, DFA} from "./DFA";
+import {Scanner, Token} from "./Scanner";
+
+export class Parser  {
 -->constants
-	static final boolean _T = true;
-	static final boolean _x = false;
-	static final int minErrDist = 2;
+	static _T = true;
+    static _x = false;
+    static minErrDist = 2;
 
-	public Token t;    // last recognized token
-	public Token la;   // lookahead token
-	int errDist = minErrDist;
+    public t: Token;            // last recognized token
+    public la: Token;           // lookahead token
+    errDist = Parser.minErrDist;
 
-	public Scanner scanner;
-	public Errors errors;
+    public scanner: Scanner;
+    public errors: Errors;
 
 	-->declarations
 
-	public Parser(Scanner scanner) {
-		this.scanner = scanner;
-		errors = new Errors();
-	}
+	constructor(scanner: Scanner) {
+            this.scanner = scanner;
+            this.errors = new Errors();
+        }
 
-	void SynErr (int n) {
-		if (errDist >= minErrDist) errors.SynErr(la.line, la.col, n);
-		errDist = 0;
-	}
+        SynErr(n: number) {
+            if (this.errDist >= Parser.minErrDist) this.errors.SynErr(this.la.line, this.la.col, n);
+            this.errDist = 0;
+        }
 
-	public void SemErr (String msg) {
-		if (errDist >= minErrDist) errors.SemErr(t.line, t.col, msg);
-		errDist = 0;
-	}
+        public SemErr(msg: string) {
+            if (this.errDist >= Parser.minErrDist) this.errors.SemErr(this.t.line, this.t.col, msg);
+            this.errDist = 0;
+        }
 
-	void Get () {
-		for (;;) {
-			t = la;
-			la = scanner.Scan();
-			if (la.kind <= maxT) {
-				++errDist;
-				break;
-			}
+	Get() {
+        for (; ;) {
+            this.t = this.la;
+            this.la = this.scanner.Scan();
+            if (this.la.kind <= Parser.maxT) {
+                ++this.errDist;
+                break;
+            }
 -->pragmas
-			la = t;
-		}
-	}
+			this.la = this.t;
+        }
+    }
 
-	void Expect (int n) {
-		if (la.kind==n) Get(); else { SynErr(n); }
-	}
+Expect(n: number) {
+        if (this.la.kind == n)
+            this.Get();
+        else {
+            this.SynErr(n);
+        }
+    }
 
-	boolean StartOf (int s) {
-		return set[s][la.kind];
-	}
+    StartOf(s: number): boolean {
+        return Parser.set[s][this.la.kind];
+    }
 
-	void ExpectWeak (int n, int follow) {
-		if (la.kind == n) Get();
-		else {
-			SynErr(n);
-			while (!StartOf(follow)) Get();
-		}
-	}
+    ExpectWeak(n: number, follow: number) {
+        if (this.la.kind == n) this.Get();
+        else {
+            this.SynErr(n);
+            while (!this.StartOf(follow)) this.Get();
+        }
+    }
 
-	boolean WeakSeparator (int n, int syFol, int repFol) {
-		int kind = la.kind;
-		if (kind == n) { Get(); return true; }
-		else if (StartOf(repFol)) return false;
-		else {
-			SynErr(n);
-			while (!(set[syFol][kind] || set[repFol][kind] || set[0][kind])) {
-				Get();
-				kind = la.kind;
-			}
-			return StartOf(syFol);
-		}
-	}
+    WeakSeparator(n: number, syFol: number, repFol: number): boolean {
+        let kind = this.la.kind;
+        if (kind == n) {
+            this.Get();
+            return true;
+        } else if (this.StartOf(repFol)) return false;
+        else {
+            this.SynErr(n);
+            while (!(Parser.set[syFol][kind] || Parser.set[repFol][kind] || Parser.set[0][kind])) {
+                this.Get();
+                kind = this.la.kind;
+            }
+            return this.StartOf(syFol);
+        }
+    }
 
 -->productions
 
-	public void Parse() {
-		la = new Token();
-		la.val = "";
-		Get();
+    public Parse() {
+        this.la = new Token();
+        this.la.val = "";
+        this.Get();
 -->parseRoot
 	}
 
-	private static final boolean[][] set = {
+    static set:boolean[][] = [
 -->initialization
-	};
+	];
 } // end Parser
 
 
-class Errors {
-	public int count = 0;                                    // number of errors detected
-	public java.io.PrintStream errorStream = System.out;     // error messages go to this stream
-	public String errMsgFormat = "-- line {0} col {1}: {2}"; // 0=line, 1=column, 2=text
 
-	protected void printMsg(int line, int column, String msg) {
-		StringBuffer b = new StringBuffer(errMsgFormat);
-		int pos = b.indexOf("{0}");
-		if (pos >= 0) { b.delete(pos, pos+3); b.insert(pos, line); }
-		pos = b.indexOf("{1}");
-		if (pos >= 0) { b.delete(pos, pos+3); b.insert(pos, column); }
-		pos = b.indexOf("{2}");
-		if (pos >= 0) b.replace(pos, pos+3, msg);
-		errorStream.println(b.toString());
-	}
+export class Errors {
+    public count = 0;                                    // number of errors detected
+    //public errorStream = System.out;     // error messages go to this stream
+    public errMsgFormat = "-- line {0} col {1}: {2}"; // 0=line, 1=column, 2=text
 
-	public void SynErr (int line, int col, int n) {
-		String s;
-		switch (n) {-->errors
-			default: s = "error " + n; break;
-		}
-		printMsg(line, col, s);
-		count++;
-	}
+    protected printMsg(line: number, column: number, msg: string) {
+        let b = "-- line {0} col {1}: {2}";
+        let pos = b.indexOf("{0}");
+        if (pos >= 0) {
+            b = b.replace("{0}", line + "")
+        }
+        pos = b.indexOf("{1}");
+        if (pos >= 0) {
+            b = b.replace("{1}", column + "")
+        }
+        pos = b.indexOf("{2}");
+        if (pos >= 0)
+            b = b.replace("{2}", msg)
+        console.error(b.toString());
+    }
 
-	public void SemErr (int line, int col, String s) {
-		printMsg(line, col, s);
-		count++;
-	}
+    public SynErr(line: number, col: number, n: number) {
+        let s: string;
+        switch (n) { -->errors
+            default:
+                s = "error " + n;
+                break;
+        }
+        this.printMsg(line, col, s);
+        this.count++;
+    }
 
-	public void SemErr (String s) {
-		errorStream.println(s);
-		count++;
-	}
+    public SemErr(s: string)
+    public SemErr(line: number, col: number, s: string)
+    //internal useage
+    public SemErr(line: any, col?: number, s?: string) {
+        if (s != undefined)
+            this.printMsg(line, col, s);
+        else
+            console.error(line);
+        this.count++;
+    }
 
-	public void Warning (int line, int col, String s) {
-		printMsg(line, col, s);
-	}
 
-	public void Warning (String s) {
-		errorStream.println(s);
-	}
+    public Warning(s: string)
+    public Warning(line: number, col: number, s: string)
+    //internal useage
+    public Warning(line: any, col?: number, s?: string) {
+        if (s != undefined)
+            this.printMsg(line, col, s);
+        else
+            console.warn(line);
+    }
+
 } // Errors
 
-
-class FatalError extends RuntimeException {
-	public static final long serialVersionUID = 1L;
-	public FatalError(String s) { super(s); }
-}

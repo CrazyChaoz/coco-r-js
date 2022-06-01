@@ -31,23 +31,21 @@ Coco/R itself) does not fall under the GNU General Public License.
    javac Coco.Coco Coco.ATG -package Coco
 -------------------------------------------------------------------------*/
 
-$package=Coco
-
 $AFGIJPSX
 
 COMPILER Coco
 
-	static final int id = 0;
-	static final int str = 1;
+    static id = 0;
+    static str = 1;
 
-	public Trace trace;         // other Coco objects referenced by this ATG
-	public Tab tab;
-	public DFA dfa;
-	public ParserGen pgen;
+    public trace: Trace;        // other Coco objects referenced by this ATG
+    public tab: Tab;
+    public dfa: DFA;
+    public pgen: ParserGen;
 
-	boolean genScanner;
-	String tokenString;         // used in declarations of literal tokens
-	String noString = "-none-"; // used in declarations of literal tokens
+    genScanner: boolean;
+    tokenString: string;        // used in declarations of literal tokens
+    noString = "-none-";        // used in declarations of literal tokens
 
 /*-------------------------------------------------------------------------*/
 
@@ -85,114 +83,123 @@ IGNORE cr + lf + tab
 
 PRODUCTIONS
 
-Coco                            (. Symbol sym; Graph g, g1, g2; String gramName; CharSet s; int beg; .)
+Coco                            (. let sym: Symbol;
+                                           let g, g1, g2: Graph;
+                                           let gramName: string;
+                                           let s: CharSet;
+                                           let beg: number;.)
 =
   [ // import statements
-    ANY                          (. beg = t.pos; .)
-    { ANY }                      (. pgen.usingPos = new Position(beg, la.pos, 0); .)
+    ANY                          (. beg = this.t.pos;.)
+    { ANY }                      (. this.pgen.usingPos = new Position(beg, this.la.pos, 0);.)
   ]
 
-  "COMPILER"                    (. genScanner = true;
-                                   tab.ignored = new CharSet(); .)
-  ident                         (. gramName = t.val;
-                                   beg = la.pos;
+  "COMPILER"                    (. this.genScanner = true;
+                                   this.tab.ignored = new CharSet(); .)
+  ident                         (.gramName = this.t.val;;
+                                    beg = this.la.pos;
                                  .)
-  { ANY }                       (. tab.semDeclPos = new Position(beg, la.pos, 0); .)
-  [ "IGNORECASE"                (. dfa.ignoreCase = true; .) ]   /* pdt */
+  { ANY }                       (. this.tab.semDeclPos = new Position(beg, this.la.pos, 0); .)
+  [ "IGNORECASE"                (.this.dfa.ignoreCase = true; .) ]   /* pdt */
   [ "CHARACTERS" { SetDecl }]
-  [ "TOKENS"  { TokenDecl<Node.t> }]
-  [ "PRAGMAS" { TokenDecl<Node.pr> }]
-  { "COMMENTS"                  (. boolean nested = false; .)
+  [ "TOKENS"  { TokenDecl<Node_.t> }]
+  [ "PRAGMAS" { TokenDecl<Node_.pr> }]
+  { "COMMENTS"                  (.            let nested = false; .)
     "FROM" TokenExpr<out g1>
     "TO" TokenExpr<out g2>
     [ "NESTED"                  (. nested = true; .)
-    ]                           (. dfa.NewComment(g1.l, g2.l, nested); .)
+    ]                           (. this.dfa.NewComment(g1.l, g2.l, nested); .)
   }
-  { "IGNORE" Set<out s>         (. tab.ignored.Or(s); .)
+  { "IGNORE" Set<out s>         (. this.tab.ignored.Or(s);.)
   }
 
   SYNC
-  "PRODUCTIONS"                 (. if (genScanner) dfa.MakeDeterministic();
-                                   tab.DeleteNodes();
+  "PRODUCTIONS"                 (. if (this.genScanner) this.dfa.MakeDeterministic();
+                                   this.tab.DeleteNodes();
                                  .)
-  { ident                       (. sym = tab.FindSym(t.val);
-                                   boolean undef = sym == null;
-                                   if (undef) sym = tab.NewSym(Node.nt, t.val, t.line);
-                                   else {
-                                     if (sym.typ == Node.nt) {
-                                       if (sym.graph != null) SemErr("name declared twice");
-                                     } else SemErr("this symbol kind not allowed on left side of production");
-                                     sym.line = t.line;
-                                   }
-                                   boolean noAttrs = sym.attrPos == null;
-                                   sym.attrPos = null;
-                                   boolean noRet = sym.retVar==null;
-                                   sym.retVar = null;
+  { ident                       (. sym = this.tab.FindSym(this.t.val);
+                                               let undef = sym == undefined;
+                                               if (undef) sym = this.tab.NewSym(Node_.nt, this.t.val, this.t.line);
+                                               else {
+                                                   if (sym.typ == Node_.nt) {
+                                                       if (sym.graph != undefined) this.SemErr("name declared twice");
+                                                   } else this.SemErr("this symbol kind not allowed on left side of production");
+                                                   sym.line = this.t.line;
+                                               }
+                                               let noAttrs = sym.attrPos == undefined;
+                                               sym.attrPos = undefined;
+                                               let noRet = sym.retVar == undefined;
+                                               sym.retVar = undefined;
                                  .)
     [ AttrDecl<sym> ]           (. if (!undef)
-                                     if (noAttrs != (sym.attrPos == null)
-                                       || noRet != (sym.retVar == null))
-                                       SemErr("attribute mismatch between declaration and use of this symbol");
+                                                   if (noAttrs != (sym.attrPos == undefined)
+                                                       || noRet != (sym.retVar == undefined))
+                                                       this.SemErr("attribute mismatch between declaration and use of this symbol");
                                  .)
     [ SemText<out sym.semPos> ]
     WEAK '='
     Expression<out g>           (. sym.graph = g.l;
-                                   tab.Finish(g);
+                                   this.tab.Finish(g);
                                  .)
     WEAK '.'
   }
-  "END" ident                   (. if (gramName.compareTo(t.val) != 0)
-                                     SemErr("name does not match grammar name");
-                                   tab.gramSy = tab.FindSym(gramName);
-                                   if (tab.gramSy == null)
-                                     SemErr("missing production for grammar name");
-                                   else {
-                                     sym = tab.gramSy;
-                                     if (sym.attrPos != null)
-                                       SemErr("grammar symbol must not have attributes");
-                                   }
-                                   tab.noSym = tab.NewSym(Node.t, "???", 0); // noSym gets highest number
-                                   tab.SetupAnys();
-                                   tab.RenumberPragmas();
-                                   if (tab.ddt[2]) tab.PrintNodes();
-                                   if (errors.count == 0) {
-                                     System.out.println("checking");
-                                     tab.CompSymbolSets();
-                                     if (tab.ddt[7]) tab.XRef();
-                                     if (tab.GrammarOk()) {
-                                       System.out.print("parser");
-                                       pgen.WriteParser();
-                                       if (genScanner) {
-                                         System.out.print(" + scanner");
-                                         dfa.WriteScanner();
-                                         if (tab.ddt[0]) dfa.PrintStates();
-                                       }
-                                       System.out.println(" generated");
-                                       if (tab.ddt[8]) pgen.WriteStatistics();
-                                     }
-                                   }
-                                   if (tab.ddt[6]) tab.PrintSymbolTable();
+  "END" ident                   (. if (gramName != this.t.val) {
+                                               this.SemErr("name does not match grammar name");
+                                           }
+                                           this.tab.gramSy = this.tab.FindSym(gramName);
+                                           if (this.tab.gramSy == undefined)
+                                               this.SemErr("missing production for grammar name");
+                                           else {
+                                               sym = this.tab.gramSy;
+                                               if (sym.attrPos != undefined) {
+                                                   this.SemErr("grammar symbol must not have attributes");
+                                               }
+                                           }
+                                           this.tab.noSym = this.tab.NewSym(Node_.t, "???", 0); // noSym gets highest number
+                                           this.tab.SetupAnys();
+
+                                           this.tab.RenumberPragmas();
+
+                                           if (this.tab.ddt[2]) this.tab.PrintNodes();
+                                           if (this.errors.count == 0) {
+                                               console.log("checking");
+                                               this.tab.CompSymbolSets();
+                                               if (this.tab.ddt[7]) this.tab.XRef();
+                                               if (this.tab.GrammarOk()) {
+                                                   console.log("parser");
+                                                   this.pgen.WriteParser();
+                                                   if (this.genScanner) {
+                                                       console.log(" + scanner");
+
+                                                       this.dfa.WriteScanner();
+                                                       if (this.tab.ddt[0]) this.dfa.PrintStates();
+                                                   }
+                                                   console.log(" generated");
+                                                   if (this.tab.ddt[8]) this.pgen.WriteStatistics();
+                                               }
+                                           }
+                                           if (this.tab.ddt[6]) this.tab.PrintSymbolTable();
                                  .)
   '.'
 .
 
 /*------------------------------------------------------------------------------------*/
 
-SetDecl                         (. CharSet s; .)
+SetDecl                         (. let s: CharSet;.)
 =
-  ident                         (. String name = t.val;
-                                   CharClass c = tab.FindCharClass(name);
-                                   if (c != null) SemErr("name declared twice");
+  ident                         (. let name = this.t.val;
+                                   let c = this.tab.FindCharClass(name);
+                                   if (c != undefined) this.SemErr("name declared twice");
                                  .)
-  '=' Set<out s>                (. if (s.Elements() == 0) SemErr("character set must not be empty");
-                                   c = tab.NewCharClass(name, s);
+  '=' Set<out s>                (. if (s.Elements() == 0) this.SemErr("character set must not be empty");
+                                   c = this.tab.NewCharClass(name, s);
                                  .)
   '.'
 .
 
 /*------------------------------------------------------------------------------------*/
 
-Set<out CharSet s>              (. CharSet s2; .)
+Set<out CharSet s>              (. let s2: CharSet;.)
 =
   SimSet<out s>
   { '+' SimSet<out s2>          (. s.Or(s2); .)
@@ -202,18 +209,18 @@ Set<out CharSet s>              (. CharSet s2; .)
 
 /*------------------------------------------------------------------------------------*/
 
-SimSet<out CharSet s>           (. int n1, n2; .)
+SimSet<out CharSet s>           (. let n1, n2: number;.)
 =                               (. s = new CharSet(); .)
-( ident                         (. CharClass c = tab.FindCharClass(t.val);
-                                   if (c == null) SemErr("undefined name"); else s.Or(c.set);
+( ident                         (. let c = this.tab.FindCharClass(this.t.val);
+                                   if (c == undefined) this.SemErr("undefined name"); else s.Or(c.set);
                                  .)
-| string                        (. String name = t.val;
-                                   name = tab.Unescape(name.substring(1, name.length()-1));
-                                   for (int i = 0; i < name.length(); i++)
-                                     if (dfa.ignoreCase) s.Set(Character.toLowerCase(name.charAt(i)));
-                                     else s.Set(name.charAt(i)); .)
+| string                        (. let name = this.t.val;
+                                   name = this.tab.Unescape(name.substring(1, name.length - 1));
+                                   for (let i = 0; i < name.length; i++)
+                                       if (this.dfa.ignoreCase) s.Set(name.toLowerCase().charCodeAt(0));
+                                       else s.Set(name.charCodeAt(i));.)
 | Char<out n1>                  (. s.Set(n1); .)
-  [ ".." Char<out n2>           (. for (int i = n1; i <= n2; i++) s.Set(i); .)
+  [ ".." Char<out n2>           (. for (let i = n1; i <= n2; i++) s.Set(i); .)
   ]
 | "ANY"                         (. s = new CharSet(); s.Fill(); .)
 )
@@ -223,76 +230,80 @@ SimSet<out CharSet s>           (. int n1, n2; .)
 
 Char<out int n>
 =
-  char                          (. String name = t.val; n = 0;
-                                   name = tab.Unescape(name.substring(1, name.length()-1));
-                                   if (name.length() == 1) n = name.charAt(0);
-                                   else SemErr("unacceptable character value");
-                                   if (dfa.ignoreCase && (char)n >= 'A' && (char)n <= 'Z') n += 32;
+  char                          (. let name = this.t.val;
+                                   n = 0;
+                                   name = this.tab.Unescape(name.substring(1, name.length - 1));
+                                   if (name.length == 1) n = name.charAt(0).charCodeAt(0);
+                                   else this.SemErr("unacceptable character value");
+                                   if (this.dfa.ignoreCase && n >= 'A'.charCodeAt(0) && n <= 'Z'.charCodeAt(0)) n += 32;
                                  .)
 .
 
 /*------------------------------------------------------------------------------------*/
 
-TokenDecl<int typ>              (. SymInfo s; Symbol sym; Graph g; .)
+TokenDecl<int typ>              (. let s: SymInfo;
+                                   let sym: Symbol;
+                                   let g: Graph; .)
 =
-  Sym<out s>                    (. sym = tab.FindSym(s.name);
-                                   if (sym != null) SemErr("name declared twice");
-                                   else {
-                                     sym = tab.NewSym(typ, s.name, t.line);
-                                     sym.tokenKind = Symbol.fixedToken;
-                                   }
-                                   tokenString = null;
+  Sym<out s>                    (. sym = this.tab.FindSym(s.name);
+                                   if (sym != undefined)
+                                       this.SemErr("name declared twice");
+
+                                   sym = this.tab.NewSym(typ, s.name, this.t.line);
+                                   sym.tokenKind = Symbol.fixedToken;
+
+                                   this.tokenString = undefined;
                                  .)
   SYNC
-  ( '=' TokenExpr<out g> '.'    (. if (s.kind == str) SemErr("a literal must not be declared with a structure");
-                                   tab.Finish(g);
-                                   if (tokenString == null || tokenString.equals(noString))
-                                     dfa.ConvertToStates(g.l, sym);
+  ( '=' TokenExpr<out g> '.'    (. if (s.kind == Parser.str) this.SemErr("a literal must not be declared with a structure");
+                                   this.tab.Finish(g);
+                                   if (this.tokenString == undefined || this.tokenString === this.noString)
+                                        this.dfa.ConvertToStates(g.l, sym);
                                    else { // TokenExpr is a single string
-                                     if (tab.literals.get(tokenString) != null)
-                                       SemErr("token string declared twice");
-                                     tab.literals.put(tokenString, sym);
-                                     dfa.MatchLiteral(tokenString, sym);
+                                   if (this.tab.literals[this.tokenString] != undefined)
+                                        this.SemErr("token string declared twice");
+                                        this.tab.literals[this.tokenString] = sym;
+                                        this.dfa.MatchLiteral(this.tokenString, sym);
                                    }
                                  .)
-  |                             (. if (s.kind == id) genScanner = false;
-                                   else dfa.MatchLiteral(sym.name, sym);
+  |                             (. if (s.kind == Parser.id) this.genScanner = false;
+                                   else this.dfa.MatchLiteral(sym.name, sym);
                                  .)
   )
-  [ SemText<out sym.semPos>     (. if (typ != Node.pr) SemErr("semantic action not allowed here"); .)
+  [ SemText<out sym.semPos>     (. if (typ != Node_.pr) this.SemErr("semantic action not allowed here"); .)
   ]
 .
 
 /*------------------------------------------------------------------------------------*/
 
-AttrDecl<Symbol sym>            (. int beg, col; .)
+AttrDecl<Symbol sym>            (. let beg, col: number; .)
 =
   '<'                           // attributes denoted by < ... >
-  ( ('^' | "out")               (. beg = la.pos; .)
-    TypeName                    (. sym.retType = scanner.buffer.GetString(beg, la.pos); .)
-    ident                       (. sym.retVar = t.val; .)
+  ( ('^' | "out")               (. beg = this.la.pos; .)
+    TypeName                    (. sym.retType = this.scanner.buffer.GetString(beg, this.la.pos);.)
+    ident                       (. sym.retVar = this.t.val; .)
     ( '>'
-    | ','                       (. beg = la.pos; col = la.col; .)
-      { ANY } '>'               (. if (t.pos > beg)
-                                     sym.attrPos = new Position(beg, t.pos, col); .)
+    | ','                       (. beg = this.la.pos;
+                                  col = this.la.col; .)
+      { ANY } '>'               (. if (this.t.pos > beg) sym.attrPos = new Position(beg, this.t.pos, col); .)
     )
-  |                             (. beg = la.pos; col = la.col; .)
-    [ ANY { ANY } ] '>'         (. if (t.pos > beg)
-                                     sym.attrPos = new Position(beg, t.pos, col); .)
+  |                             (. beg = this.la.pos;
+                                   col = this.la.col; .)
+    [ ANY { ANY } ] '>'         (. if (this.t.pos > beg) sym.attrPos = new Position(beg, this.t.pos, col); .)
   )
 |
   "<."                          // attributes denoted by <. ... .>
-  ( ('^' | "out")               (. beg = la.pos; .)
-    TypeName                    (. sym.retType = scanner.buffer.GetString(beg, la.pos); .)
-    ident                       (. sym.retVar = t.val; .)
+  ( ('^' | "out")               (. beg = this.la.pos; .)
+    TypeName                    (. sym.retType = this.scanner.buffer.GetString(beg, this.la.pos); .)
+    ident                       (. sym.retVar = this.t.val; .)
     ( ".>"
-    | ','                       (. beg = la.pos; col = la.col; .)
-      { ANY } ".>"              (. if (t.pos > beg)
-                                     sym.attrPos = new Position(beg, t.pos, col); .)
+    | ','                       (. beg = this.la.pos;
+                                   col = this.la.col; .)
+      { ANY } ".>"              (. if (this.t.pos > beg) sym.attrPos = new Position(beg, this.t.pos, col); .)
     )
-  |                             (. beg = la.pos; col = la.col; .)
-    [ ANY { ANY } ] ".>"        (. if (t.pos > beg)
-                                     sym.attrPos = new Position(beg, t.pos, col); .)
+  |                             (. beg = this.la.pos;
+                                   col = this.la.col; .)
+    [ ANY { ANY } ] ".>"        (. if (this.t.pos > beg)sym.attrPos = new Position(beg, this.t.pos, col); .)
   ).
 
 /*------------------------------------------------------------------------------------*/
@@ -302,88 +313,96 @@ TypeName
 
 /*------------------------------------------------------------------------------------*/
 
-Expression<out Graph g>         (. Graph g2; .)
+Expression<out Graph g>         (. let g2: Graph;.)
 =
-  Term<out g>                   (. boolean first = true; .)
+  Term<out g>                   (. let first = true; .)
   { WEAK '|'
-    Term<out g2>                (. if (first) { tab.MakeFirstAlt(g); first = false; }
-                                   tab.MakeAlternative(g, g2);
+    Term<out g2>                (. if (first) {
+                                      this.tab.MakeFirstAlt(g);
+                                      first = false;
+                                   }
+                                   this.tab.MakeAlternative(g, g2);
                                  .)
   }
 .
 
 /*------------------------------------------------------------------------------------*/
 
-Term<out Graph g>               (. Graph g2; Node rslv = null; g = null; .)
+Term<out Graph g>               (. let g2: Graph;
+                                   let rslv: Node_ = undefined;
+                                   g = undefined; .)
 =
-( [                             (. rslv = tab.NewNode(Node.rslv, null, la.line); .)
-    Resolver<out rslv.pos>      (. g = new Graph(rslv);                       .)
+( [                             (. rslv = this.tab.NewNode(Node_.rslv, undefined, this.la.line); .)
+    Resolver<out rslv.pos>      (. g = new Graph(rslv); .)
   ]
-  Factor<out g2>                (. if (rslv != null) tab.MakeSequence(g, g2);
+  Factor<out g2>                (. if (rslv != undefined) this.tab.MakeSequence(g, g2);
                                    else g = g2;
                                  .)
-  { Factor<out g2>              (. tab.MakeSequence(g, g2); .)
+  { Factor<out g2>              (. this.tab.MakeSequence(g, g2); .)
   }
-|                               (. g = new Graph(tab.NewNode(Node.eps, null, 0)); .)
-)                               (. if (g == null) // invalid start of Term
-                                     g = new Graph(tab.NewNode(Node.eps, null, 0));
+|                               (. g = new Graph(this.tab.NewNode(Node_.eps, undefined, 0)); .)
+)                               (. if (g == undefined) // invalid start of Term
+                                        g = new Graph(this.tab.NewNode(Node_.eps, undefined, 0));
                                  .)
 .
 
 /*------------------------------------------------------------------------------------*/
 
-Factor<out Graph g>             (. SymInfo s; Position pos; boolean weak = false;
-                                   g = null; .)
+Factor<out Graph g>             (. let s: SymInfo;
+                                   let pos: Position;
+                                   let weak = false;
+                                   g = undefined;
+                                   let p: Node_;
+                                   .)
 =
 ( [ "WEAK"                      (. weak = true; .)
   ]
-  Sym<out s>                    (. Symbol sym = tab.FindSym(s.name);
-                                   if (sym == null && s.kind == str)
-                                     sym = (Symbol)tab.literals.get(s.name);
-                                   boolean undef = sym == null;
-                                   if (undef) {
-                                     if (s.kind == id)
-                                       sym = tab.NewSym(Node.nt, s.name, 0);  // forward nt
-                                     else if (genScanner) {
-                                       sym = tab.NewSym(Node.t, s.name, t.line);
-                                       dfa.MatchLiteral(sym.name, sym);
-                                     } else {  // undefined string in production
-                                       SemErr("undefined string in production");
-                                       sym = tab.eofSy;  // dummy
-                                     }
-                                   }
-                                   int typ = sym.typ;
-                                   if (typ != Node.t && typ != Node.nt)
-                                     SemErr("this symbol kind is not allowed in a production");
-                                   if (weak)
-                                     if (typ == Node.t) typ = Node.wt;
-                                     else SemErr("only terminals may be weak");
-                                   Node p = tab.NewNode(typ, sym, t.line);
-                                   g = new Graph(p);
+  Sym<out s>                    (. let sym = this.tab.FindSym(s.name);
+                                                   if (sym == undefined && s.kind == Parser.str)
+                                                       sym = this.tab.literals[s.name];
+                                                   let undef = sym == undefined;
+                                                   if (undef) {
+                                                       if (s.kind == Parser.id)
+                                                           sym = this.tab.NewSym(Node_.nt, s.name, 0);  // forward nt
+                                                       else if (this.genScanner) {
+                                                           sym = this.tab.NewSym(Node_.t, s.name, this.t.line);
+                                                           this.dfa.MatchLiteral(sym.name, sym);
+                                                       } else {  // undefined string in production
+                                                           this.SemErr("undefined string in production");
+                                                           sym = this.tab.eofSy;  // dummy
+                                                       }
+                                                   }
+                                                   let typ = sym.typ;
+                                                   if (typ != Node_.t && typ != Node_.nt)
+                                                       this.SemErr("this symbol kind is not allowed in a production");
+                                                   if (weak)
+                                                       if (typ == Node_.t) typ = Node_.wt;
+                                                       else this.SemErr("only terminals may be weak");
+                                                   p = this.tab.NewNode(typ, sym, this.t.line);
+                                                   g = new Graph(p);
                                  .)
-  [ Attribs<p>                  (. if (s.kind != id) SemErr("a literal must not have attributes"); .)
+  [ Attribs<p>                  (. if (s.kind != Parser.id) this.SemErr("a literal must not have attributes"); .)
   ]                             (. if (undef) {
-                                     sym.attrPos = p.pos;  // dummy
-                                     sym.retVar = p.retVar;  // AH - dummy
-                                   } else if ((p.pos == null) != (sym.attrPos == null)
-                                          || (p.retVar == null) != (sym.retVar == null))
-                                     SemErr("attribute mismatch between declaration and use of this symbol");
+                                        sym.attrPos = p.pos;  // dummy
+                                        sym.retVar = p.retVar;  // AH - dummy
+                                   } else if ((p.pos == undefined) != (sym.attrPos == undefined) || (p.retVar == undefined) != (sym.retVar == undefined))
+                                        this.SemErr("attribute mismatch between declaration and use of this symbol");
                                  .)
 | '(' Expression<out g> ')'
-| '[' Expression<out g> ']'     (. tab.MakeOption(g); .)
-| '{' Expression<out g> '}'     (. tab.MakeIteration(g); .)
-| SemText<out pos>              (. Node p = tab.NewNode(Node.sem, null, 0);
+| '[' Expression<out g> ']'     (. this.tab.MakeOption(g); .)
+| '{' Expression<out g> '}'     (. this.tab.MakeIteration(g); .)
+| SemText<out pos>              (. p = this.tab.NewNode(Node_.sem, undefined, 0);
                                    p.pos = pos;
                                    g = new Graph(p);
                                  .)
-| "ANY"                         (. Node p = tab.NewNode(Node.any, null, t.line);  // p.set is set in tab.SetupAnys
+| "ANY"                         (. p = this.tab.NewNode(Node_.any, undefined, this.t.line);  // p.set is set in tab.SetupAnys
                                    g = new Graph(p);
                                  .)
-| "SYNC"                        (. Node p = tab.NewNode(Node.sync, null, 0);
+| "SYNC"                        (. p = this.tab.NewNode(Node_.sync, undefined, 0);
                                    g = new Graph(p);
                                  .)
-)                               (. if (g == null) // invalid start of Factor
-                                     g = new Graph(tab.NewNode(Node.eps, null, 0));
+)                               (. if (g == undefined) // invalid start of Factor
+                                        g = new Graph(this.tab.NewNode(Node_.eps, undefined, 0));
                                  .)
 .
 
@@ -391,8 +410,9 @@ Factor<out Graph g>             (. SymInfo s; Position pos; boolean weak = false
 
 Resolver<out Position pos>
 =
-  "IF" "("                      (. int beg = la.pos; int col = la.col; .)
-  Condition                     (. pos = new Position(beg, t.pos, col); .)
+  "IF" "("                      (. let beg = this.la.pos;
+                                   let col = this.la.col; .)
+  Condition                     (. pos = new Position(beg, this.t.pos, col); .)
 .
 
 /*------------------------------------------------------------------------------------*/
@@ -401,117 +421,131 @@ Condition = { "(" Condition | ANY } ")" .
 
 /*------------------------------------------------------------------------------------*/
 
-TokenExpr<out Graph g>          (. Graph g2; .)
+TokenExpr<out Graph g>          (. let g2: Graph; .)
 =
-  TokenTerm<out g>              (. boolean first = true; .)
+  TokenTerm<out g>              (. let first = true; .)
   { WEAK '|'
-    TokenTerm<out g2>           (. if (first) { tab.MakeFirstAlt(g); first = false; }
-                                   tab.MakeAlternative(g, g2);
+    TokenTerm<out g2>           (. if (first) {
+                                        this.tab.MakeFirstAlt(g);
+                                        first = false;
+                                   }
+                                   this.tab.MakeAlternative(g, g2);
                                 .)
   }
 .
 
 /*------------------------------------------------------------------------------------*/
 
-TokenTerm<out Graph g>          (. Graph g2; .)
+TokenTerm<out Graph g>          (. let g2: Graph; .)
 =
   TokenFactor<out g>
-  { TokenFactor<out g2>         (. tab.MakeSequence(g, g2); .)
+  { TokenFactor<out g2>         (. this.tab.MakeSequence(g, g2); .)
   }
   [ "CONTEXT"
-    '(' TokenExpr<out g2>       (. tab.SetContextTrans(g2.l); dfa.hasCtxMoves = true;
-                                   tab.MakeSequence(g, g2); .)
+    '(' TokenExpr<out g2>       (. this.tab.SetContextTrans(g2.l);
+                                   this.dfa.hasCtxMoves = true;
+                                   this.tab.MakeSequence(g, g2); .)
     ')'
   ]
 .
 
 /*------------------------------------------------------------------------------------*/
 
-TokenFactor<out Graph g>        (. SymInfo s; .)
+TokenFactor<out Graph g>        (. let s: SymInfo; .)
 =
-                                (. g = null; .)
-( Sym<out s>                    (. if (s.kind == id) {
-                                     CharClass c = tab.FindCharClass(s.name);
-                                     if (c == null) {
-                                       SemErr("undefined name");
-                                       c = tab.NewCharClass(s.name, new CharSet());
-                                     }
-                                     Node p = tab.NewNode(Node.clas, null, 0); p.val = c.n;
-                                     g = new Graph(p);
-                                     tokenString = noString;
-                                   } else { // str
-                                     g = tab.StrToGraph(s.name);
-                                     if (tokenString == null) tokenString = s.name;
-                                     else tokenString = noString;
-                                   }
+                                (. g = undefined; .)
+( Sym<out s>                    (. if (s.kind == Parser.id) {
+                                                   let c = this.tab.FindCharClass(s.name);
+                                                   if (c == undefined) {
+                                                       this.SemErr("undefined name");
+                                                       c = this.tab.NewCharClass(s.name, new CharSet());
+                                                   }
+                                                   let p = this.tab.NewNode(Node_.clas, undefined, 0);
+                                                   p.val = c.n;
+                                                   g = new Graph(p);
+                                                   this.tokenString = this.noString;
+                                               } else { // str
+                                                   g = this.tab.StrToGraph(s.name);
+                                                   if (this.tokenString == undefined) this.tokenString = s.name;
+                                                   else this.tokenString = this.noString;
+                                               }
                                  .)
 | '(' TokenExpr<out g> ')'
-| '[' TokenExpr<out g> ']'      (. tab.MakeOption(g); tokenString = noString; .)
-| '{' TokenExpr<out g> '}'      (. tab.MakeIteration(g); tokenString = noString; .)
-)                               (. if (g == null) // invalid start of TokenFactor
-                                     g = new Graph(tab.NewNode(Node.eps, null, 0)); .)
+| '[' TokenExpr<out g> ']'      (. this.tab.MakeOption(g);
+                                   this.tokenString = this.noString; .)
+| '{' TokenExpr<out g> '}'      (. this.tab.MakeIteration(g);
+                                   this.tokenString = this.noString; .)
+)                               (. if (g == undefined) // invalid start of TokenFactor
+                                        g = new Graph(this.tab.NewNode(Node_.eps, undefined, 0));.)
 .
 
 /*------------------------------------------------------------------------------------*/
 
 Sym<out SymInfo s>
-=                               (. s = new SymInfo(); s.name = "???"; s.kind = id; .)
-( ident                         (. s.kind = id; s.name = t.val; .)
-| (string                       (. s.name = t.val; .)
-  | char                        (. s.name = "\"" + t.val.substring(1, t.val.length()-1) + "\""; .)
-  )                             (. s.kind = str;
-                                   if (dfa.ignoreCase) s.name = s.name.toLowerCase();
+=                               (. s = new SymInfo();
+                                   s.name = "???";
+                                   s.kind = Parser.id;.)
+( ident                         (. s.kind = Parser.id;
+                                   s.name = this.t.val; .)
+| (string                       (. s.name = this.t.val; .)
+  | char                        (. s.name = "\"" + this.t.val.substring(1, this.t.val.length - 1) + "\""; .)
+  )                             (. s.kind = Parser.str;
+                                   if (this.dfa.ignoreCase) s.name = s.name.toLowerCase();
                                    if (s.name.indexOf(' ') >= 0)
-                                     SemErr("literal tokens must not contain blanks"); .)
+                                        this.SemErr("literal tokens must not contain blanks"); .)
 )
 .
 
 /*------------------------------------------------------------------------------------*/
 
-Attribs<Node n>                 (. int beg, col; .)
+Attribs<Node n>                 (. let beg, col: number; .)
 =
   '<'                           // attributes denoted by < ... >
-  ( ('^' | "out")               (. beg = la.pos; .)
+  ( ('^' | "out")               (. beg = this.la.pos; .)
     { ANY
     | Bracketed
-    | badString                 (. SemErr("bad string in attributes"); .)
-    }                           (. n.retVar = scanner.buffer.GetString(beg, la.pos); .)
+    | badString                 (. this.SemErr("bad string in attributes"); .)
+    }                           (. n.retVar = this.scanner.buffer.GetString(beg, this.la.pos); .)
     ( '>'
-    | ','                       (. beg = la.pos; col = la.col; .)
+    | ','                       (. beg = this.la.pos;
+                                   col = this.la.col; .)
       {  ANY
-       | badString              (. SemErr("bad string in attributes"); .)
-      } '>'                     (. if (t.pos > beg) n.pos = new Position(beg, t.pos, col); .)
+       | badString              (. this.SemErr("bad string in attributes"); .)
+      } '>'                     (. if (this.t.pos > beg) n.pos = new Position(beg, this.t.pos, col); .)
     )
-  |                             (. beg = la.pos; col = la.col; .)
+  |                             (. beg = this.la.pos;
+                                   col = this.la.col; .)
     [ ( ANY
-	  | badString               (. SemErr("bad string in attributes"); .)
+	  | badString               (. this.SemErr("bad string in attributes"); .)
 	  )
       {  ANY
-      | badString               (. SemErr("bad string in attributes"); .)
+      | badString               (. this.SemErr("bad string in attributes"); .)
       }
-    ] '>'                       (. if (t.pos > beg) n.pos = new Position(beg, t.pos, col); .)
+    ] '>'                       (. if (this.t.pos > beg) n.pos = new Position(beg, this.t.pos, col); .)
   )
 |
 	"<."                          // attributes denoted by <. ... .>
-  ( ('^' | "out")               (. beg = la.pos; .)
+  ( ('^' | "out")               (. beg = this.la.pos; .)
     { ANY
     | Bracketed
-    | badString                 (. SemErr("bad string in attributes"); .)
-    }                           (. n.retVar = scanner.buffer.GetString(beg, la.pos); .)
+    | badString                 (. this.SemErr("bad string in attributes"); .)
+    }                           (. n.retVar = this.scanner.buffer.GetString(beg, this.la.pos); .)
     ( ".>"
-    | ','                       (. beg = la.pos; col = la.col; .)
+    | ','                       (. beg = this.la.pos;
+                                   col = this.la.col; .)
       {  ANY
-       | badString              (. SemErr("bad string in attributes"); .)
-      } ".>"                    (. if (t.pos > beg) n.pos = new Position(beg, t.pos, col); .)
+       | badString              (. this.SemErr("bad string in attributes"); .)
+      } ".>"                    (. if (this.t.pos > beg) n.pos = new Position(beg, this.t.pos, col); .)
     )
-  |                             (. beg = la.pos; col = la.col; .)
+  |                             (. beg = this.la.pos;
+                                   col = this.la.col; .)
     [ ( ANY
-	  | badString               (. SemErr("bad string in attributes"); .)
+	  | badString               (. this.SemErr("bad string in attributes"); .)
 	  )
       {  ANY
-      | badString               (. SemErr("bad string in attributes"); .)
+      | badString               (. this.SemErr("bad string in attributes"); .)
       }
-    ] ".>"                      (. if (t.pos > beg) n.pos = new Position(beg, t.pos, col); .)
+    ] ".>"                      (. if (this.t.pos > beg) n.pos = new Position(beg, this.t.pos, col); .)
   )
 .
 
@@ -524,12 +558,13 @@ Bracketed
 
 SemText<out Position pos>
 =
-  "(."                          (. int beg = la.pos; int col = la.col; .)
+  "(."                          (. let beg = this.la.pos;
+                                   let col = this.la.col; .)
   { ANY
-  | badString                   (. SemErr("bad string in semantic action"); .)
-  | "(."                        (. SemErr("missing end of previous semantic action"); .)
+  | badString                   (. this.SemErr("bad string in semantic action"); .)
+  | "(."                        (. this.SemErr("missing end of previous semantic action"); .)
   }
-  ".)"                          (. pos = new Position(beg, t.pos, col); .)
+  ".)"                          (. pos = new Position(beg, this.t.pos, col); .)
 .
 
 END Coco.

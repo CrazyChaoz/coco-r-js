@@ -47,8 +47,8 @@ export class Parser {
     static _x = false;
     static minErrDist = 2;
 
-    public t: Token;    // last recognized token
-    public la: Token;   // lookahead token
+    public t: Token;            // last recognized token
+    public la: Token;           // lookahead token
     errDist = Parser.minErrDist;
 
     public scanner: Scanner;
@@ -57,14 +57,14 @@ export class Parser {
     static id = 0;
     static str = 1;
 
-    public trace: Trace;         // other Coco objects referenced by this ATG
+    public trace: Trace;        // other Coco objects referenced by this ATG
     public tab: Tab;
     public dfa: DFA;
     public pgen: ParserGen;
 
     genScanner: boolean;
-    tokenString: string;         // used in declarations of literal tokens
-    noString = "-none-"; // used in declarations of literal tokens
+    tokenString: string;        // used in declarations of literal tokens
+    noString = "-none-";        // used in declarations of literal tokens
 
     /*-------------------------------------------------------------------------*/
 
@@ -268,8 +268,6 @@ export class Parser {
 
         this.tab.RenumberPragmas();
 
-
-
         if (this.tab.ddt[2]) this.tab.PrintNodes();
         if (this.errors.count == 0) {
             console.log("checking");
@@ -340,11 +338,9 @@ export class Parser {
                 this.tab.literals[this.tokenString] = sym;
                 this.dfa.MatchLiteral(this.tokenString, sym);
             }
-
         } else if (this.StartOf(6)) {
             if (s.kind == Parser.id) this.genScanner = false;
             else this.dfa.MatchLiteral(sym.name, sym);
-
         } else this.SynErr(47);
         if (this.la.kind == 42) {
             sym.semPos = this.SemText();
@@ -552,7 +548,6 @@ export class Parser {
         if (name.length == 1) n = name.charAt(0).charCodeAt(0);
         else this.SemErr("unacceptable character value");
         if (this.dfa.ignoreCase && n >= 'A'.charCodeAt(0) && n <= 'Z'.charCodeAt(0)) n += 32;
-
         return n;
     }
 
@@ -631,7 +626,6 @@ export class Parser {
         if (g == undefined) // invalid start of Term
             g = new Graph(this.tab.NewNode(Node_.eps, undefined, 0));
 
-
         return g;
     }
 
@@ -653,7 +647,6 @@ export class Parser {
         let weak = false;
         g = undefined;
         let p: Node_;
-
 
         switch (this.la.kind) {
             case 1:
@@ -700,8 +693,6 @@ export class Parser {
                 } else if ((p.pos == undefined) != (sym.attrPos == undefined)
                     || (p.retVar == undefined) != (sym.retVar == undefined))
                     this.SemErr("attribute mismatch between declaration and use of this symbol");
-
-
                 break;
             case 35:
                 this.Get();
@@ -727,7 +718,6 @@ export class Parser {
                 p = this.tab.NewNode(Node_.sem, undefined, 0);
                 p.pos = pos;
                 g = new Graph(p);
-
                 break;
 
             case 23:
@@ -1272,9 +1262,3 @@ export class Errors {
 
 } // Errors
 
-/*
-class FatalError extends RuntimeException {
-    public static final long serialVersionUID = 1L;
-    public FatalError(String s) { super(s); }
-}
-*/
