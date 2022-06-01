@@ -149,7 +149,9 @@ export class Buffer {
         while (this.getPos() < end) buf[len++] = this.Read();
         this.setPos(oldPos);
         // return new String(buf, 0, len);
-        return buf.toString();
+        return buf.map(function (value, index, array) {
+            return String.fromCharCode(value)
+        }).join("");;
     }
 
     public getPos(): number {

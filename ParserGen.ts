@@ -34,8 +34,8 @@ import {Errors, Parser} from "./Parser";
 import {Trace} from "./Trace";
 import {Buffer} from "./Scanner";
 import * as fs from "fs";
-import * as path from "path";
 import BitSet from "bitset";
+import * as os from "os";
 
 export class ParserGen {
 
@@ -43,7 +43,7 @@ export class ParserGen {
     static CR = '\r';
     static LF = '\n';
     static EOF = -1;
-    static ls = path.sep;
+    static ls = os.EOL;
 
     static tErr = 0;      // error codes
     static altErr = 1;
@@ -55,7 +55,7 @@ export class ParserGen {
     curSy: Symbol;      // symbol whose production is currently generated
     private fram: number;  // parser frame input     /* pdt */
     protected gen: number; // generated parser file  /* pdt */
-    err: string;  // generated parser error messages
+    err: string = "";  // generated parser error messages
     srcName: string;    // name of attributed grammar file
     srcDir: string;     // directory of attributed grammar file
     symSet = [];
@@ -192,8 +192,9 @@ export class ParserGen {
             switch (p.typ) {
                 case Node_.nt: {
                     this.Indent(indent);
-                    if (p.retVar != undefined) fs.writeSync(this.gen, p.retVar + " = ");
-                    fs.writeSync(this.gen, p.sym.name + "(");
+                    if (p.retVar != undefined)
+                        fs.writeSync(this.gen, p.retVar + " = ");
+                    fs.writeSync(this.gen, "this." + p.sym.name + "(");
                     this.CopySourcePart(p.pos, 0);
                     fs.writeSync(this.gen, ");\n");
                     break;
@@ -370,21 +371,6 @@ export class ParserGen {
     }
 
     GenProductions() {
-        // console.log("##########")
-        // console.log("##########")
-        // console.log("##########")
-        // console.log("##########")
-        // console.log("##########")
-        // this.tab.nonterminals.forEach(((value, index, array) => {
-        //     let p=value.graph
-        //     while (p!=undefined){
-        //         console.log("in gen prod")
-        //         console.log(p.set)
-        //         p=p.next
-        //     }
-        // }))
-        // console.log("##########")
-
         for (let i = 0; i < this.tab.nonterminals.length; i++) {
             let sym = this.tab.nonterminals[i];
             this.curSy = sym;
@@ -393,10 +379,10 @@ export class ParserGen {
             this.CopySourcePart(sym.attrPos, 0);
             fs.writeSync(this.gen, ")");
             if (sym.retType != undefined)
-                fs.writeSync(this.gen, ":"+sym.retType);
-            fs.writeSync(this.gen," {\n");
+                fs.writeSync(this.gen, ":" + sym.retType);
+            fs.writeSync(this.gen, " {\n");
             if (sym.retVar != undefined)
-                fs.writeSync(this.gen, "\t\tlet " + sym.retVar + ":"+ sym.retType +";\n");
+                fs.writeSync(this.gen, "\t\tlet " + sym.retVar + ":" + sym.retType + ";\n");
             this.CopySourcePart(sym.semPos, 2);
             this.GenCode(sym.graph, 2, new BitSet());
             if (sym.retVar != undefined)
@@ -409,23 +395,24 @@ export class ParserGen {
     InitSets() {
         for (let i = 0; i < this.symSet.length; i++) {
             let s = this.symSet[i];
-            fs.writeSync(this.gen, "\t\t{");
+            fs.writeSync(this.gen, "\t\t[");
             let j = 0;
             //foreach (Symbol sym in Symbol.terminals) {
             for (let k = 0; k < this.tab.terminals.length; k++) {
                 let sym = this.tab.terminals[k];
+                //TODO: make static classname "Parser" dynamic
                 if (s.get(sym.n))
-                    fs.writeSync(this.gen, "_T,");
+                    fs.writeSync(this.gen, "Parser._T,");
                 else
-                    fs.writeSync(this.gen, "_x,");
+                    fs.writeSync(this.gen, "Parser._x,");
                 ++j;
                 if (j % 4 == 0)
                     fs.writeSync(this.gen, " ");
             }
             if (i == this.symSet.length - 1)
-                fs.writeSync(this.gen, "_x}\n");
+                fs.writeSync(this.gen, "Parser._x]\n");
             else
-                fs.writeSync(this.gen, "_x},\n");
+                fs.writeSync(this.gen, "Parser._x],\n");
         }
     }
 
@@ -475,7 +462,7 @@ export class ParserGen {
         g.CopyFramePart("-->initialization");
         this.InitSets();
         g.CopyFramePart("-->errors");
-        fs.writeSync(this.gen, this.err.toString());
+        fs.writeSync(this.gen, this.err);
         g.CopyFramePart(undefined);
         // this.gen.close();
         fs.close(this.gen, function () {
