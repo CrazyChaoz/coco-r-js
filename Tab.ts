@@ -631,8 +631,10 @@ export class Tab {
             mark.set(p.n);
             switch (p.typ) {
                 case Node_.nt: {
-                    if (p.sym.firstReady) fs = fs.or(p.sym.first);
-                    else fs = fs.or(this.First0(p.sym.graph, mark));
+                    if (p.sym.firstReady)
+                        fs = fs.or(p.sym.first);
+                    else
+                        fs = fs.or(this.First0(p.sym.graph, mark));
                     break;
                 }
                 case Node_.t:
@@ -821,15 +823,18 @@ export class Tab {
 
     public Expected(p: Node_, curSy: Symbol): BitSet {
         let s = this.First(p);
-        if (this.DelGraph(p)) s = s.or(curSy.follow);
+        if (this.DelGraph(p))
+            s = s.or(curSy.follow);
         return s;
     }
 
     // does not look behind resolvers; only called during LL(1) test and in CheckRes
     public Expected0(p: Node_, curSy: Symbol): BitSet {
         // if (p.typ == Node_.rslv) return new BitSet(this.terminals.length);
-        if (p.typ == Node_.rslv) return new BitSet();
-        else return this.Expected(p, curSy);
+        if (p.typ == Node_.rslv)
+            return new BitSet();
+        else
+            return this.Expected(p, curSy);
     }
 
     CompSync(p: Node_) {
@@ -975,7 +980,6 @@ export class Tab {
 
     public Unescape(s: string): string {
         /* replaces escape sequences in s by their Unicode values. */
-        //TODO: StringBuffer -> string ?
         let buf = "";
         let i = 0;
         while (i < s.length) {
@@ -1247,7 +1251,8 @@ export class Tab {
                                     "Place it at previous conflicting alternative.");
                             if (!Sets.Intersect(fs, expected))
                                 this.ResErr(q.sub, "Warning: Misplaced resolver: no LL(1) conflict.");
-                        } else soFar = soFar.or(this.Expected(q.sub, this.curSy));
+                        } else
+                            soFar = soFar.or(this.Expected(q.sub, this.curSy));
                         this.CheckRes(q.sub, true);
                     }
                     break;
@@ -1366,11 +1371,8 @@ export class Tab {
 //  Cross reference list
 //---------------------------------------------------------------------
     public XRef() {
-
-        //Comperator: ((Symbol) x).name.compareTo(((Symbol) y).name)
         let xref = new Map();
         // collect lines where symbols have been defined
-        //foreach (Symbol sym in Symbol.nonterminals) {
         for (let i = 0; i < this.nonterminals.length; i++) {
             let sym = this.nonterminals[i];
             if (!xref.has(sym)) {
@@ -1379,7 +1381,6 @@ export class Tab {
             xref.get(sym).push(-sym.line);
         }
         // collect lines where symbols have been referenced
-        //foreach (Node n in Node.nodes) {
         for (let i = 0; i < this.nodes.length; i++) {
             let n = this.nodes[i];
             if (n.typ == Node_.t || n.typ == Node_.wt || n.typ == Node_.nt) {

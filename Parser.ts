@@ -33,15 +33,15 @@ import {CharSet, DFA} from "./DFA";
 import {Scanner, Token} from "./Scanner";
 
 export class Parser {
-    public static _EOF = 0;
-    public static _ident = 1;
-    public static _number = 2;
-    public static _string = 3;
-    public static _badString = 4;
-    public static _char = 5;
-    public static maxT = 44;
-    public static _ddtSym = 45;
-    public static _optionSym = 46;
+    public static _EOF: number = 0;
+    public static _ident: number = 1;
+    public static _number: number = 2;
+    public static _string: number = 3;
+    public static _badString: number = 4;
+    public static _char: number = 5;
+    public static maxT: number = 44;
+    public static _ddtSym: number = 45;
+    public static _optionSym: number = 46;
 
     static _T = true;
     static _x = false;
@@ -67,6 +67,7 @@ export class Parser {
     noString = "-none-";        // used in declarations of literal tokens
 
     /*-------------------------------------------------------------------------*/
+
 
     constructor(scanner: Scanner) {
         this.scanner = scanner;
@@ -169,21 +170,21 @@ export class Parser {
         }
         if (this.la.kind == 8) {
             this.Get();
-            // @ts-ignore
+            //@ts-ignore
             while (this.la.kind == 1) {
                 this.SetDecl();
             }
         }
         if (this.la.kind == 9) {
             this.Get();
-            // @ts-ignore
+            //@ts-ignore
             while (this.la.kind == 1 || this.la.kind == 3 || this.la.kind == 5) {
                 this.TokenDecl(Node_.t);
             }
         }
         if (this.la.kind == 10) {
             this.Get();
-            // @ts-ignore
+            //@ts-ignore
             while (this.la.kind == 1 || this.la.kind == 3 || this.la.kind == 5) {
                 this.TokenDecl(Node_.pr);
             }
@@ -195,7 +196,7 @@ export class Parser {
             g1 = this.TokenExpr();
             this.Expect(13);
             g2 = this.TokenExpr();
-            // @ts-ignore
+            //@ts-ignore
             if (this.la.kind == 14) {
                 this.Get();
                 nested = true;
@@ -214,7 +215,8 @@ export class Parser {
         this.Expect(16);
         if (this.genScanner) this.dfa.MakeDeterministic();
         this.tab.DeleteNodes();
-        // @ts-ignore
+
+        //@ts-ignore
         while (this.la.kind == 1) {
             this.Get();
             sym = this.tab.FindSym(this.t.val);
@@ -246,9 +248,9 @@ export class Parser {
             g = this.Expression();
             sym.graph = g.l;
             this.tab.Finish(g);
+
             this.ExpectWeak(18, 4);
         }
-
         this.Expect(19);
         this.Expect(1);
         if (gramName != this.t.val) {
@@ -338,6 +340,7 @@ export class Parser {
                 this.tab.literals[this.tokenString] = sym;
                 this.dfa.MatchLiteral(this.tokenString, sym);
             }
+
         } else if (this.StartOf(6)) {
             if (s.kind == Parser.id) this.genScanner = false;
             else this.dfa.MatchLiteral(sym.name, sym);
@@ -383,7 +386,7 @@ export class Parser {
         return s;
     }
 
-    AttrDecl(sym) {
+    AttrDecl(sym: Symbol) {
         let beg, col: number;
         //@ts-ignore
         if (this.la.kind == 24) {
@@ -399,7 +402,7 @@ export class Parser {
                 beg = this.la.pos;
                 this.TypeName();
                 sym.retType = this.scanner.buffer.GetString(beg, this.la.pos);
-                this.Get();
+                this.Expect(1);
                 sym.retVar = this.t.val;
                 //@ts-ignore
                 if (this.la.kind == 27) {
@@ -428,7 +431,7 @@ export class Parser {
                         this.Get();
                     }
                 }
-                this.Get();
+                this.Expect(27);
                 if (this.t.pos > beg) sym.attrPos = new Position(beg, this.t.pos, col);
             } else this.SynErr(49);
             //@ts-ignore
@@ -445,7 +448,7 @@ export class Parser {
                 beg = this.la.pos;
                 this.TypeName();
                 sym.retType = this.scanner.buffer.GetString(beg, this.la.pos);
-                this.Get();
+                this.Expect(1);
                 sym.retVar = this.t.val;
                 //@ts-ignore
                 if (this.la.kind == 30) {
@@ -474,7 +477,7 @@ export class Parser {
                         this.Get();
                     }
                 }
-                this.Get();
+                this.Expect(30);
                 if (this.t.pos > beg) sym.attrPos = new Position(beg, this.t.pos, col);
             } else this.SynErr(51);
         } else this.SynErr(52);
@@ -506,7 +509,6 @@ export class Parser {
         let g2: Graph;
         g = this.Term();
         let first = true;
-
         while (this.WeakSeparator(33, 16, 17)) {
             g2 = this.Term();
             if (first) {
@@ -537,7 +539,7 @@ export class Parser {
         } else if (this.la.kind == 5) {
             n1 = this.Char();
             s.Set(n1);
-            // @ts-ignore
+            //@ts-ignore
             if (this.la.kind == 22) {
                 this.Get();
                 n2 = this.Char();
@@ -560,6 +562,7 @@ export class Parser {
         if (name.length == 1) n = name.charAt(0).charCodeAt(0);
         else this.SemErr("unacceptable character value");
         if (this.dfa.ignoreCase && n >= 'A'.charCodeAt(0) && n <= 'Z'.charCodeAt(0)) n += 32;
+
         return n;
     }
 
@@ -600,7 +603,7 @@ export class Parser {
             } else {
                 this.Get();
                 this.TypeName();
-                // @ts-ignore
+                //@ts-ignore
                 while (this.la.kind == 28) {
                     this.Get();
                     this.TypeName();
@@ -611,13 +614,11 @@ export class Parser {
     }
 
     Term(): Graph {
-
         let g: Graph;
         let g2: Graph;
         let rslv: Node_ = undefined;
         g = undefined;
         if (this.StartOf(18)) {
-
             if (this.la.kind == 40) {
                 rslv = this.tab.NewNode(Node_.rslv, undefined, this.la.line);
                 rslv.pos = this.Resolver();
@@ -630,11 +631,9 @@ export class Parser {
                 g2 = this.Factor();
                 this.tab.MakeSequence(g, g2);
             }
-
         } else if (this.StartOf(20)) {
             g = new Graph(this.tab.NewNode(Node_.eps, undefined, 0));
         } else this.SynErr(55);
-
         if (g == undefined) // invalid start of Term
             g = new Graph(this.tab.NewNode(Node_.eps, undefined, 0));
 
@@ -664,7 +663,7 @@ export class Parser {
             case 1:
             case 3:
             case 5:
-            case 34:
+            case 34: {
                 if (this.la.kind == 34) {
                     this.Get();
                     weak = true;
@@ -694,7 +693,7 @@ export class Parser {
                 p = this.tab.NewNode(typ, sym, this.t.line);
                 g = new Graph(p);
 
-                // @ts-ignore
+                //@ts-ignore
                 if (this.la.kind == 24 || this.la.kind == 29) {
                     this.Attribs(p);
                     if (s.kind != Parser.id) this.SemErr("a literal must not have attributes");
@@ -702,48 +701,53 @@ export class Parser {
                 if (undef) {
                     sym.attrPos = p.pos;  // dummy
                     sym.retVar = p.retVar;  // AH - dummy
-                } else if ((p.pos == undefined) != (sym.attrPos == undefined)
-                    || (p.retVar == undefined) != (sym.retVar == undefined))
+                } else if ((p.pos == undefined) != (sym.attrPos == undefined) || (p.retVar == undefined) != (sym.retVar == undefined))
                     this.SemErr("attribute mismatch between declaration and use of this symbol");
+
                 break;
-            case 35:
+            }
+            case 35: {
                 this.Get();
                 g = this.Expression();
                 this.Expect(36);
                 break;
-            case 31:
+            }
+            case 31: {
                 this.Get();
                 g = this.Expression();
                 this.Expect(32);
                 this.tab.MakeOption(g);
                 break;
-
-            case 37:
+            }
+            case 37: {
                 this.Get();
                 g = this.Expression();
                 this.Expect(38);
                 this.tab.MakeIteration(g);
                 break;
-
-            case 42:
+            }
+            case 42: {
                 pos = this.SemText();
                 p = this.tab.NewNode(Node_.sem, undefined, 0);
                 p.pos = pos;
                 g = new Graph(p);
-                break;
 
-            case 23:
+                break;
+            }
+            case 23: {
                 this.Get();
                 p = this.tab.NewNode(Node_.any, undefined, this.t.line);  // p.set is set in tab.SetupAnys
                 g = new Graph(p);
 
                 break;
-
-            case 39:
+            }
+            case 39: {
                 this.Get();
                 p = this.tab.NewNode(Node_.sync, undefined, 0);
                 g = new Graph(p);
+
                 break;
+            }
             default:
                 this.SynErr(56);
                 break;
@@ -758,7 +762,7 @@ export class Parser {
         let beg, col: number;
         if (this.la.kind == 24) {
             this.Get();
-            // @ts-ignore
+            //@ts-ignore
             if (this.la.kind == 25 || this.la.kind == 26) {
                 if (this.la.kind == 25) {
                     this.Get();
@@ -818,7 +822,7 @@ export class Parser {
             } else this.SynErr(58);
         } else if (this.la.kind == 29) {
             this.Get();
-            // @ts-ignore
+            //@ts-ignore
             if (this.la.kind == 25 || this.la.kind == 26) {
                 if (this.la.kind == 25) {
                     this.Get();
@@ -959,7 +963,7 @@ export class Parser {
         if (this.la.kind == 35) {
             this.Get();
             while (this.StartOf(29)) {
-                // @ts-ignore
+                //@ts-ignore
                 if (this.la.kind == 31 || this.la.kind == 35) {
                     this.Bracketed();
                 } else {

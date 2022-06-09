@@ -151,7 +151,7 @@ export class Buffer {
         // return new String(buf, 0, len);
         return buf.map(function (value, index, array) {
             return String.fromCharCode(value)
-        }).join("");;
+        }).join("");
     }
 
     public getPos(): number {
@@ -833,7 +833,6 @@ export class Scanner {
         this.t.val = this.tval.map(function (value, index, array) {
             return String.fromCharCode(value)
         }).join("")
-
 
         return this.t;
     }

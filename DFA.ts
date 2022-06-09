@@ -346,7 +346,6 @@ export class Generator {
 
         try {
             let scannerFram = this.fram;
-            // this.fram = new BufferedReader(new FileReader(copyFr));
             this.fram = fs.openSync(copyFr, "r")
             this.CopyFramePart(undefined);
             this.fram = scannerFram;

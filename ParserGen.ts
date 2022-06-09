@@ -94,7 +94,7 @@ export class ParserGen {
             if (this.Overlaps(s1, s2)) {
                 return false;
             }
-            s1.or(s2);
+            s1 = s1.or(s2);
             ++nAlts;
             // must not optimize with switch-statement, if alt uses a resolver expression
             if (p.sub.typ == Node_.rslv) return false;
@@ -202,14 +202,16 @@ export class ParserGen {
                 case Node_.t: {
                     this.Indent(indent);
                     // assert: if isChecked[p.sym.n] is true, then isChecked contains only p.sym.n
-                    if (isChecked.get(p.sym.n)) fs.writeSync(this.gen, "this.Get();\n");
-                    else fs.writeSync(this.gen, "this.Expect(" + p.sym.n + ");\n");
+                    if (isChecked.get(p.sym.n))
+                        fs.writeSync(this.gen, "this.Get();\n");
+                    else
+                        fs.writeSync(this.gen, "this.Expect(" + p.sym.n + ");\n");
                     break;
                 }
                 case Node_.wt: {
                     this.Indent(indent);
                     s1 = this.tab.Expected(p.next, this.curSy);
-                    s1.or(this.tab.allSyncSets);
+                    s1 = s1.or(this.tab.allSyncSets);
                     fs.writeSync(this.gen, "this.ExpectWeak(" + p.sym.n + ", " + this.NewCondSet(s1) + ");\n");
                     break;
                 }
@@ -338,7 +340,7 @@ export class ParserGen {
                     break;
             }
             if (p.typ != Node_.eps && p.typ != Node_.sem && p.typ != Node_.sync) {
-                isChecked.setRange(0, isChecked.toArray().length);  // = new BitArray(Symbol.terminals.Count);
+                isChecked = new BitSet();  // = new BitArray(Symbol.terminals.Count);
             }
             if (p.up)
                 break;
@@ -382,7 +384,7 @@ export class ParserGen {
             this.curSy = sym;
             fs.writeSync(this.gen, "\t");
             fs.writeSync(this.gen, sym.name + "(");
-            if(sym.attrPos != undefined){
+            if (sym.attrPos != undefined) {
                 this.CopySourcePart(sym.attrPos, 0);
             }
             fs.writeSync(this.gen, ")");

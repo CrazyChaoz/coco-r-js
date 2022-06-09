@@ -96,7 +96,7 @@ Coco                            (. let sym: Symbol;
 
   "COMPILER"                    (. this.genScanner = true;
                                    this.tab.ignored = new CharSet(); .)
-  ident                         (.gramName = this.t.val;;
+  ident                         (.gramName = this.t.val;
                                     beg = this.la.pos;
                                  .)
   { ANY }                       (. this.tab.semDeclPos = new Position(beg, this.la.pos, 0); .)
