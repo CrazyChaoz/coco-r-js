@@ -217,8 +217,10 @@ SimSet<out CharSet s>           (. let n1, n2: number;.)
 | string                        (. let name = this.t.val;
                                    name = this.tab.Unescape(name.substring(1, name.length - 1));
                                    for (let i = 0; i < name.length; i++)
-                                       if (this.dfa.ignoreCase) s.Set(name.toLowerCase().charCodeAt(0));
-                                       else s.Set(name.charCodeAt(i));.)
+                                       if (this.dfa.ignoreCase)
+                                            s.Set(name.toLowerCase().charCodeAt(0));
+                                       else
+                                            s.Set(name.charCodeAt(i));.)
 | Char<out n1>                  (. s.Set(n1); .)
   [ ".." Char<out n2>           (. for (let i = n1; i <= n2; i++) s.Set(i); .)
   ]
@@ -241,7 +243,7 @@ Char<out number n>
 
 /*------------------------------------------------------------------------------------*/
 
-TokenDecl<typ: number>              (. let s: SymInfo;
+TokenDecl<typ: number>          (. let s: SymInfo;
                                    let sym: Symbol;
                                    let g: Graph; .)
 =
@@ -358,28 +360,28 @@ Factor<out Graph g>             (. let s: SymInfo;
 ( [ "WEAK"                      (. weak = true; .)
   ]
   Sym<out s>                    (. let sym = this.tab.FindSym(s.name);
-                                                   if (sym == undefined && s.kind == Parser.str)
-                                                       sym = this.tab.literals[s.name];
-                                                   let undef = sym == undefined;
-                                                   if (undef) {
-                                                       if (s.kind == Parser.id)
-                                                           sym = this.tab.NewSym(Node_.nt, s.name, 0);  // forward nt
-                                                       else if (this.genScanner) {
-                                                           sym = this.tab.NewSym(Node_.t, s.name, this.t.line);
-                                                           this.dfa.MatchLiteral(sym.name, sym);
-                                                       } else {  // undefined string in production
-                                                           this.SemErr("undefined string in production");
-                                                           sym = this.tab.eofSy;  // dummy
-                                                       }
-                                                   }
-                                                   let typ = sym.typ;
-                                                   if (typ != Node_.t && typ != Node_.nt)
-                                                       this.SemErr("this symbol kind is not allowed in a production");
-                                                   if (weak)
-                                                       if (typ == Node_.t) typ = Node_.wt;
-                                                       else this.SemErr("only terminals may be weak");
-                                                   p = this.tab.NewNode(typ, sym, this.t.line);
-                                                   g = new Graph(p);
+                                   if (sym == undefined && s.kind == Parser.str)
+                                       sym = this.tab.literals[s.name];
+                                   let undef = sym == undefined;
+                                   if (undef) {
+                                       if (s.kind == Parser.id)
+                                           sym = this.tab.NewSym(Node_.nt, s.name, 0);  // forward nt
+                                       else if (this.genScanner) {
+                                           sym = this.tab.NewSym(Node_.t, s.name, this.t.line);
+                                           this.dfa.MatchLiteral(sym.name, sym);
+                                       } else {  // undefined string in production
+                                           this.SemErr("undefined string in production");
+                                           sym = this.tab.eofSy;  // dummy
+                                       }
+                                   }
+                                   let typ = sym.typ;
+                                   if (typ != Node_.t && typ != Node_.nt)
+                                       this.SemErr("this symbol kind is not allowed in a production");
+                                   if (weak)
+                                       if (typ == Node_.t) typ = Node_.wt;
+                                       else this.SemErr("only terminals may be weak");
+                                   p = this.tab.NewNode(typ, sym, this.t.line);
+                                   g = new Graph(p);
                                  .)
   [ Attribs<p>                  (. if (s.kind != Parser.id) this.SemErr("a literal must not have attributes"); .)
   ]                             (. if (undef) {
@@ -455,20 +457,20 @@ TokenFactor<out Graph g>        (. let s: SymInfo; .)
 =
                                 (. g = undefined; .)
 ( Sym<out s>                    (. if (s.kind == Parser.id) {
-                                                   let c = this.tab.FindCharClass(s.name);
-                                                   if (c == undefined) {
-                                                       this.SemErr("undefined name");
-                                                       c = this.tab.NewCharClass(s.name, new CharSet());
-                                                   }
-                                                   let p = this.tab.NewNode(Node_.clas, undefined, 0);
-                                                   p.val = c.n;
-                                                   g = new Graph(p);
-                                                   this.tokenString = this.noString;
-                                               } else { // str
-                                                   g = this.tab.StrToGraph(s.name);
-                                                   if (this.tokenString == undefined) this.tokenString = s.name;
-                                                   else this.tokenString = this.noString;
-                                               }
+                                       let c = this.tab.FindCharClass(s.name);
+                                       if (c == undefined) {
+                                           this.SemErr("undefined name");
+                                           c = this.tab.NewCharClass(s.name, new CharSet());
+                                       }
+                                       let p = this.tab.NewNode(Node_.clas, undefined, 0);
+                                       p.val = c.n;
+                                       g = new Graph(p);
+                                       this.tokenString = this.noString;
+                                   } else { // str
+                                       g = this.tab.StrToGraph(s.name);
+                                       if (this.tokenString == undefined) this.tokenString = s.name;
+                                       else this.tokenString = this.noString;
+                                   }
                                  .)
 | '(' TokenExpr<out g> ')'
 | '[' TokenExpr<out g> ']'      (. this.tab.MakeOption(g);

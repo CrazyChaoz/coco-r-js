@@ -49,19 +49,19 @@ export class Parser  {
 	-->declarations
 
 	constructor(scanner: Scanner) {
-            this.scanner = scanner;
-            this.errors = new Errors();
-        }
+        this.scanner = scanner;
+        this.errors = new Errors();
+    }
 
-        SynErr(n: number) {
-            if (this.errDist >= Parser.minErrDist) this.errors.SynErr(this.la.line, this.la.col, n);
-            this.errDist = 0;
-        }
+    SynErr(n: number) {
+        if (this.errDist >= Parser.minErrDist) this.errors.SynErr(this.la.line, this.la.col, n);
+        this.errDist = 0;
+    }
 
-        public SemErr(msg: string) {
-            if (this.errDist >= Parser.minErrDist) this.errors.SemErr(this.t.line, this.t.col, msg);
-            this.errDist = 0;
-        }
+    public SemErr(msg: string) {
+        if (this.errDist >= Parser.minErrDist) this.errors.SemErr(this.t.line, this.t.col, msg);
+        this.errDist = 0;
+    }
 
 	Get() {
         for (; ;) {
@@ -76,7 +76,7 @@ export class Parser  {
         }
     }
 
-Expect(n: number) {
+    Expect(n: number) {
         if (this.la.kind == n)
             this.Get();
         else {
