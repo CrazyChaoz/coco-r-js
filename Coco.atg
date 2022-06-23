@@ -243,7 +243,7 @@ Char<out number n>
 
 /*------------------------------------------------------------------------------------*/
 
-TokenDecl<typ: number>          (. let s: SymInfo;
+TokenDecl<number typ>          (. let s: SymInfo;
                                    let sym: Symbol;
                                    let g: Graph; .)
 =
@@ -278,7 +278,7 @@ TokenDecl<typ: number>          (. let s: SymInfo;
 
 /*------------------------------------------------------------------------------------*/
 
-AttrDecl<sym: Symbol>            (. let beg, col: number; .)
+AttrDecl<Symbol sym>            (. let beg, col: number; .)
 =
   '<'                           // attributes denoted by < ... >
   ( ('^' | "out")               (. beg = this.la.pos; .)
@@ -500,7 +500,7 @@ Sym<out SymInfo s>
 
 /*------------------------------------------------------------------------------------*/
 
-Attribs<n: Node_>                 (. let beg, col: number; .)
+Attribs< n>                 (. let beg, col: number; .)
 =
   '<'                           // attributes denoted by < ... >
   ( ('^' | "out")               (. beg = this.la.pos; .)

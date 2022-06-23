@@ -49,6 +49,8 @@ export class ParserGen {
     static altErr = 1;
     static syncErr = 2;
 
+    static copyMethodArgumentsDirectly = false;
+
     public usingPos: Position; // "using" definitions from the attributed grammar
 
     errorNr: number;       // highest parser error number
@@ -68,7 +70,14 @@ export class ParserGen {
     // --------------------------------------------------------------------------
 
     Indent(n: number) {
-        for (let i = 1; i <= n; i++) fs.writeSync(this.gen, '\t');
+        fs.writeSync(this.gen, this.IndentString(n));
+    }
+
+    IndentString(n: number) {
+        let retVal = ""
+        for (let i = 1; i <= n; i++)
+            retVal += '\t';
+        return retVal
     }
 
     Overlaps(s1: BitSet, s2: BitSet): boolean {
@@ -109,11 +118,11 @@ export class ParserGen {
         if (pos != undefined) {
             this.buffer.setPos(pos.beg);
             ch = this.buffer.Read();
-            this.Indent(indent);
+            fs.writeSync(this.gen, this.IndentString(indent));
+
             done: while (this.buffer.getPos() <= pos.end) {
                 while (ch == ParserGen.CR || ch == ParserGen.LF) {  // eol is either CR or CRLF or LF
-                    fs.writeSync(this.gen, "\n");
-                    this.Indent(indent);
+                    fs.writeSync(this.gen, "\n" + this.IndentString(indent));
                     if (ch == ParserGen.CR) {
                         ch = this.buffer.Read();
                     }  // skip CR
@@ -132,6 +141,42 @@ export class ParserGen {
             if (indent > 0)
                 fs.writeSync(this.gen, "\n");
         }
+
+    }
+
+
+    GetSourceString(pos: Position, indent: number): string {
+        // Copy text described by pos from atg to returned string
+        // used for processing of these strings
+        let ch, i: number;
+        let retVal = "";
+        if (pos != undefined) {
+            this.buffer.setPos(pos.beg);
+            ch = this.buffer.Read();
+            retVal += this.IndentString(indent);
+            done: while (this.buffer.getPos() <= pos.end) {
+                while (ch == ParserGen.CR || ch == ParserGen.LF) {  // eol is either CR or CRLF or LF
+                    retVal += "\n";
+                    retVal += this.IndentString(indent);
+                    if (ch == ParserGen.CR) {
+                        ch = this.buffer.Read();
+                    }  // skip CR
+                    if (ch == ParserGen.LF) {
+                        ch = this.buffer.Read();
+                    }  // skip LF
+                    for (i = 1; i <= pos.col && ch <= ' '; i++) {
+                        // skip blanks at beginning of line
+                        ch = this.buffer.Read();
+                    }
+                    if (this.buffer.getPos() > pos.end) break done;
+                }
+                retVal += String.fromCharCode(ch);
+                ch = this.buffer.Read();
+            }
+            if (indent > 0)
+                retVal += "\n";
+        }
+        return retVal
     }
 
     GenErrorMsg(errTyp: number, sym: Symbol) {
@@ -168,7 +213,7 @@ export class ParserGen {
                 for (let i = 0; i < this.tab.terminals.length; i++) {
                     let sym = this.tab.terminals[i];
                     if (s.get(sym.n)) {
-                        fs.writeSync(this.gen, "this.la.kind == " + sym.n);
+                        fs.writeSync(this.gen, "this.isLaTokenKindEqualTo(" + sym.n + ")");
                         --n;
                         if (n > 0) fs.writeSync(this.gen, " || ");
                     }
@@ -224,8 +269,8 @@ export class ParserGen {
                     } else {
                         this.GenErrorMsg(ParserGen.altErr, this.curSy);
                         if (acc > 0) {
-                            fs.writeSync(this.gen, "//@ts-ignore\n");
-                            this.Indent(indent);
+                            // fs.writeSync(this.gen, "//@ts-ignore\n");
+                            // this.Indent(indent);
                             fs.writeSync(this.gen, "if (");
                             this.GenCond(p.set, p);
                             fs.writeSync(this.gen, ") this.Get(); else this.SynErr(" + this.errorNr + ");\n");
@@ -245,8 +290,8 @@ export class ParserGen {
                     this.GenErrorMsg(ParserGen.syncErr, this.curSy);
                     s1 = p.set.clone();
                     this.Indent(indent);
-                    fs.writeSync(this.gen, "//@ts-ignore\n");
-                    this.Indent(indent);
+                    // fs.writeSync(this.gen, "//@ts-ignore\n");
+                    // this.Indent(indent);
                     fs.writeSync(this.gen, "while (!(");
                     this.GenCond(s1, p);
                     fs.writeSync(this.gen, ")) {");
@@ -270,16 +315,16 @@ export class ParserGen {
                             this.PutCaseLabels(s1);
                             fs.writeSync(this.gen, "{\n");
                         } else if (p2 == p) {
-                            fs.writeSync(this.gen, "//@ts-ignore\n");
-                            this.Indent(indent);
+                            // fs.writeSync(this.gen, "//@ts-ignore\n");
+                            // this.Indent(indent);
                             fs.writeSync(this.gen, "if (");
                             this.GenCond(s1, p2.sub);
                             fs.writeSync(this.gen, ") {\n");
                         } else if (p2.down == undefined && equal) {
                             fs.writeSync(this.gen, "} else {\n");
                         } else {
-                            fs.writeSync(this.gen, "//@ts-ignore\n");
-                            this.Indent(indent);
+                            // fs.writeSync(this.gen, "//@ts-ignore\n");
+                            // this.Indent(indent);
                             fs.writeSync(this.gen, "} else if (");
                             this.GenCond(s1, p2.sub);
                             fs.writeSync(this.gen, ") {\n");
@@ -311,8 +356,8 @@ export class ParserGen {
                 }
                 case Node_.iter: {
                     p2 = p.sub;
-                    this.Indent(indent);
-                    fs.writeSync(this.gen, "//@ts-ignore\n");
+                    // this.Indent(indent);
+                    // fs.writeSync(this.gen, "//@ts-ignore\n");
                     this.Indent(indent);
                     fs.writeSync(this.gen, "while (");
                     if (p2.typ == Node_.wt) {
@@ -334,9 +379,9 @@ export class ParserGen {
                 }
                 case Node_.opt:
                     s1 = this.tab.First(p.sub);
-                    this.Indent(indent);
-                    fs.writeSync(this.gen, "//@ts-ignore\n");
-                    this.Indent(indent);
+                    // this.Indent(indent);
+                    // fs.writeSync(this.gen, "//@ts-ignore\n");
+                    // this.Indent(indent);
                     fs.writeSync(this.gen, "if (");
                     this.GenCond(s1, p.sub);
                     fs.writeSync(this.gen, ") {\n");
@@ -377,8 +422,8 @@ export class ParserGen {
         for (let i = 0; i < this.tab.pragmas.length; i++) {
             let sym = this.tab.pragmas[i];
 
-            fs.writeSync(this.gen, "\t\t\t//@ts-ignore \n");
-            fs.writeSync(this.gen, "\t\t\tif (this.la.kind == " + sym.n + ") {\n");
+            // fs.writeSync(this.gen, "\t\t\t//@ts-ignore \n");
+            fs.writeSync(this.gen, "\t\t\tif (this.isLaTokenKindEqualTo(" + sym.n + ")) {\n");
             this.CopySourcePart(sym.semPos, 4);
             fs.writeSync(this.gen, "\t\t\t}");
         }
@@ -391,7 +436,20 @@ export class ParserGen {
             fs.writeSync(this.gen, "\t");
             fs.writeSync(this.gen, sym.name + "(");
             if (sym.attrPos != undefined) {
-                this.CopySourcePart(sym.attrPos, 0);
+                let methodArguments = []
+                let isSplittingValid = true
+                this.GetSourceString(sym.attrPos, 0).split(",").forEach(((value, index, array) => {
+                    let arg = value.split(" ");
+                    if(arg[1] == undefined)
+                        methodArguments.push(arg[1] + ":" + arg[0])
+                    else
+                        isSplittingValid=false
+                }));
+                if (ParserGen.copyMethodArgumentsDirectly || !isSplittingValid) {
+                    this.CopySourcePart(sym.attrPos, 0);
+                }else {
+                    fs.writeSync(this.gen, methodArguments.join(","));
+                }
             }
             fs.writeSync(this.gen, ")");
             if (sym.retType != undefined)

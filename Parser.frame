@@ -76,6 +76,10 @@ export class Parser  {
         }
     }
 
+    private isLaTokenKindEqualTo(n:number):boolean{
+        return this.la.kind == n;
+    }
+
     Expect(n: number) {
         if (this.la.kind == n)
             this.Get();
