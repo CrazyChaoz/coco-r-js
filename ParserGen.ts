@@ -440,14 +440,14 @@ export class ParserGen {
                 let isSplittingValid = true
                 this.GetSourceString(sym.attrPos, 0).split(",").forEach(((value, index, array) => {
                     let arg = value.split(" ");
-                    if(arg[1] == undefined)
+                    if (arg[1] != undefined)
                         methodArguments.push(arg[1] + ":" + arg[0])
                     else
-                        isSplittingValid=false
+                        isSplittingValid = false
                 }));
                 if (ParserGen.copyMethodArgumentsDirectly || !isSplittingValid) {
                     this.CopySourcePart(sym.attrPos, 0);
-                }else {
+                } else {
                     fs.writeSync(this.gen, methodArguments.join(","));
                 }
             }
