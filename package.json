@@ -7,7 +7,8 @@
     "0arg": "tsc && node Coco.js",
     "simple": "tsc && node Coco.js simple.atg",
     "simple2": "tsc && node Coco.js simple2.atg",
-    "regenerate_coco": "tsc && node Coco.js Coco.atg"
+    "recompile_and_regenerate_coco": "tsc && node Coco.js Coco.atg",
+    "regenerate_coco": "node Coco.js Coco.atg"
   },
   "keywords": [],
   "author": "",

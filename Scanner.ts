@@ -28,6 +28,7 @@ Coco/R itself) does not fall under the GNU General Public License.
 
 
 import * as fs from "fs";
+import * as Stream from "stream";
 
 
 export class Token {
@@ -61,20 +62,13 @@ export class Buffer {
     private file: number; // input stream (seekable)
     private stream = undefined; // growing input stream (e.g.: console, network)
 
-    //constructor(s: InputStream);
-    constructor(fileName: string);
-    constructor(b: Buffer);
+    constructor(type: number, s: Stream);
+    constructor(type: number, fileName: string);
+    constructor(type: number, b: Buffer);
 
-    constructor(a: any) {
-        // if (typeof a == "InputStream") {
-        //     this.stream = a;
-        //     this.fileLen = this.bufLen = this.bufStart = this.bufPos = 0;
-        //     this.buf = new Array[Buffer.MIN_BUFFER_LENGTH];
-        // } else
-        if (typeof a == "string") {
+    constructor(type: number, a: any) {
+        if (type == 0) {
             try {
-                //this.file = new RandomAccessFile(a, "r");
-
                 this.file = fs.openSync(a, "r");
                 this.fileLen = fs.statSync(a).size;
                 this.bufLen = Math.min(this.fileLen, Buffer.MAX_BUFFER_LENGTH);
@@ -90,7 +84,7 @@ export class Buffer {
             }
             // don't use b after this call anymore
             // called in UTF8Buffer constructor
-        } else { //a is a Buffer
+        } else if (type == 1) { //a is a Buffer
             this.buf = a.buf;
             this.bufStart = a.bufStart;
             this.bufLen = a.bufLen;
@@ -98,6 +92,10 @@ export class Buffer {
             this.bufPos = a.bufPos;
             this.file = a.file;
             this.stream = a.stream;
+        } else if (type == 2) {
+            this.stream = a;
+            this.fileLen = this.bufLen = this.bufStart = this.bufPos = 0;
+            this.buf = new Array[Buffer.MIN_BUFFER_LENGTH];
         }
     }
 
@@ -228,7 +226,7 @@ export class Buffer {
 //-----------------------------------------------------------------------------------
 export class UTF8Buffer extends Buffer {
     constructor(b: Buffer) {
-        super(b);
+        super(1,b);
     }
 
     public Read(): number {
@@ -379,9 +377,12 @@ export class Scanner {
     })();
 
     constructor(fileName: string);
-    //constructor(s: InputStream);
+    constructor(s: Stream);
     constructor(a: any) {
-        this.buffer = new Buffer(a);
+        if(typeof a == "string")
+            this.buffer = new Buffer(0,a);
+        else
+            this.buffer = new Buffer(2,a);
         this.Init();
     }
 

@@ -50,6 +50,9 @@ import {Parser} from "./Parser";
 import {Scanner} from "./Scanner";
 import * as path from "path";
 
+let t0:Date,t1:Date,t2:Date,t3:Date,t4:Date
+
+t0 = new Date()
 
 console.log("Coco/R (Apr 20, 2022)");
 let srcName = undefined, nsName = undefined, frameDir = undefined, ddtString = undefined, outDir = undefined;
@@ -61,6 +64,7 @@ for (let i = 2; i < process.argv.length; i++) {
     else if (process.argv[i] == "-o" && i < process.argv.length - 1) outDir = process.argv[++i].trim();
     else srcName = process.argv[i];
 }
+t1 = new Date()
 if (process.argv.length > 2 && srcName != undefined) {
     try {
         //new File(srcName).getParent();
@@ -81,7 +85,11 @@ if (process.argv.length > 2 && srcName != undefined) {
         parser.tab.outDir = (outDir != undefined) ? outDir : srcDir;
         if (ddtString != undefined) parser.tab.SetDDT(ddtString);
 
+        t2 = new Date()
+
         parser.Parse();
+
+        t3 = new Date()
 
         parser.trace.Close();
         console.log(parser.errors.count + " errors detected");
@@ -113,6 +121,14 @@ if (process.argv.length > 2 && srcName != undefined) {
     );
     retVal = 0;
 }
+
+t4=new Date()
+
+// @ts-ignore
+console.log(`Time Taken to execute = ${(t4 - t0)} ms`)
+// @ts-ignore
+console.log(`Time Taken to parse = ${(t3 - t2)} ms`)
+
 process.exit(retVal);
 
 
