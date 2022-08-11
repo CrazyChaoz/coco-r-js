@@ -134,7 +134,6 @@ export class Sets {
     }
 
     public static Intersect(a: BitSet, b: BitSet): boolean {// a * b != {}
-        //TODO: fixme?
         return a.and(b).isEmpty();
     }
 
@@ -334,7 +333,6 @@ export class Tab {
     public NewNode(typ: number, val: number, line: number): Node_
 
     // public NewNode(typ: number, sym?: Symbol, val?: number, line?: number, sub?: Node_): Node_ {
-    //TODO: POSSIBLE ERRORS, watch closely
     public NewNode(typ: number, arg2?, arg3?): Node_ {
         let node: Node_;
 
