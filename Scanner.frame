@@ -4,6 +4,7 @@ Copyright (c) 1990, 2004 Hanspeter Moessenboeck, University of Linz
 extended by M. Loeberbauer & A. Woess, Univ. of Linz
 ported from C# to Java by Wolfgang Ahorner
 with improvements by Pat Terry, Rhodes University
+ported to Typescript by Stefan Kempinger, Univ. of Linz
 
 This program is free software; you can redistribute it and/or modify it
 under the terms of the GNU General Public License as published by the
@@ -325,11 +326,11 @@ export class Scanner {
     tlen: number;          // length of current token
 
     //this is dark magic which mimics a static { } block in a class
-    private static _static_initialize = (() => {
+    private static _static_initialize = function(){
         Scanner.start = new StartStates();
         Scanner.literals = [];
 -->initialization
-})();
+}();
 
     constructor(fileName: string);
     //constructor(s: InputStream);
