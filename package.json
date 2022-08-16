@@ -9,6 +9,7 @@
     "simple2": "tsc && node Coco.js simple2.atg",
     "simple3": "tsc && node Coco.js simple3.atg",
     "simple4": "tsc && node Coco.js simple4.atg",
+    "taste": "tsc && node Coco.js taste/Taste.ATG -o taste -frames .",
     "recompile_and_regenerate_coco": "tsc && node Coco.js Coco.atg",
     "regenerate_coco": "node Coco.js Coco.atg"
   },
