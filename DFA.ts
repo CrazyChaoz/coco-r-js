@@ -1230,4 +1230,3 @@ export class DFA {
         this.hasCtxMoves = false;
     }
 }
-

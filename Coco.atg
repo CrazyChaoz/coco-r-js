@@ -233,10 +233,10 @@ SimSet<out CharSet s>           (. let n1, n2: number;.)
 
 Char<out number n>
 =
-  char                          (. let name = this.t.val;
+  char                          (. let name_ = this.t.val;
                                    n = 0;
-                                   name = this.tab.Unescape(name.substring(1, name.length - 1));
-                                   if (name.length == 1) n = name.charAt(0).charCodeAt(0);
+                                   name_ = this.tab.Unescape(name.substring(1, name.length - 1));
+                                   if (name_.length == 1) n = name_.charAt(0).charCodeAt(0);
                                    else this.SemErr("unacceptable character value");
                                    if (this.dfa.ignoreCase && n >= 'A'.charCodeAt(0) && n <= 'Z'.charCodeAt(0)) n += 32;
                                  .)
