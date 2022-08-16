@@ -81,7 +81,6 @@ export class ParserGen {
     }
 
     Overlaps(s1: BitSet, s2: BitSet): boolean {
-        //todo: not convert to an array first
         let len = s1.toArray().length;
         for (let i = 0; i < len; ++i) {
             if (s1.get(i) && s2.get(i)) {

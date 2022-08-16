@@ -333,9 +333,12 @@ export class Scanner {
 }();
 
     constructor(fileName: string);
-    //constructor(s: InputStream);
+    constructor(s: Stream);
     constructor(a: any) {
-        this.buffer = new Buffer(a);
+        if(typeof a == "string")
+            this.buffer = new Buffer(0,a);
+        else
+            this.buffer = new Buffer(2,a);
         this.Init();
     }
 

@@ -1161,7 +1161,7 @@ export class DFA {
         if (this.ignoreCase) {
             fs.writeSync(this.gen, "\t\tif (ch != Buffer.EOF) {\n");
             fs.writeSync(this.gen, "\t\t\tvalCh = ch;\n");
-            fs.writeSync(this.gen, "\t\t\tch = Character.toLowerCase(ch);\n");
+            fs.writeSync(this.gen, "\t\t\tch = ch.toLowerCase();\n");
             fs.writeSync(this.gen, "\t\t}");
         }
         g.CopyFramePart("-->casing2");
