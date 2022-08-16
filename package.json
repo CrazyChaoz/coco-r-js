@@ -5,8 +5,10 @@
   "main": "Coco.ts",
   "scripts": {
     "0arg": "tsc && node Coco.js",
-    "simple": "tsc && node Coco.js simple.atg",
+    "simple1": "tsc && node Coco.js simple.atg",
     "simple2": "tsc && node Coco.js simple2.atg",
+    "simple3": "tsc && node Coco.js simple3.atg",
+    "simple4": "tsc && node Coco.js simple4.atg",
     "recompile_and_regenerate_coco": "tsc && node Coco.js Coco.atg",
     "regenerate_coco": "node Coco.js Coco.atg"
   },

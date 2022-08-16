@@ -1,0 +1,39 @@
+
+$FI
+
+COMPILER Coco
+
+CHARACTERS
+  letter    = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_".
+  digit     = "0123456789".
+  cr        = '\r'.
+  lf        = '\n'.
+  tab       = '\t'.
+  stringCh  = ANY - '"' - '\\' - cr - lf.
+  charCh    = ANY - '\'' - '\\' - cr - lf.
+  printable = '\u0020' .. '\u007e'.
+  hex       = "0123456789abcdef".
+
+TOKENS
+  ident     = letter { letter | digit }.
+  number    = digit { digit }.
+  string    = '"' { stringCh | '\\' printable } '"'.
+  badString = '"' { stringCh | '\\' printable } (cr | lf).
+  char      = '\'' ( charCh | '\\' printable { hex } ) '\''.
+
+
+IGNORE cr + lf + tab
+
+/*-------------------------------------------------------------------------*/
+
+PRODUCTIONS
+
+Coco = Tel.
+
+Tel = number "/" number.
+
+Test1<asdf:number, asdf2:string>=Tel.
+Test2<out Symbol sym>=Tel.
+Test3<out Symbol sym, asdf:number, asdf2:string>=Tel.
+
+END Coco.

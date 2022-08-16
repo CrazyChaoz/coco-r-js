@@ -49,8 +49,6 @@ export class ParserGen {
     static altErr = 1;
     static syncErr = 2;
 
-    static copyMethodArgumentsDirectly = false;
-
     public usingPos: Position; // "using" definitions from the attributed grammar
 
     errorNr: number;       // highest parser error number
@@ -435,20 +433,7 @@ export class ParserGen {
             fs.writeSync(this.gen, "\t");
             fs.writeSync(this.gen, sym.name + "(");
             if (sym.attrPos != undefined) {
-                let methodArguments = []
-                let isSplittingValid = true
-                this.GetSourceString(sym.attrPos, 0).split(",").forEach(((value, index, array) => {
-                    let arg = value.split(" ");
-                    if (arg[1] != undefined)
-                        methodArguments.push(arg[1] + ":" + arg[0])
-                    else
-                        isSplittingValid = false
-                }));
-                if (ParserGen.copyMethodArgumentsDirectly || !isSplittingValid) {
-                    this.CopySourcePart(sym.attrPos, 0);
-                } else {
-                    fs.writeSync(this.gen, methodArguments.join(","));
-                }
+                this.CopySourcePart(sym.attrPos, 0);
             }
             fs.writeSync(this.gen, ")");
             if (sym.retType != undefined)
