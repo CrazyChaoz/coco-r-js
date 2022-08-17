@@ -1,8 +1,8 @@
 import * as console from "console";
-import {Parser} from "./Parser.generated";
+import {Parser} from "./Parser";
 import * as stream from "stream";
 import * as fs from "fs";
-import {Buffer} from "./Scanner.generated";
+import {Buffer} from "./Scanner";
 
 export enum Op { // opcodes
     ADD, SUB, MUL, DIV, EQU, LSS, GTR, NEG,
@@ -116,16 +116,17 @@ export class CodeGenerator {
         let ch, sign;
         let buffer=new Int8Array(8)
         do {
-            ch = fs.readSync(s,buffer,0,8,0);
+            fs.readSync(s,buffer,0,8,null);
+            ch=buffer.toString()
         } while (!(ch >= '0' && ch <= '9' || ch == '-'));
         if (ch == '-') {
             sign = -1;
-            ch = fs.readSync(s,buffer,0,8,0);
+            ch = fs.readSync(s,buffer,0,8,null);
         } else sign = 1;
         let n = 0;
         while (ch >= '0' && ch <= '9') {
             n = 10 * n + (ch - '0'.charCodeAt(0));
-            ch = fs.readSync(s,buffer,0,8,0);
+            ch = fs.readSync(s,buffer,0,8,null);
         }
         return n * sign;
     }
@@ -134,7 +135,7 @@ export class CodeGenerator {
         let val: number;
         try {
             let s = fs.openSync(data,'r');
-            console.log();
+            console.log("opened file");
             this.pc = this.progStart;
             (this.stack)[0] = 0;
             this.top = 1;
@@ -216,8 +217,8 @@ export class CodeGenerator {
                         throw new Error("illegal opcode");
                 }
             }
-        } catch (IOException) {
-            console.log("--- Error accessing file {0}", data);
+        } catch (e) {
+            console.log("--- Error accessing file ", data);
             process.exit(0);
         }
     }

@@ -5,15 +5,19 @@
     "sourceMap": true,
     "types": [
       "node"
-    ],
+    ]
   },
   "files": [
-      "Coco.ts",
-      "DFA.ts",
-      "Parser.ts",
-      "ParserGen.ts",
-      "Scanner.ts",
-      "Tab.ts",
-      "Trace.ts",
-    ],
+    "Coco.ts",
+    "DFA.ts",
+    "Parser.ts",
+    "ParserGen.ts",
+    "Scanner.ts",
+    "Tab.ts",
+    "Trace.ts",
+    "taste/Parser.ts",
+    "taste/TasteClasses.ts",
+    "taste/Taste.ts",
+    "taste/Scanner.ts"
+  ]
 }

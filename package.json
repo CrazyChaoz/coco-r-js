@@ -11,7 +11,8 @@
     "simple4": "tsc && node Coco.js simple4.atg",
     "testLL1": "tsc && node Coco.js coco-testsuite/TestLL1.ATG -frames . -o coco-testsuite",
     "testResOK": "tsc && node Coco.js coco-testsuite/TestResOK.ATG -frames . -o coco-testsuite",
-    "taste": "tsc && node Coco.js taste/Taste.ATG -o taste -frames .",
+    "recompile_taste": "tsc && node Coco.js taste/Taste.ATG -o taste -frames .",
+    "run_taste": "tsc && node taste/Taste.js taste/Test.TAS",
     "recompile_and_regenerate_coco": "tsc && node Coco.js Coco.atg",
     "regenerate_coco": "node Coco.js Coco.atg"
   },
