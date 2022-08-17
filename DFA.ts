@@ -1049,7 +1049,7 @@ export class DFA {
         //there is no Character.isLetter in .js, but there are regex
         if ((/[a-zA-Z]/).test(sym.name.charAt(0))) { // real name value is stored in Tab.literals
             //foreach (DictionaryEntry e in Tab.literals)
-            for (let literalKey of this.tab.literals) {
+            for (let literalKey in this.tab.literals) {
                 if (this.tab.literals[literalKey] == sym) return literalKey;
             }
         }

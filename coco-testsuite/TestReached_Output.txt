@@ -1,0 +1,5 @@
+Coco/R (Sep 6, 2007)
+checking
+  B cannot be reached
+trace output is in trace.txt
+1 errors detected

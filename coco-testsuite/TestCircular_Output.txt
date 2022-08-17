@@ -1,0 +1,8 @@
+Coco/R (Sep 6, 2007)
+checking
+  D deletable
+  A --> B
+  B --> C
+  C --> A
+trace output is in trace.txt
+3 errors detected

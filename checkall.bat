@@ -1,0 +1,24 @@
+echo off
+call check coco-testsuite/TestAlts
+call check coco-testsuite/TestOpts
+call check coco-testsuite/TestOpts1
+call check coco-testsuite/TestIters
+call check coco-testsuite/TestEps
+call check coco-testsuite/TestAny
+call check coco-testsuite/TestAny1
+call check coco-testsuite/TestSync
+call check coco-testsuite/TestSem
+call check coco-testsuite/TestWeak
+call check coco-testsuite/TestChars
+call check coco-testsuite/TestTokens
+call checkerr coco-testsuite/TestTokens1
+call check coco-testsuite/TestComments
+call check coco-testsuite/TestDel
+call checkerr coco-testsuite/TestTerminalizable
+call checkerr coco-testsuite/TestComplete
+call checkerr coco-testsuite/TestReached
+call checkerr coco-testsuite/TestCircular
+call check coco-testsuite/TestLL1
+call check coco-testsuite/TestResOK
+call checkerr coco-testsuite/TestResIllegal
+call check coco-testsuite/TestCasing

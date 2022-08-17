@@ -163,7 +163,7 @@ export class Sets {
     }
 
     public static Intersect(a: BitSet, b: BitSet): boolean {// a * b != {}
-        return a.and(b).isEmpty();
+        return !a.and(b).isEmpty();
     }
 
     public static Subtract(a: BitSet, b: BitSet) { // a = a - b
@@ -208,7 +208,7 @@ export class Tab {
     public eofSy: Symbol;               // end of file symbol
     public noSym: Symbol;               // used in case of an error
     public allSyncSets: BitSet;         // union of all synchronisation sets
-    public literals: [];         // symbols that are used as literals
+    public literals: Symbol[];         // symbols that are used as literals
 
     public srcName: string;             // name of the atg file (including path)
     public srcDir: string;              // directory path of the atg file
@@ -327,7 +327,7 @@ export class Tab {
         this.trace.WriteLine("--------------");
         //foreach (DictionaryEntry e in literals) {
         for (let literalsData in this.literals) {
-            this.trace.WriteLine("_" + literalsData["value"].name + " = " + literalsData["key"] + ".");
+            this.trace.WriteLine("_" + this.literals[literalsData].name + " = " + literalsData + ".");
         }
         this.trace.WriteLine();
     }
@@ -1459,27 +1459,35 @@ export class Tab {
             if ('0' <= ch && ch <= '9')
                 this.ddt[ch.charCodeAt(0) - '0'.charCodeAt(0)] = true;
             else switch (ch) {
+                case '0' :
                 case 'A' :
                     this.ddt[0] = true;
                     break; // trace automaton
+                case '1' :
                 case 'F' :
                     this.ddt[1] = true;
                     break; // list first/follow sets
+                case '2' :
                 case 'G' :
                     this.ddt[2] = true;
                     break; // print syntax graph
+                case '3' :
                 case 'I' :
                     this.ddt[3] = true;
                     break; // trace computation of first sets
+                case '4' :
                 case 'J' :
                     this.ddt[4] = true;
                     break; // print ANY and SYNC sets
+                case '5' :
                 case 'P' :
                     this.ddt[8] = true;
                     break; // print statistics
+                case '6' :
                 case 'S' :
                     this.ddt[6] = true;
                     break; // list symbol table
+                case '7' :
                 case 'X' :
                     this.ddt[7] = true;
                     break; // list cross reference table
