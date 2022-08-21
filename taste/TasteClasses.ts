@@ -19,15 +19,15 @@ export class CodeGenerator {
 
     public progStart;	// address of first instruction of main program
     public pc;				// program counter
-    code: number[] = new Array<number>(3000);
+    code: number[] = [];
 
     // data for Interpret
-    globals = new Array(100);
-    stack = new Array(100);
+    globals = [];
+    stack = [];
     top: number;	// top of stack
     bp: number;		// base pointer
 
-    public CodeGenerator() {
+    constructor() {
         this.pc = 1;
         this.progStart = -1;
     }
@@ -35,7 +35,7 @@ export class CodeGenerator {
     //----- code generation methods -----
 
     public Put(x: number) {
-        (this.code)[this.pc++] = x;
+        this.code[this.pc++] = x;
     }
 
 
@@ -46,16 +46,17 @@ export class CodeGenerator {
     }
 
     public Patch(adr: number, val: number) {
-        (this.code)[adr] = (val >> 8);
-        (this.code)[adr + 1] = val;
+        this.code[adr] = (val >> 8);
+        this.code[adr + 1] = val;
     }
 
     public Decode() {
         let maxPc = this.pc;
         this.pc = 1;
+        console.log("decoding")
         while (this.pc < maxPc) {
             let code = this.Next();
-            console.log("{0,3}: {1} ", this.pc - 1, (this.opcode)[code]);
+            console.log((this.pc - 1)+": "+ this.opcode[code]);
             switch (code) {
                 case Op.LOAD:
                 case Op.LOADG:
@@ -89,14 +90,14 @@ export class CodeGenerator {
 //----- interpreter methods -----
 
     Next(): number {
-        return (this.code)[this.pc++];
+        return this.code[this.pc++];
     }
 
     Next2(): number {
         let x: number;
         let y: number;
-        x = (this.code)[this.pc++];
-        y = (this.code)[this.pc++];
+        x = this.code[this.pc++];
+        y = this.code[this.pc++];
         return (x << 8) + y;
     }
 
@@ -114,19 +115,24 @@ export class CodeGenerator {
 
     ReadInt(s: number): number {
         let ch, sign;
-        let buffer=new Int8Array(8)
+        let buffer=new Int8Array(1)
         do {
-            fs.readSync(s,buffer,0,8,null);
+            fs.readSync(s,buffer,0,1,null);
             ch=buffer.toString()
-        } while (!(ch >= '0' && ch <= '9' || ch == '-'));
+            console.log(ch)
+        } while (!(ch >= '0'.charCodeAt(0) && ch <= '9'.charCodeAt(0) || ch == '-'.charCodeAt(0)));
         if (ch == '-') {
             sign = -1;
-            ch = fs.readSync(s,buffer,0,8,null);
+            fs.readSync(s,buffer,0,1,null);
+            ch=buffer.toString()
+            console.log(ch)
         } else sign = 1;
         let n = 0;
         while (ch >= '0' && ch <= '9') {
             n = 10 * n + (ch - '0'.charCodeAt(0));
-            ch = fs.readSync(s,buffer,0,8,null);
+            fs.readSync(s,buffer,0,1,null);
+            ch=buffer.toString()
+            console.log(ch)
         }
         return n * sign;
     }
@@ -137,11 +143,14 @@ export class CodeGenerator {
             let s = fs.openSync(data,'r');
             console.log("opened file");
             this.pc = this.progStart;
-            (this.stack)[0] = 0;
+            this.stack[0] = 0;
             this.top = 1;
             this.bp = 0;
             for (; ;) {
-                switch (this.Next()) {
+                let nextt=this.Next();
+                console.log(nextt)
+
+                switch (nextt) {
                     case Op.CONST:
                         this.Push(this.Next2());
                         break;
