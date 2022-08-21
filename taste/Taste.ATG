@@ -122,9 +122,10 @@ Stat                     (.let type:number;let name_:string;let obj_:Obj;
 		Stat 
 	]                      (.this.gen.Patch(adr,this.gen.pc); .)
 
-| "while"                (. loopstart =this.gen.pc; .)
+| "while"                (. loopstart=this.gen.pc; .)
 	'(' Expr<out type> ')' (. if (type != this.boolean) this.SemErr("boolean type expected");
-													 this.gen.Emit(Op.FJMP, 0); adr =this.gen.pc - 2; .)
+
+								+this.gen.Emit(Op.FJMP, 0); adr=this.gen.pc - 2; .)
 	Stat                   (.this.gen.Emit(Op.JMP, loopstart);this.gen.Patch(adr,this.gen.pc); .)
 
 | "read"

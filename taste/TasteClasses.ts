@@ -1,8 +1,6 @@
 import * as console from "console";
 import {Parser} from "./Parser";
-import * as stream from "stream";
 import * as fs from "fs";
-import {Buffer} from "./Scanner";
 
 export enum Op { // opcodes
     ADD, SUB, MUL, DIV, EQU, LSS, GTR, NEG,
@@ -41,8 +39,10 @@ export class CodeGenerator {
 
     public Emit(op: Op, val?: number) {
         this.Put(op);
-        this.Put(val >> 8);
-        this.Put(val);
+        if (val != undefined) {
+            this.Put(val >> 8);
+            this.Put(val);
+        }
     }
 
     public Patch(adr: number, val: number) {
@@ -56,7 +56,7 @@ export class CodeGenerator {
         console.log("decoding")
         while (this.pc < maxPc) {
             let code = this.Next();
-            console.log((this.pc - 1)+": "+ this.opcode[code]);
+            console.log((this.pc - 1) + ": " + this.opcode[code]);
             switch (code) {
                 case Op.LOAD:
                 case Op.LOADG:
@@ -101,7 +101,7 @@ export class CodeGenerator {
         return (x << 8) + y;
     }
 
-    Int(b: boolean) {
+    Int(b: boolean):number {
         if (b) return 1; else return 0;
     }
 
@@ -115,42 +115,40 @@ export class CodeGenerator {
 
     ReadInt(s: number): number {
         let ch, sign;
-        let buffer=new Int8Array(1)
+        let buffer = Buffer.alloc(1)
         do {
-            fs.readSync(s,buffer,0,1,null);
-            ch=buffer.toString()
-            console.log(ch)
-        } while (!(ch >= '0'.charCodeAt(0) && ch <= '9'.charCodeAt(0) || ch == '-'.charCodeAt(0)));
+            fs.readSync(s, buffer);
+            ch = buffer.toString()
+        } while (!(ch >= '0' && ch <= '9' || ch == '-'));
         if (ch == '-') {
             sign = -1;
-            fs.readSync(s,buffer,0,1,null);
-            ch=buffer.toString()
-            console.log(ch)
+            fs.readSync(s, buffer);
+            ch = buffer.toString()
         } else sign = 1;
         let n = 0;
         while (ch >= '0' && ch <= '9') {
-            n = 10 * n + (ch - '0'.charCodeAt(0));
-            fs.readSync(s,buffer,0,1,null);
-            ch=buffer.toString()
-            console.log(ch)
+            n = 10 * n + parseInt(ch);
+            let readBytes=fs.readSync(s, buffer);
+            if (readBytes==0)
+                break;
+            ch = buffer.toString()
         }
         return n * sign;
     }
 
     public Interpret(data: string) {
         let val: number;
+        let val1: number;
+        let val2: number;
         try {
-            let s = fs.openSync(data,'r');
+            let s = fs.openSync(data, 'r');
             console.log("opened file");
             this.pc = this.progStart;
             this.stack[0] = 0;
             this.top = 1;
             this.bp = 0;
             for (; ;) {
-                let nextt=this.Next();
-                console.log(nextt)
-
-                switch (nextt) {
+                switch (this.Next()) {
                     case Op.CONST:
                         this.Push(this.Next2());
                         break;
@@ -228,6 +226,7 @@ export class CodeGenerator {
             }
         } catch (e) {
             console.log("--- Error accessing file ", data);
+            console.log(e);
             process.exit(0);
         }
     }

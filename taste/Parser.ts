@@ -1,7 +1,6 @@
 import {Scanner, Token} from "./Scanner";
 import {CodeGenerator, Obj, Op, SymbolTable} from "./TasteClasses";
 
-
 export class Parser {
     public static _EOF: number = 0;
     public static _ident: number = 1;
@@ -11,27 +10,27 @@ export class Parser {
     static _T = true;
     static _x = false;
     static minErrDist = 2;
-    static set: boolean[][] = [
-        [Parser._T, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x],
-        [Parser._x, Parser._T, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._T, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._T, Parser._x, Parser._T, Parser._T, Parser._T, Parser._x, Parser._T, Parser._T, Parser._x, Parser._x, Parser._x],
-        [Parser._x, Parser._T, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._T, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._T, Parser._x, Parser._T, Parser._T, Parser._T, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x]
 
-    ];
     public t: Token;            // last recognized token
     public la: Token;           // lookahead token
     errDist = Parser.minErrDist;
+
     public scanner: Scanner;
     public errors: Errors;
+
     readonly undef = 0;
     readonly integer = 1;
     readonly boolean = 2;
+
     // object kinds
     readonly var = 0;
     readonly proc = 1;
+
     public tab: SymbolTable;
+    public gen: CodeGenerator;
 
     /*--------------------------------------------------------------------------*/
-    public gen: CodeGenerator;
+
 
     constructor(scanner: Scanner) {
         this.scanner = scanner;
@@ -59,6 +58,10 @@ export class Parser {
 
             this.la = this.t;
         }
+    }
+
+    private isLaTokenKindEqualTo(n: number): boolean {
+        return this.la.kind == n;
     }
 
     Expect(n: number) {
@@ -170,7 +173,7 @@ export class Parser {
             } else this.SemErr("variable expected");
         } else if (this.isLaTokenKindEqualTo(2)) {
             this.Get();
-            n = this.t.val.charCodeAt(0);
+            n = parseInt(this.t.val);
             this.gen.Emit(Op.CONST, n);
             type = this.integer;
         } else if (this.isLaTokenKindEqualTo(4)) {
@@ -411,9 +414,12 @@ export class Parser {
 
     }
 
-    private isLaTokenKindEqualTo(n: number): boolean {
-        return this.la.kind == n;
-    }
+    static set: boolean[][] = [
+        [Parser._T, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x],
+        [Parser._x, Parser._T, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._T, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._T, Parser._x, Parser._T, Parser._T, Parser._T, Parser._x, Parser._T, Parser._T, Parser._x, Parser._x, Parser._x],
+        [Parser._x, Parser._T, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._T, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._T, Parser._x, Parser._T, Parser._T, Parser._T, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x]
+
+    ];
 } // end Parser
 
 
@@ -421,6 +427,22 @@ export class Errors {
     public count = 0;                                    // number of errors detected
     //public errorStream = System.out;     // error messages go to this stream
     public errMsgFormat = "-- line {0} col {1}: {2}"; // 0=line, 1=column, 2=text
+
+    protected printMsg(line: number, column: number, msg: string) {
+        let b = "-- line {0} col {1}: {2}";
+        let pos = b.indexOf("{0}");
+        if (pos >= 0) {
+            b = b.replace("{0}", line + "")
+        }
+        pos = b.indexOf("{1}");
+        if (pos >= 0) {
+            b = b.replace("{1}", column + "")
+        }
+        pos = b.indexOf("{2}");
+        if (pos >= 0)
+            b = b.replace("{2}", msg)
+        console.error(b.toString());
+    }
 
     public SynErr(line: number, col: number, n: number) {
         let s: string;
@@ -542,9 +564,7 @@ export class Errors {
     }
 
     public SemErr(s: string)
-
     public SemErr(line: number, col: number, s: string)
-
     //internal useage
     public SemErr(line: any, col?: number, s?: string) {
         if (s != undefined)
@@ -554,32 +574,15 @@ export class Errors {
         this.count++;
     }
 
+
     public Warning(s: string)
-
     public Warning(line: number, col: number, s: string)
-
     //internal useage
     public Warning(line: any, col?: number, s?: string) {
         if (s != undefined)
             this.printMsg(line, col, s);
         else
             console.warn(line);
-    }
-
-    protected printMsg(line: number, column: number, msg: string) {
-        let b = "-- line {0} col {1}: {2}";
-        let pos = b.indexOf("{0}");
-        if (pos >= 0) {
-            b = b.replace("{0}", line + "")
-        }
-        pos = b.indexOf("{1}");
-        if (pos >= 0) {
-            b = b.replace("{1}", column + "")
-        }
-        pos = b.indexOf("{2}");
-        if (pos >= 0)
-            b = b.replace("{2}", msg)
-        console.error(b.toString());
     }
 
 } // Errors

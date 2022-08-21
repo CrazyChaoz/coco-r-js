@@ -16,7 +16,7 @@ program Test {
 	void SumUp() {
 		int sum;
 		sum = 0;
-		while (i > 0) { sum = sum + i; i = i - 1; }
+		while (i > 0) {sum = sum + i;i = i - 1;}
 		write sum;
 	}
 

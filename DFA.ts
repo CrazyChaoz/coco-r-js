@@ -423,7 +423,6 @@ export class Generator {
 
     private framRead(): number {
         try {
-            //todo: look over this
             let buffer = Buffer.alloc(1)
             let read_bits = fs.readSync(this.fram, buffer);
             if (read_bits > 0)
@@ -468,7 +467,7 @@ export class DFA {
     //---------- Output primitives
     private Ch(ch: number): string {
         if (ch < ' '.charCodeAt(0) || ch >= 127 || ch == '\''.charCodeAt(0) || ch == '\\'.charCodeAt(0)) {
-            return ch+"";
+            return ch + "";
         } else return "'" + String.fromCharCode(ch) + "'.charCodeAt(0)";
     }
 
@@ -552,7 +551,7 @@ export class DFA {
             if (used.get(s1.nr) && s1.endOf != undefined && s1.firstAction == undefined && !s1.ctx)
                 for (let s2 = s1.next; s2 != undefined; s2 = s2.next)
                     if (used.get(s2.nr) && s1.endOf == s2.endOf && s2.firstAction == undefined && !s2.ctx) {
-                        used.set(s2.nr,0);
+                        used.set(s2.nr, 0);
                         newState[s2.nr] = s1;
                     }
         for (let state = this.firstState; state != undefined; state = state.next)

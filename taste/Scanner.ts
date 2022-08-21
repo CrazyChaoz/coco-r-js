@@ -1,6 +1,5 @@
-
 import * as fs from "fs";
-import {Stream} from "stream";
+import * as Stream from "stream";
 
 export class Token {
     public kind: number;    // token kind
@@ -198,7 +197,7 @@ export class Buffer {
 //-----------------------------------------------------------------------------------
 export class UTF8Buffer extends Buffer {
     constructor(b: Buffer) {
-        super(1,b);
+        super(1, b);
     }
 
     public Read(): number {
@@ -278,8 +277,8 @@ export class StartStates {
 export class Scanner {
     static EOL = '\n';
     static eofSym = 0;
-	static maxT = 28;
-	static noSym = 28;
+    static maxT = 28;
+    static noSym = 28;
 
 
     public buffer: Buffer; // scanner buffer
@@ -301,47 +300,47 @@ export class Scanner {
     tlen: number;          // length of current token
 
     //this is dark magic which mimics a static { } block in a class
-    private static _static_initialize = function(){
+    private static _static_initialize = function () {
         Scanner.start = new StartStates();
         Scanner.literals = [];
-		for (let i = 65; i <= 90; ++i) Scanner.start.set(i, 1);
-		for (let i = 97; i <= 122; ++i) Scanner.start.set(i, 1);
-		for (let i = 48; i <= 57; ++i) Scanner.start.set(i, 2);
-		Scanner.start.set(43, 3); 
-		Scanner.start.set(45, 4); 
-		Scanner.start.set(42, 5); 
-		Scanner.start.set(47, 6); 
-		Scanner.start.set(40, 7); 
-		Scanner.start.set(41, 8); 
-		Scanner.start.set(123, 9); 
-		Scanner.start.set(125, 10); 
-		Scanner.start.set(61, 16); 
-		Scanner.start.set(60, 12); 
-		Scanner.start.set(62, 13); 
-		Scanner.start.set(59, 14); 
-		Scanner.start.set(44, 15); 
-		Scanner.start.set(Buffer.EOF, -1);
-		Scanner.literals["true"]=5;
-		Scanner.literals["false"]=6;
-		Scanner.literals["void"]=9;
-		Scanner.literals["if"]=19;
-		Scanner.literals["else"]=20;
-		Scanner.literals["while"]=21;
-		Scanner.literals["read"]=22;
-		Scanner.literals["write"]=23;
-		Scanner.literals["program"]=24;
-		Scanner.literals["int"]=25;
-		Scanner.literals["bool"]=26;
+        for (let i = 65; i <= 90; ++i) Scanner.start.set(i, 1);
+        for (let i = 97; i <= 122; ++i) Scanner.start.set(i, 1);
+        for (let i = 48; i <= 57; ++i) Scanner.start.set(i, 2);
+        Scanner.start.set(43, 3);
+        Scanner.start.set(45, 4);
+        Scanner.start.set(42, 5);
+        Scanner.start.set(47, 6);
+        Scanner.start.set(40, 7);
+        Scanner.start.set(41, 8);
+        Scanner.start.set(123, 9);
+        Scanner.start.set(125, 10);
+        Scanner.start.set(61, 16);
+        Scanner.start.set(60, 12);
+        Scanner.start.set(62, 13);
+        Scanner.start.set(59, 14);
+        Scanner.start.set(44, 15);
+        Scanner.start.set(Buffer.EOF, -1);
+        Scanner.literals["true"] = 5;
+        Scanner.literals["false"] = 6;
+        Scanner.literals["void"] = 9;
+        Scanner.literals["if"] = 19;
+        Scanner.literals["else"] = 20;
+        Scanner.literals["while"] = 21;
+        Scanner.literals["read"] = 22;
+        Scanner.literals["write"] = 23;
+        Scanner.literals["program"] = 24;
+        Scanner.literals["int"] = 25;
+        Scanner.literals["bool"] = 26;
 
-}();
+    }();
 
     constructor(fileName: string);
     constructor(s: Stream);
     constructor(a: any) {
-        if(typeof a == "string")
-            this.buffer = new Buffer(0,a);
+        if (typeof a == "string")
+            this.buffer = new Buffer(0, a);
         else
-            this.buffer = new Buffer(2,a);
+            this.buffer = new Buffer(2, a);
         this.Init();
     }
 
@@ -369,7 +368,7 @@ export class Scanner {
         this.pt = this.tokens = new Token();  // first token is a dummy
     }
 
-	NextCh() {
+    NextCh() {
         if (this.oldEols > 0) {
             this.ch = Scanner.EOL.charCodeAt(0);
             this.oldEols--;
@@ -383,14 +382,14 @@ export class Scanner {
             // eol handling uniform across Windows, Unix and Mac
             if (this.ch == '\r'.charCodeAt(0) && this.buffer.Peek() != '\n'.charCodeAt(0)) this.ch = Scanner.EOL.charCodeAt(0);
             if (this.ch == Scanner.EOL.charCodeAt(0)) {
-                this.line+=1;
+                this.line += 1;
                 this.col = 0;
             }
         }
 
-	}
+    }
 
-	AddCh() {
+    AddCh() {
         //unused, since arrays grow automatically in .js
         // if (this.tlen >= this.tval.length) {
         //     let newBuf = new Array[2 * this.tval.length];
@@ -398,70 +397,76 @@ export class Scanner {
         //     this.tval = newBuf;
         // }
         if (this.ch != Buffer.EOF) {
-			this.tval[this.tlen++] = this.ch; 
+            this.tval[this.tlen++] = this.ch;
 
-			this.NextCh();
-		}
+            this.NextCh();
+        }
 
-	}
+    }
 
 
-	Comment0():boolean {
-		let level = 1, pos0 = this.pos, line0 = this.line, col0 = this.col, charPos0 = this.charPos;
-		this.NextCh();
-		if (this.ch == '/'.charCodeAt(0)) {
-			this.NextCh();
-			for(;;) {
-				if (this.ch == 10) {
-					level--;
-					if (level == 0) { this.oldEols = this.line - line0; this.NextCh(); return true; }
-					this.NextCh();
-				} else if (this.ch == Buffer.EOF) return false;
-				else this.NextCh();
-			}
-		} else {
-			this.buffer.setPos(pos0);
-			this.NextCh();
-			this.line = line0;
-			this.col = col0;
-			this.charPos = charPos0;
-		}
-		return false;
-	}
+    Comment0(): boolean {
+        let level = 1, pos0 = this.pos, line0 = this.line, col0 = this.col, charPos0 = this.charPos;
+        this.NextCh();
+        if (this.ch == '/'.charCodeAt(0)) {
+            this.NextCh();
+            for (; ;) {
+                if (this.ch == 10) {
+                    level--;
+                    if (level == 0) {
+                        this.oldEols = this.line - line0;
+                        this.NextCh();
+                        return true;
+                    }
+                    this.NextCh();
+                } else if (this.ch == Buffer.EOF) return false;
+                else this.NextCh();
+            }
+        } else {
+            this.buffer.setPos(pos0);
+            this.NextCh();
+            this.line = line0;
+            this.col = col0;
+            this.charPos = charPos0;
+        }
+        return false;
+    }
 
-	Comment1():boolean {
-		let level = 1, pos0 = this.pos, line0 = this.line, col0 = this.col, charPos0 = this.charPos;
-		this.NextCh();
-		if (this.ch == '*'.charCodeAt(0)) {
-			this.NextCh();
-			for(;;) {
-				if (this.ch == '*'.charCodeAt(0)) {
-					this.NextCh();
-					if (this.ch == '/'.charCodeAt(0)) {
-						level--;
-						if (level == 0) { this.oldEols = this.line - line0;
-							this.NextCh();
-							return true; }
-						this.NextCh();
-					}
-				} else if (this.ch == '/'.charCodeAt(0)) {
-					this.NextCh();
-					if (this.ch == '*'.charCodeAt(0)) {
-						level++; this.NextCh();
-					}
-				} else if (this.ch == Buffer.EOF) return false;
-				else this.NextCh();
-			}
-		} else {
-			this.buffer.setPos(pos0);
-			this.NextCh();
-			this.line = line0;
-			this.col = col0;
-			this.charPos = charPos0;
-		}
-		return false;
-	}
-
+    Comment1(): boolean {
+        let level = 1, pos0 = this.pos, line0 = this.line, col0 = this.col, charPos0 = this.charPos;
+        this.NextCh();
+        if (this.ch == '*'.charCodeAt(0)) {
+            this.NextCh();
+            for (; ;) {
+                if (this.ch == '*'.charCodeAt(0)) {
+                    this.NextCh();
+                    if (this.ch == '/'.charCodeAt(0)) {
+                        level--;
+                        if (level == 0) {
+                            this.oldEols = this.line - line0;
+                            this.NextCh();
+                            return true;
+                        }
+                        this.NextCh();
+                    }
+                } else if (this.ch == '/'.charCodeAt(0)) {
+                    this.NextCh();
+                    if (this.ch == '*'.charCodeAt(0)) {
+                        level++;
+                        this.NextCh();
+                    }
+                } else if (this.ch == Buffer.EOF) return false;
+                else this.NextCh();
+            }
+        } else {
+            this.buffer.setPos(pos0);
+            this.NextCh();
+            this.line = line0;
+            this.col = col0;
+            this.charPos = charPos0;
+        }
+        return false;
+    }
 
 
     CheckLiteral() {
@@ -471,13 +476,13 @@ export class Scanner {
         if (kind != undefined && kind != 0) {
             this.t.kind = kind;
         }
-	}
+    }
 
     NextToken(): Token {
         while (this.ch == ' '.charCodeAt(0) ||
-			this.ch >= 9 && this.ch <= 10 || this.ch == 13
-		) this.NextCh();
-		if (this.ch == '/'.charCodeAt(0) && this.Comment0() ||this.ch == '/'.charCodeAt(0) && this.Comment1()) return this.NextToken();
+            this.ch >= 9 && this.ch <= 10 || this.ch == 13
+            ) this.NextCh();
+        if (this.ch == '/'.charCodeAt(0) && this.Comment0() || this.ch == '/'.charCodeAt(0) && this.Comment1()) return this.NextToken();
         let recKind = Scanner.noSym;
         let recEnd = this.pos;
         this.t = new Token();
@@ -485,7 +490,7 @@ export class Scanner {
         this.t.col = this.col;
         this.t.line = this.line;
         this.t.charPos = this.charPos;
-        this.tval=[]
+        this.tval = []
         let state = Scanner.start.state(this.ch);
         this.tlen = 0;
         this.AddCh();
@@ -495,7 +500,7 @@ export class Scanner {
                 case -1:
                     this.t.kind = Scanner.eofSym;
                     break loop;
-                    // NextCh already done
+                // NextCh already done
                 case 0:
                     if (recKind != Scanner.noSym) {
                         this.tlen = recEnd - this.t.pos;
@@ -503,56 +508,105 @@ export class Scanner {
                     }
                     this.t.kind = recKind;
                     break loop;
-                    // NextCh already done
-				case 1:
-					recEnd = this.pos; recKind = 1;
-					if (this.ch >= '0'.charCodeAt(0) && this.ch <= '9'.charCodeAt(0) || this.ch >= 'A'.charCodeAt(0) && this.ch <= 'Z'.charCodeAt(0) || this.ch >= 'a'.charCodeAt(0) && this.ch <= 'z'.charCodeAt(0)) {this.AddCh(); state = 1; break;}
-					else {this.t.kind = 1; this.t.val = this.tval.map(function (value, index, array) {
+                // NextCh already done
+                case 1:
+                    recEnd = this.pos;
+                    recKind = 1;
+                    if (this.ch >= '0'.charCodeAt(0) && this.ch <= '9'.charCodeAt(0) || this.ch >= 'A'.charCodeAt(0) && this.ch <= 'Z'.charCodeAt(0) || this.ch >= 'a'.charCodeAt(0) && this.ch <= 'z'.charCodeAt(0)) {
+                        this.AddCh();
+                        state = 1;
+                        break;
+                    } else {
+                        this.t.kind = 1;
+                        this.t.val = this.tval.map(function (value, index, array) {
                             return String.fromCharCode(value)
-                        }).join(""); this.CheckLiteral(); return this.t;}
-				case 2:
-					recEnd = this.pos; recKind = 2;
-					if (this.ch >= '0'.charCodeAt(0) && this.ch <= '9'.charCodeAt(0)) {this.AddCh(); state = 2; break;}
-					else {this.t.kind = 2; break loop;}
-				case 3:
-					{this.t.kind = 3; break loop;}
-				case 4:
-					{this.t.kind = 4; break loop;}
-				case 5:
-					{this.t.kind = 7; break loop;}
-				case 6:
-					{this.t.kind = 8; break loop;}
-				case 7:
-					{this.t.kind = 10; break loop;}
-				case 8:
-					{this.t.kind = 11; break loop;}
-				case 9:
-					{this.t.kind = 12; break loop;}
-				case 10:
-					{this.t.kind = 13; break loop;}
-				case 11:
-					{this.t.kind = 14; break loop;}
-				case 12:
-					{this.t.kind = 15; break loop;}
-				case 13:
-					{this.t.kind = 16; break loop;}
-				case 14:
-					{this.t.kind = 18; break loop;}
-				case 15:
-					{this.t.kind = 27; break loop;}
-				case 16:
-					recEnd = this.pos; recKind = 17;
-					if (this.ch == '='.charCodeAt(0)) {this.AddCh(); state = 11; break;}
-					else {this.t.kind = 17; break loop;}
+                        }).join("");
+                        this.CheckLiteral();
+                        return this.t;
+                    }
+                case 2:
+                    recEnd = this.pos;
+                    recKind = 2;
+                    if (this.ch >= '0'.charCodeAt(0) && this.ch <= '9'.charCodeAt(0)) {
+                        this.AddCh();
+                        state = 2;
+                        break;
+                    } else {
+                        this.t.kind = 2;
+                        break loop;
+                    }
+                case 3: {
+                    this.t.kind = 3;
+                    break loop;
+                }
+                case 4: {
+                    this.t.kind = 4;
+                    break loop;
+                }
+                case 5: {
+                    this.t.kind = 7;
+                    break loop;
+                }
+                case 6: {
+                    this.t.kind = 8;
+                    break loop;
+                }
+                case 7: {
+                    this.t.kind = 10;
+                    break loop;
+                }
+                case 8: {
+                    this.t.kind = 11;
+                    break loop;
+                }
+                case 9: {
+                    this.t.kind = 12;
+                    break loop;
+                }
+                case 10: {
+                    this.t.kind = 13;
+                    break loop;
+                }
+                case 11: {
+                    this.t.kind = 14;
+                    break loop;
+                }
+                case 12: {
+                    this.t.kind = 15;
+                    break loop;
+                }
+                case 13: {
+                    this.t.kind = 16;
+                    break loop;
+                }
+                case 14: {
+                    this.t.kind = 18;
+                    break loop;
+                }
+                case 15: {
+                    this.t.kind = 27;
+                    break loop;
+                }
+                case 16:
+                    recEnd = this.pos;
+                    recKind = 17;
+                    if (this.ch == '='.charCodeAt(0)) {
+                        this.AddCh();
+                        state = 11;
+                        break;
+                    } else {
+                        this.t.kind = 17;
+                        break loop;
+                    }
 
-			}
-		}
-        this.t.val = this.tval.map(function (value,index,array) {
+            }
+        }
+        this.t.val = this.tval.map(function (value, index, array) {
             return String.fromCharCode(value)
         }).join("")
 
         return this.t;
-	}
+    }
 
     private SetScannerBehindT() {
         this.buffer.setPos(this.t.pos);
@@ -569,7 +623,7 @@ export class Scanner {
 
 // get the next token (possibly a token already seen during peeking)
     public Scan(): Token {
-        let token:Token
+        let token: Token
 
         if (this.tokens.next == undefined) {
             token = this.NextToken();
