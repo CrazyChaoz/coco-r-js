@@ -988,21 +988,21 @@ export class Parser {
 
 
     public Parse() {
-        let t0=new Date(),t1,t2,t3
+        // let t0=new Date(),t1,t2,t3
         this.la = new Token();
         this.la.val = "";
         this.Get();
-        t1=new Date()
+        // t1=new Date()
         this.Coco();
-        t2=new Date()
+        // t2=new Date()
         this.Expect(0);
-        t3=new Date()
-        // @ts-ignore
-        console.log("time get:"+(t1-t0))
-        // @ts-ignore
-        console.log("time coco:"+(t2-t0))
-        // @ts-ignore
-        console.log("time expect:"+(t3-t0))
+        // t3=new Date()
+        // // @ts-ignore
+        // console.log("time get:"+(t1-t0))
+        // // @ts-ignore
+        // console.log("time coco:"+(t2-t0))
+        // // @ts-ignore
+        // console.log("time expect:"+(t3-t0))
     }
 
     public static set: boolean[][] = [
