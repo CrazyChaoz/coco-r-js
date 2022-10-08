@@ -993,7 +993,7 @@ export class Tab {
             else if ('A' <= ch && ch <= 'F') val = 16 * val + (10 + ch.charCodeAt(0) - 'A'.charCodeAt(0));
             else this.parser.SemErr("bad escape sequence in string or character");
         }
-        //TODO: reimplement this
+        //TODO: maybe reimplement this
 // if (val > Character.MAX_VALUE) /* pdt */
 //     this.parser.SemErr("bad escape sequence in string or character");
         return String.fromCharCode(val);

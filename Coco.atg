@@ -235,7 +235,7 @@ Char<out number n>
 =
   char                          (. let name_ = this.t.val;
                                    n = 0;
-                                   name_ = this.tab.Unescape(name.substring(1, name.length - 1));
+                                   name_ = this.tab.Unescape(name_.substring(1, name_.length - 1));
                                    if (name_.length == 1) n = name_.charAt(0).charCodeAt(0);
                                    else this.SemErr("unacceptable character value");
                                    if (this.dfa.ignoreCase && n >= 'A'.charCodeAt(0) && n <= 'Z'.charCodeAt(0)) n += 32;
@@ -244,7 +244,7 @@ Char<out number n>
 
 /*------------------------------------------------------------------------------------*/
 
-TokenDecl<number typ>          (. let s: SymInfo;
+TokenDecl<typ: number>          (. let s: SymInfo;
                                    let sym: Symbol;
                                    let g: Graph; .)
 =
@@ -279,7 +279,7 @@ TokenDecl<number typ>          (. let s: SymInfo;
 
 /*------------------------------------------------------------------------------------*/
 
-AttrDecl<sym:Symbol>            (. let beg, col: number; .)
+AttrDecl<sym: Symbol>            (. let beg, col: number; .)
 =
   '<'                           // attributes denoted by < ... >
   ( ('^' | "out")               (. beg = this.la.pos; .)

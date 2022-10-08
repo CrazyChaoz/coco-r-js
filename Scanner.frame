@@ -28,6 +28,7 @@ Coco/R itself) does not fall under the GNU General Public License.
 ------------------------------------------------------------------------*/
 -->begin
 import * as fs from "fs";
+import * as Stream from "stream";
 
 export class Token {
     public kind: number;    // token kind
