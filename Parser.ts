@@ -984,7 +984,7 @@ export class Parser {
         // console.log("time expect:"+(t3-t0))
     }
 
-    public static set: boolean[][] = [
+    static set: boolean[][] = [
         [Parser._T, Parser._T, Parser._x, Parser._T, Parser._x, Parser._T, Parser._x, Parser._x, Parser._x, Parser._x, Parser._T, Parser._T, Parser._x, Parser._x, Parser._x, Parser._T, Parser._T, Parser._T, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._T, Parser._x, Parser._x, Parser._x],
         [Parser._x, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._x, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._x],
         [Parser._x, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._x, Parser._x, Parser._x, Parser._x, Parser._x, Parser._T, Parser._T, Parser._T, Parser._x, Parser._x, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._T, Parser._x],
