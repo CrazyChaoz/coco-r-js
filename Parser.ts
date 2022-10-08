@@ -94,15 +94,18 @@ export class Parser {
                 ++this.errDist;
                 break;
             }
-
-            if (this.la.kind == 45) {
+            if (this.isLaTokenKindEqualTo(45)) {
                 this.tab.SetDDT(this.la.val);
             }
-            if (this.la.kind == 46) {
+            if (this.isLaTokenKindEqualTo(46)) {
                 this.tab.SetOption(this.la.val);
             }
             this.la = this.t;
         }
+    }
+
+    private isLaTokenKindEqualTo(n: number): boolean {
+        return this.la.kind == n;
     }
 
     Expect(n: number) {
@@ -166,51 +169,47 @@ export class Parser {
             this.Get();
         }
         this.tab.semDeclPos = new Position(beg, this.la.pos, 0);
-        if (this.la.kind == 7) {
+        if (this.isLaTokenKindEqualTo(7)) {
             this.Get();
             this.dfa.ignoreCase = true;
         }
-        if (this.la.kind == 8) {
+        if (this.isLaTokenKindEqualTo(8)) {
             this.Get();
-            //@ts-ignore
-            while (this.la.kind == 1) {
+            while (this.isLaTokenKindEqualTo(1)) {
                 this.SetDecl();
             }
         }
-        if (this.la.kind == 9) {
+        if (this.isLaTokenKindEqualTo(9)) {
             this.Get();
-            //@ts-ignore
-            while (this.la.kind == 1 || this.la.kind == 3 || this.la.kind == 5) {
+            while (this.isLaTokenKindEqualTo(1) || this.isLaTokenKindEqualTo(3) || this.isLaTokenKindEqualTo(5)) {
                 this.TokenDecl(Node_.t);
             }
         }
-        if (this.la.kind == 10) {
+        if (this.isLaTokenKindEqualTo(10)) {
             this.Get();
-            //@ts-ignore
-            while (this.la.kind == 1 || this.la.kind == 3 || this.la.kind == 5) {
+            while (this.isLaTokenKindEqualTo(1) || this.isLaTokenKindEqualTo(3) || this.isLaTokenKindEqualTo(5)) {
                 this.TokenDecl(Node_.pr);
             }
         }
-        while (this.la.kind == 11) {
+        while (this.isLaTokenKindEqualTo(11)) {
             this.Get();
             let nested = false;
             this.Expect(12);
             g1 = this.TokenExpr();
             this.Expect(13);
             g2 = this.TokenExpr();
-            //@ts-ignore
-            if (this.la.kind == 14) {
+            if (this.isLaTokenKindEqualTo(14)) {
                 this.Get();
                 nested = true;
             }
             this.dfa.NewComment(g1.l, g2.l, nested);
         }
-        while (this.la.kind == 15) {
+        while (this.isLaTokenKindEqualTo(15)) {
             this.Get();
             s = this.Set();
             this.tab.ignored.Or(s);
         }
-        while (!(this.la.kind == 0 || this.la.kind == 16)) {
+        while (!(this.isLaTokenKindEqualTo(0) || this.isLaTokenKindEqualTo(16))) {
             this.SynErr(45);
             this.Get();
         }
@@ -218,8 +217,7 @@ export class Parser {
         if (this.genScanner) this.dfa.MakeDeterministic();
         this.tab.DeleteNodes();
 
-        //@ts-ignore
-        while (this.la.kind == 1) {
+        while (this.isLaTokenKindEqualTo(1)) {
             this.Get();
             sym = this.tab.FindSym(this.t.val);
             let undef = sym == undefined;
@@ -235,7 +233,7 @@ export class Parser {
             let noRet = sym.retVar == undefined;
             sym.retVar = undefined;
 
-            if (this.la.kind == 24 || this.la.kind == 29) {
+            if (this.isLaTokenKindEqualTo(24) || this.isLaTokenKindEqualTo(29)) {
                 this.AttrDecl(sym);
             }
             if (!undef)
@@ -243,7 +241,7 @@ export class Parser {
                     || noRet != (sym.retVar == undefined))
                     this.SemErr("attribute mismatch between declaration and use of this symbol");
 
-            if (this.la.kind == 42) {
+            if (this.isLaTokenKindEqualTo(42)) {
                 sym.semPos = this.SemText();
             }
             this.ExpectWeak(17, 3);
@@ -328,7 +326,7 @@ export class Parser {
             this.SynErr(46);
             this.Get();
         }
-        if (this.la.kind == 17) {
+        if (this.isLaTokenKindEqualTo(17)) {
             this.Get();
             g = this.TokenExpr();
             this.Expect(18);
@@ -346,8 +344,9 @@ export class Parser {
         } else if (this.StartOf(6)) {
             if (s.kind == Parser.id) this.genScanner = false;
             else this.dfa.MatchLiteral(sym.name, sym);
+
         } else this.SynErr(47);
-        if (this.la.kind == 42) {
+        if (this.isLaTokenKindEqualTo(42)) {
             sym.semPos = this.SemText();
             if (typ != Node_.pr) this.SemErr("semantic action not allowed here");
         }
@@ -374,8 +373,8 @@ export class Parser {
         let s: CharSet;
         let s2: CharSet;
         s = this.SimSet();
-        while (this.la.kind == 20 || this.la.kind == 21) {
-            if (this.la.kind == 20) {
+        while (this.isLaTokenKindEqualTo(20) || this.isLaTokenKindEqualTo(21)) {
+            if (this.isLaTokenKindEqualTo(20)) {
                 this.Get();
                 s2 = this.SimSet();
                 s.Or(s2);
@@ -390,13 +389,10 @@ export class Parser {
 
     AttrDecl(sym: Symbol) {
         let beg, col: number;
-        //@ts-ignore
-        if (this.la.kind == 24) {
+        if (this.isLaTokenKindEqualTo(24)) {
             this.Get();
-            //@ts-ignore
-            if (this.la.kind == 25 || this.la.kind == 26) {
-                //@ts-ignore
-                if (this.la.kind == 25) {
+            if (this.isLaTokenKindEqualTo(25) || this.isLaTokenKindEqualTo(26)) {
+                if (this.isLaTokenKindEqualTo(25)) {
                     this.Get();
                 } else {
                     this.Get();
@@ -406,29 +402,23 @@ export class Parser {
                 sym.retType = this.scanner.buffer.GetString(beg, this.la.pos);
                 this.Expect(1);
                 sym.retVar = this.t.val;
-                //@ts-ignore
-                if (this.la.kind == 27) {
+                if (this.isLaTokenKindEqualTo(27)) {
                     this.Get();
-                    //@ts-ignore
-                } else if (this.la.kind == 28) {
+                } else if (this.isLaTokenKindEqualTo(28)) {
                     this.Get();
                     beg = this.la.pos;
                     col = this.la.col;
-                    //@ts-ignore
                     while (this.StartOf(9)) {
                         this.Get();
                     }
                     this.Expect(27);
                     if (this.t.pos > beg) sym.attrPos = new Position(beg, this.t.pos, col);
                 } else this.SynErr(48);
-                //@ts-ignore
             } else if (this.StartOf(10)) {
                 beg = this.la.pos;
                 col = this.la.col;
-                //@ts-ignore
                 if (this.StartOf(11)) {
                     this.Get();
-                    //@ts-ignore
                     while (this.StartOf(9)) {
                         this.Get();
                     }
@@ -436,13 +426,10 @@ export class Parser {
                 this.Expect(27);
                 if (this.t.pos > beg) sym.attrPos = new Position(beg, this.t.pos, col);
             } else this.SynErr(49);
-            //@ts-ignore
-        } else if (this.la.kind == 29) {
+        } else if (this.isLaTokenKindEqualTo(29)) {
             this.Get();
-            //@ts-ignore
-            if (this.la.kind == 25 || this.la.kind == 26) {
-                //@ts-ignore
-                if (this.la.kind == 25) {
+            if (this.isLaTokenKindEqualTo(25) || this.isLaTokenKindEqualTo(26)) {
+                if (this.isLaTokenKindEqualTo(25)) {
                     this.Get();
                 } else {
                     this.Get();
@@ -452,29 +439,23 @@ export class Parser {
                 sym.retType = this.scanner.buffer.GetString(beg, this.la.pos);
                 this.Expect(1);
                 sym.retVar = this.t.val;
-                //@ts-ignore
-                if (this.la.kind == 30) {
+                if (this.isLaTokenKindEqualTo(30)) {
                     this.Get();
-                    //@ts-ignore
-                } else if (this.la.kind == 28) {
+                } else if (this.isLaTokenKindEqualTo(28)) {
                     this.Get();
                     beg = this.la.pos;
                     col = this.la.col;
-                    //@ts-ignore
                     while (this.StartOf(12)) {
                         this.Get();
                     }
                     this.Expect(30);
                     if (this.t.pos > beg) sym.attrPos = new Position(beg, this.t.pos, col);
                 } else this.SynErr(50);
-                //@ts-ignore
             } else if (this.StartOf(10)) {
                 beg = this.la.pos;
                 col = this.la.col;
-                //@ts-ignore
                 if (this.StartOf(13)) {
                     this.Get();
-                    //@ts-ignore
                     while (this.StartOf(12)) {
                         this.Get();
                     }
@@ -493,7 +474,7 @@ export class Parser {
         while (this.StartOf(14)) {
             if (this.StartOf(15)) {
                 this.Get();
-            } else if (this.la.kind == 4) {
+            } else if (this.isLaTokenKindEqualTo(4)) {
                 this.Get();
                 this.SemErr("bad string in semantic action");
             } else {
@@ -518,6 +499,7 @@ export class Parser {
                 first = false;
             }
             this.tab.MakeAlternative(g, g2);
+
         }
         return g;
     }
@@ -526,28 +508,29 @@ export class Parser {
         let s: CharSet;
         let n1, n2: number;
         s = new CharSet();
-        if (this.la.kind == 1) {
+        if (this.isLaTokenKindEqualTo(1)) {
             this.Get();
             let c = this.tab.FindCharClass(this.t.val);
             if (c == undefined) this.SemErr("undefined name"); else s.Or(c.set);
 
-        } else if (this.la.kind == 3) {
+        } else if (this.isLaTokenKindEqualTo(3)) {
             this.Get();
             let name = this.t.val;
             name = this.tab.Unescape(name.substring(1, name.length - 1));
             for (let i = 0; i < name.length; i++)
-                if (this.dfa.ignoreCase) s.Set(name.toLowerCase().charCodeAt(0));
-                else s.Set(name.charCodeAt(i));
-        } else if (this.la.kind == 5) {
+                if (this.dfa.ignoreCase)
+                    s.Set(name.toLowerCase().charCodeAt(0));
+                else
+                    s.Set(name.charCodeAt(i));
+        } else if (this.isLaTokenKindEqualTo(5)) {
             n1 = this.Char();
             s.Set(n1);
-            //@ts-ignore
-            if (this.la.kind == 22) {
+            if (this.isLaTokenKindEqualTo(22)) {
                 this.Get();
                 n2 = this.Char();
                 for (let i = n1; i <= n2; i++) s.Set(i);
             }
-        } else if (this.la.kind == 23) {
+        } else if (this.isLaTokenKindEqualTo(23)) {
             this.Get();
             s = new CharSet();
             s.Fill();
@@ -558,10 +541,10 @@ export class Parser {
     Char(): number {
         let n: number;
         this.Expect(5);
-        let name = this.t.val;
+        let name_ = this.t.val;
         n = 0;
-        name = this.tab.Unescape(name.substring(1, name.length - 1));
-        if (name.length == 1) n = name.charAt(0).charCodeAt(0);
+        name_ = this.tab.Unescape(name_.substring(1, name_.length - 1));
+        if (name_.length == 1) n = name_.charAt(0).charCodeAt(0);
         else this.SemErr("unacceptable character value");
         if (this.dfa.ignoreCase && n >= 'A'.charCodeAt(0) && n <= 'Z'.charCodeAt(0)) n += 32;
 
@@ -573,12 +556,12 @@ export class Parser {
         s = new SymInfo();
         s.name = "???";
         s.kind = Parser.id;
-        if (this.la.kind == 1) {
+        if (this.isLaTokenKindEqualTo(1)) {
             this.Get();
             s.kind = Parser.id;
             s.name = this.t.val;
-        } else if (this.la.kind == 3 || this.la.kind == 5) {
-            if (this.la.kind == 3) {
+        } else if (this.isLaTokenKindEqualTo(3) || this.isLaTokenKindEqualTo(5)) {
+            if (this.isLaTokenKindEqualTo(3)) {
                 this.Get();
                 s.name = this.t.val;
             } else {
@@ -595,18 +578,17 @@ export class Parser {
 
     TypeName() {
         this.Expect(1);
-        while (this.la.kind == 18 || this.la.kind == 24 || this.la.kind == 31) {
-            if (this.la.kind == 18) {
+        while (this.isLaTokenKindEqualTo(18) || this.isLaTokenKindEqualTo(24) || this.isLaTokenKindEqualTo(31)) {
+            if (this.isLaTokenKindEqualTo(18)) {
                 this.Get();
                 this.Expect(1);
-            } else if (this.la.kind == 31) {
+            } else if (this.isLaTokenKindEqualTo(31)) {
                 this.Get();
                 this.Expect(32);
             } else {
                 this.Get();
                 this.TypeName();
-                //@ts-ignore
-                while (this.la.kind == 28) {
+                while (this.isLaTokenKindEqualTo(28)) {
                     this.Get();
                     this.TypeName();
                 }
@@ -621,7 +603,7 @@ export class Parser {
         let rslv: Node_ = undefined;
         g = undefined;
         if (this.StartOf(18)) {
-            if (this.la.kind == 40) {
+            if (this.isLaTokenKindEqualTo(40)) {
                 rslv = this.tab.NewNode(Node_.rslv, undefined, this.la.line);
                 rslv.pos = this.Resolver();
                 g = new Graph(rslv);
@@ -629,6 +611,7 @@ export class Parser {
             g2 = this.Factor();
             if (rslv != undefined) this.tab.MakeSequence(g, g2);
             else g = g2;
+
             while (this.StartOf(19)) {
                 g2 = this.Factor();
                 this.tab.MakeSequence(g, g2);
@@ -666,7 +649,7 @@ export class Parser {
             case 3:
             case 5:
             case 34: {
-                if (this.la.kind == 34) {
+                if (this.isLaTokenKindEqualTo(34)) {
                     this.Get();
                     weak = true;
                 }
@@ -695,8 +678,7 @@ export class Parser {
                 p = this.tab.NewNode(typ, sym, this.t.line);
                 g = new Graph(p);
 
-                //@ts-ignore
-                if (this.la.kind == 24 || this.la.kind == 29) {
+                if (this.isLaTokenKindEqualTo(24) || this.isLaTokenKindEqualTo(29)) {
                     this.Attribs(p);
                     if (s.kind != Parser.id) this.SemErr("a literal must not have attributes");
                 }
@@ -762,11 +744,10 @@ export class Parser {
 
     Attribs(n: Node_) {
         let beg, col: number;
-        if (this.la.kind == 24) {
+        if (this.isLaTokenKindEqualTo(24)) {
             this.Get();
-            //@ts-ignore
-            if (this.la.kind == 25 || this.la.kind == 26) {
-                if (this.la.kind == 25) {
+            if (this.isLaTokenKindEqualTo(25) || this.isLaTokenKindEqualTo(26)) {
+                if (this.isLaTokenKindEqualTo(25)) {
                     this.Get();
                 } else {
                     this.Get();
@@ -775,7 +756,7 @@ export class Parser {
                 while (this.StartOf(21)) {
                     if (this.StartOf(22)) {
                         this.Get();
-                    } else if (this.la.kind == 31 || this.la.kind == 35) {
+                    } else if (this.isLaTokenKindEqualTo(31) || this.isLaTokenKindEqualTo(35)) {
                         this.Bracketed();
                     } else {
                         this.Get();
@@ -783,9 +764,9 @@ export class Parser {
                     }
                 }
                 n.retVar = this.scanner.buffer.GetString(beg, this.la.pos);
-                if (this.la.kind == 27) {
+                if (this.isLaTokenKindEqualTo(27)) {
                     this.Get();
-                } else if (this.la.kind == 28) {
+                } else if (this.isLaTokenKindEqualTo(28)) {
                     this.Get();
                     beg = this.la.pos;
                     col = this.la.col;
@@ -822,11 +803,10 @@ export class Parser {
                 this.Expect(27);
                 if (this.t.pos > beg) n.pos = new Position(beg, this.t.pos, col);
             } else this.SynErr(58);
-        } else if (this.la.kind == 29) {
+        } else if (this.isLaTokenKindEqualTo(29)) {
             this.Get();
-            //@ts-ignore
-            if (this.la.kind == 25 || this.la.kind == 26) {
-                if (this.la.kind == 25) {
+            if (this.isLaTokenKindEqualTo(25) || this.isLaTokenKindEqualTo(26)) {
+                if (this.isLaTokenKindEqualTo(25)) {
                     this.Get();
                 } else {
                     this.Get();
@@ -835,7 +815,7 @@ export class Parser {
                 while (this.StartOf(25)) {
                     if (this.StartOf(26)) {
                         this.Get();
-                    } else if (this.la.kind == 31 || this.la.kind == 35) {
+                    } else if (this.isLaTokenKindEqualTo(31) || this.isLaTokenKindEqualTo(35)) {
                         this.Bracketed();
                     } else {
                         this.Get();
@@ -843,9 +823,9 @@ export class Parser {
                     }
                 }
                 n.retVar = this.scanner.buffer.GetString(beg, this.la.pos);
-                if (this.la.kind == 30) {
+                if (this.isLaTokenKindEqualTo(30)) {
                     this.Get();
-                } else if (this.la.kind == 28) {
+                } else if (this.isLaTokenKindEqualTo(28)) {
                     this.Get();
                     beg = this.la.pos;
                     col = this.la.col;
@@ -887,7 +867,7 @@ export class Parser {
 
     Condition() {
         while (this.StartOf(29)) {
-            if (this.la.kind == 35) {
+            if (this.isLaTokenKindEqualTo(35)) {
                 this.Get();
                 this.Condition();
             } else {
@@ -905,7 +885,7 @@ export class Parser {
             g2 = this.TokenFactor();
             this.tab.MakeSequence(g, g2);
         }
-        if (this.la.kind == 41) {
+        if (this.isLaTokenKindEqualTo(41)) {
             this.Get();
             this.Expect(35);
             g2 = this.TokenExpr();
@@ -921,7 +901,7 @@ export class Parser {
         let g: Graph;
         let s: SymInfo;
         g = undefined;
-        if (this.la.kind == 1 || this.la.kind == 3 || this.la.kind == 5) {
+        if (this.isLaTokenKindEqualTo(1) || this.isLaTokenKindEqualTo(3) || this.isLaTokenKindEqualTo(5)) {
             s = this.Sym();
             if (s.kind == Parser.id) {
                 let c = this.tab.FindCharClass(s.name);
@@ -939,17 +919,17 @@ export class Parser {
                 else this.tokenString = this.noString;
             }
 
-        } else if (this.la.kind == 35) {
+        } else if (this.isLaTokenKindEqualTo(35)) {
             this.Get();
             g = this.TokenExpr();
             this.Expect(36);
-        } else if (this.la.kind == 31) {
+        } else if (this.isLaTokenKindEqualTo(31)) {
             this.Get();
             g = this.TokenExpr();
             this.Expect(32);
             this.tab.MakeOption(g);
             this.tokenString = this.noString;
-        } else if (this.la.kind == 37) {
+        } else if (this.isLaTokenKindEqualTo(37)) {
             this.Get();
             g = this.TokenExpr();
             this.Expect(38);
@@ -962,21 +942,20 @@ export class Parser {
     }
 
     Bracketed() {
-        if (this.la.kind == 35) {
+        if (this.isLaTokenKindEqualTo(35)) {
             this.Get();
             while (this.StartOf(29)) {
-                //@ts-ignore
-                if (this.la.kind == 31 || this.la.kind == 35) {
+                if (this.isLaTokenKindEqualTo(31) || this.isLaTokenKindEqualTo(35)) {
                     this.Bracketed();
                 } else {
                     this.Get();
                 }
             }
             this.Expect(36);
-        } else if (this.la.kind == 31) {
+        } else if (this.isLaTokenKindEqualTo(31)) {
             this.Get();
             while (this.StartOf(30)) {
-                if (this.la.kind == 31 || this.la.kind == 35) {
+                if (this.isLaTokenKindEqualTo(31) || this.isLaTokenKindEqualTo(35)) {
                     this.Bracketed();
                 } else {
                     this.Get();

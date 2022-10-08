@@ -501,7 +501,7 @@ Sym<out SymInfo s>
 
 /*------------------------------------------------------------------------------------*/
 
-Attribs<n>                 (. let beg, col: number; .)
+Attribs<n: Node_>                 (. let beg, col: number; .)
 =
   '<'                           // attributes denoted by < ... >
   ( ('^' | "out")               (. beg = this.la.pos; .)
