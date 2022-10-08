@@ -32,7 +32,6 @@ import {Graph, Node_, Position, Symbol, SymInfo, Tab} from "./Tab";
 import {ParserGen} from "./ParserGen";
 import {CharSet, DFA} from "./DFA";
 import {Scanner, Token} from "./Scanner";
-import * as console from "console";
 
 export class Parser {
     public static _EOF: number = 0;
@@ -967,21 +966,12 @@ export class Parser {
 
 
     public Parse() {
-        // let t0=new Date(),t1,t2,t3
         this.la = new Token();
         this.la.val = "";
         this.Get();
-        // t1=new Date()
         this.Coco();
-        // t2=new Date()
         this.Expect(0);
-        // t3=new Date()
-        // // @ts-ignore
-        // console.log("time get:"+(t1-t0))
-        // // @ts-ignore
-        // console.log("time coco:"+(t2-t0))
-        // // @ts-ignore
-        // console.log("time expect:"+(t3-t0))
+
     }
 
     static set: boolean[][] = [

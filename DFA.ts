@@ -1135,7 +1135,7 @@ export class DFA {
 
         let g = new Generator(this.tab);
         this.fram = g.OpenFrame("Scanner.frame");
-        this.gen = g.OpenGen("Scanner.generated.ts");
+        this.gen = g.OpenGen("Scanner.ts");
         if (this.dirtyDFA) this.MakeDeterministic();
 
 

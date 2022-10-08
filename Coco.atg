@@ -29,10 +29,15 @@ Coco/R itself) does not fall under the GNU General Public License.
 ------------------------------------------------------------------------*/
 /*-------------------------------------------------------------------------
  compile with:
-   javac Coco.Coco Coco.ATG -package Coco
+   tsc && node Coco.js Coco.atg
 -------------------------------------------------------------------------*/
 
 $AFGIJPSX
+
+import {Trace} from "./Trace";
+import {Graph, Node_, Position, Symbol, SymInfo, Tab} from "./Tab";
+import {ParserGen} from "./ParserGen";
+import {CharSet, DFA} from "./DFA";
 
 COMPILER Coco
 

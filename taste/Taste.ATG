@@ -1,3 +1,7 @@
+
+
+import {CodeGenerator, Obj, Op, SymbolTable} from "./TasteClasses";
+
 COMPILER Taste
 
 	// types
@@ -53,7 +57,7 @@ Factor<out number type>     (.let n:number;let obj_:Obj;let  name:string; .)
 								if (obj_.level == 0)this.gen.Emit(Op.LOADG, obj_.adr);
 								else this.gen.Emit(Op.LOAD, obj_.adr);
                             } else this.SemErr("variable expected"); .)
-  | number               (. n = this.t.val.charCodeAt(0);
+  | number               (. n = parseInt(this.t.val);
                             this.gen.Emit(Op.CONST, n); type = this.integer; .)
   | '-'
     Factor<out type>     (. if (type != this.integer) {
@@ -124,8 +128,7 @@ Stat                     (.let type:number;let name_:string;let obj_:Obj;
 
 | "while"                (. loopstart=this.gen.pc; .)
 	'(' Expr<out type> ')' (. if (type != this.boolean) this.SemErr("boolean type expected");
-
-								+this.gen.Emit(Op.FJMP, 0); adr=this.gen.pc - 2; .)
+                                this.gen.Emit(Op.FJMP, 0); adr=this.gen.pc - 2; .)
 	Stat                   (.this.gen.Emit(Op.JMP, loopstart);this.gen.Patch(adr,this.gen.pc); .)
 
 | "read"

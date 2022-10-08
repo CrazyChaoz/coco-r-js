@@ -480,7 +480,7 @@ export class ParserGen {
         this.symSet.push(this.tab.allSyncSets);
 
         this.fram = g.OpenFrame("Parser.frame");
-        this.gen = g.OpenGen("Parser.generated.ts");
+        this.gen = g.OpenGen("Parser.ts");
         //foreach (Symbol sym in Symbol.terminals)
         for (let i = 0; i < this.tab.terminals.length; i++) {
             let sym = this.tab.terminals[i];
