@@ -1,3 +1,197 @@
 # coco-r-js
+
 a port of the compilergenerator coco/r to typescript
-# WIP
+
+the following text is from my bachelor thesis on this project
+
+# Implementation
+
+## General Differences
+
+Since Node.js file handling in the synchronous mode is based on C - like syntax there have to be multiple considerations
+taken when porting from Java. There is no readable or writable stream used, instead there is a file pointer to the
+previously opened file. Some of the classes and attributes also had to be renamed, as these names are already used in
+the the standard environment. Notable examples for this are the Node_ class or the obj_ attributes, as Javascript uses
+“Node” and “obj” in its own system.
+
+## Files
+
+### Coco.ts
+
+This file is the entry point for the program. Since Javascript is a scripting language this entry point just consists of
+the pure logic to handle program arguments (e.g., the .atg file to be processed) and to start the parsing of the .atg
+file. The main file doesn’t have to look like this in every program utilizing Coco/R, in fact some programs don’t even
+need such an entry point, as the generated scanner and parser can be executed from within other code. This might be
+interesting for programs utilizing Coco/R as a subcomponent for data parsing, as the language-specific implementations
+allow for usage in other programs.
+
+### Trace.ts
+
+In this file the saving of the tracing information is handled. Before the file gets written the program has to check
+whether it is openable, and if so it opens the file in “overwrite” mode, to create a new file if it doesn’t exist, and
+if it exists it clears the contents of the file when opening. The tracing of programs is an important task for
+programmers as it helps with debugging and understanding the inner workings of a program. Coco/R has extensive tracing
+capabilities for a fine grained insight into the data and how it is structured. While these capabilities stem from a
+time where live debugging of programs wasn’t easily or commonly done, it still offers a better view at the data than
+current tools can give. The tracing of Coco/R is triggered by various options that can be enabled by using program
+arguments or by specifying these options (e.g., $AB3) in the attributed grammar file. Every letter or digit triggers one
+of the options. The Typescript implementation can use the same symbols as other implementations, as the Java
+implementation uses the letters described in the manual, but the C# implementation referenced by the provided test files
+was using numbers. This project was written to accommodate both versions without any issues, and thus the user could
+technically even mix numbers and letters. For more information on what options the symbols trigger please consult the
+user manual. [4]
+
+### Tab.ts
+
+The Tab.ts file contains multiple classes for storing internally used information. There is the Position class, which is
+used for storing information on source file sections which have to be accessed later. There is also the small SymInfo
+class that stores name and symbol kind. The Symbol class is a bigger storage class that contains information about the
+tokens read by the scanner. The Node_ class is used to build EBNF syntax graphs from the grammar in the atg file. These
+graphs denote terminal and nonterminal symbols to be matched by the resulting compiler as well as alternatives, optional
+parts and repetitive parts in the grammar. Nodes also point to the corresponding positions in the atg file. Tab.ts also
+contains a Sets class that implements BitSet operations such as set intersection or set difference. By far the most
+important class in this file is the Tab class. It represents the symbol table and features multiple functions to print
+elements or the complete table. There is also a lot of functionality to manage the syntax graphs.
+
+### Scanner.ts
+
+This file is special as it is one of the two files generated from a .frame file. The generated scanner scans a program
+to produce parsable tokens. The Scanner.ts file, like many others, has a multitude of classes which provide
+functionality mainly to the Scanner class. The Buffer class is used to abstract the underlying data source, whether it
+is a file, a stream or another buffer. Because characters are handled as strings the processing of integer value
+character arrays into strings is quite complicated in Javascript. One has to iterate through the integer array, map the
+integer values to the corresponding characters and finally concatenate those characters. let stringValue = buf.map(
+function (value){return String.fromCharCode(value)}).join(""); In this example buf is the integer array and value is the
+value currently being looked at during iteration. Array .map takes a function as an argument and transforms the contents
+of the array according to this function, and Array .join concatenates an array with the given separator, in our case
+none. The Scanner class is generated by the class DFA (described later). It has to recognize the different tokens
+described in the .atg file. The Scanner class starts with possible import statements. The only standard import needed is
+from the fs library, as it is used for every filesystem-related operation. The next part in the Scanner class is the
+“declarations” section, where tokens are declared. The Scanner class also contains static initializations, which are
+normally not a feature of Typescript, so the implementation is a bit sketchy. The initialisation is done in an anonymous
+function that is executed with the initialisation of a static variable. private static _static_initialize = function()
+{/*code*/}(); The variable _static_initialize has no use outside of this initialisation and does not contain any value.
+The next three parts of the Scanner class are used for case sensitivity, as the user can specify whether they want the
+processed file (such as case-insensitive programming languages) to be case sensitive. In between those parts there is
+also a way to insert code for comments, as the possibility of commenting out code is usually interesting.
+
+### DFA.ts
+
+DFA stands for deterministic finite automaton, the core part of the scanner. With DFA.ts the new Scanner.ts file is
+getting constructed. It generates the Scanner by opening the Scanner.frame file, writing most parts directly into the
+Scanner.ts file, with certain parts (denoted by -->) getting replaced with code generated by the DFA class. The scanner
+reads and returns the tokens one by one and as there is no dependence on other tokens ahead of the current one to
+properly read the token, the functionality of the generated scanner is fully deterministic.
+
+### Parser.ts
+
+This file is generated from the Parser.frame file. It handles the scanned tokens and parses them according to the
+specification. Parser.frame starts with a possible declaration of imports. Next, there is the possibility of declaring
+constants and variables. There is also the possibility to include pragmas, as it is useful to include certain features
+independent from the grammar.
+
+### ParserGen.ts
+
+This file generates the parser. Just like what the DFA class does for the scanner, ParserGen does for the parser. Unlike
+the scanner the parser needs a push-down automaton (PDA), as the parser in the case of Coco/R needs at least one
+look-ahead token to be able to determine the possible paths the parser can take. The usage of a PDA allows for the
+inclusion of such a look-ahead-token without sacrificing on complexity. In practical terms this feature is seen for
+example in many typed programming languages (eg. C) where a variable is for example defined as int foo = 42; but a
+function might look like int foo(){return 42;} In such cases the parser doesn’t know whether after the int foo if “foo”
+should be considered a variable or a function. Only if it looks a token ahead it is able to accurately go down the right
+path. There would be another possibility, following ALL possible paths and deciding during the further parsing whether a
+correct path is still available. This method results in an extremely inflated code, a slowdown of execution speed and
+additional complexity, as the code for each possibility has to be computed every time, and especially for nonterminals
+that branch more this approach can be really slow.
+
+### Coco.atg
+
+Coco.atg is a specification of the language for which Coco/R should generate a scanner and a parser. The Typescript
+version of this file differs from other implementations in two ways. The obvious difference is in the semantic actions,
+as those are written in the target language (i.e., Typescript). They are functionally equal in the different versions,
+and language specific functionality should be kept to a minimum. The .atg files for Coco/R are written in the
+description language Cocol/R. They are split into different sections that handle different tasks each. For Coco/R to
+generate a very simple compiler it only needs a production and the compiler keyword, as can be seen in the "Test"
+section, where exactly such a simple grammar was used for the initial tests. Without any semantic actions a generated
+scanner and parser only check an input file for its correctness without further actions. This might be interesting for
+tasks that require properly structured files, such as a quick upload filter on students' coding homework. It can’t
+detect errors that would require proper compilation, but it would be able to detect any syntactical errors, which might
+be an interesting tradeoff, considering the fact that Coco/R can be ported to basically every language pretty quickly
+and the “active parts” in such an application would just be the scanner and the parser, nothing else would be needed
+from Coco/R.
+
+#### Structure of Coco.atg
+
+The first section of the file can contain a preamble for tracing, a "$" followed by certain letters or numbers, which
+sets the corresponding options in the compiler. The real compiler starts with the keyword "COMPILER" followed by the
+name the compiler should have. The next section is for global declarations, which are copied straight into the parser.
+This requires them to be written in the language of the resulting parser. Following that section is the one for the
+construction of the scanner. The "CHARACTERS" section describes character sets that are used in the declaration of
+tokens.. Possible ways of representing them are: listing them all in a string ("abcdefg"), using ".." to represent
+spans ('a' .. 'g') and using “+” or “-“ to add or subtract from a larger group (ANY - 'h' - 'i'). As seen here one can
+also use the keyword "ANY" as a catch-all symbol. The "TOKENS" are constructed from characters or from previously
+declared character sets to describe tokens, such as identifiers, strings or numbers. “PRAGMAS” are the next group of
+tokens, which can occur at arbitrary positions in the input program; they can be processed by semantic actions but are
+not considered by the parser. After that are the “COMMENTS”, which can be nested. Nested comments have to be specified
+by the “NESTED” keyword. To get single-line comments, the comment has to be specified to go from a starting token to the
+line end. The final description for the scanner is what characters besides spaces should be skipped. After this
+description for the scanner follows the description for the parser, which starts with the “PRODUCTIONS” keyword,
+followed by the productions of the language to be processed. There has to be at least a production with the same name as
+given after the “COMPILER” keyword in the beginning, as this NTS is used as an entry point. In theory one could then
+collect all of the further productions into this one, but this only results in duplicated code and would not allow for
+recursion. At the end of the compiler there needs to be an “END” tag with the compiler name to symbolize that the file
+has been read and processed completely.
+
+# Evaluations
+
+## Differences to existing Coco/R implementations
+
+Even though the author tried to make all of the features completely compatible from Java to Typescript, there has been
+an issue with the input attributes of productions that made a clean implementation impossible. Typescript has a feature
+that is a nightmare to implement: Class types can be described completely with all of their attributes, which in turn
+can also be complex types. This behavior causes a need for complex parsing of the argument, or to skip this step
+altogether. To keep it simple and uniform with other implementations the author decided after consulting the original
+author of Coco/R that the Typescript version would copy the input attributes directly to the Parser.ts, without
+processing them, thus breaking the complete compatibility.
+
+## Tests
+
+The simplest way to test Coco/R is a grammar that checks if a file has a single “0”. COMPILER Test0 PRODUCTIONS Test0
+= "0". END Test0. This example does not make use of most features Coco/R has to offer. This has only been a simple
+grammar to allow for runnability checks. In larger test examples the grammar file gets gradually extended to test more
+and more features. The next step in the testing extends the grammar by adding more productions and the sections for the
+specification of characters and tokens. The third test file doesn’t seem too different from the second one, but it
+contains something that can break during development: joint productions, productions containing multiple tokens. If
+those tests run without problems the next bigger grammar can be taken from the test suite, finally followed by Coco.atg.
+
+### Test Suite
+
+The testsuite, initially developed for the C# version of Coco/R tests basically all of the grammar features. It consists
+of batch scripts executing Coco/R with various attributed grammar files and the intended outputs that should be
+generated. The original testsuite also contained the scanner and parser files to compare the generated ones with, but
+since the provided files are generated for C# they would only match after carefully porting every one by hand.
+
+### Sample Compiler “Taste”
+
+The sample compiler “Taste” is an example program utilizing Coco/R. It was available as C# version and thus had to be
+ported to Typescript before working with it. Taste represents a simple programming language that can read from a file,
+has simple logical branching, can do simple mathematics and finally write to the console. Before compiling source
+files (in this case .TAS files) Coco/R first has to generate a scanner and a parser for the language. The grammar for
+these two files is described in the Taste.atg file. They can then be used to scan and parse the taste language files and
+are functionally completely independent from Coco/R, which automatically removes some clutter from the project. Scanning
+and parsing is done with every execution of the “Taste.ts” main program, as the semantic actions in the parser generate
+a list of instructions that is then evaluated by a little runtime. This program was initially written in C#, but it was
+ported to Typescript to make this sample program actually functional.
+
+## Performance
+
+Performance monitoring is an important task in modern programs. It can help with analyzing current issues and it aids
+the developer with necessary information to improve performance. In managed languages some sort of runtime is running
+while a program is being executed, which also can be used to track certain performance metrics. Those runtimes sadly
+have their own issues, with lower overall performance being mostly associated with managed languages, when they are
+compared to their unmanaged counterparts. Node.js is an especially big offender when it comes to overhead, as for every
+execution the whole Javascript engine from the Chromium browser gets executed. This performance hit is mostly felt
+during the initial execution, and this is the reason why Node.js is mostly used for longer running apps, as they can
+neglect the startup time in favor of flexibility for developers. In our implementation of Coco/R the reading and writing
+from and to files is also neither optimized nor buffered, and so the program performance isn’t at the level it could be.
+
